@@ -19,6 +19,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Bayflow stays on PostgreSQL 16. Upgrading Postgres is a deliberate,
+      # manual change (new data volume path in 18+, data migration).
+      - dependency-name: "postgres"
 
   # Added in later milestones:
   #   npm    /frontend           (M6)
