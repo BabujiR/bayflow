@@ -1,0 +1,34 @@
+# Bayflow local development stack.
+# Milestone 1: PostgreSQL only. Services, nginx and the UI are added in later milestones.
+#
+#   docker compose up -d          start
+#   docker compose ps             check health
+#   docker compose down           stop (data kept)
+#   docker compose down -v        stop and delete data
+
+name: bayflow
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bayflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bayflow}
+      POSTGRES_USER: ${POSTGRES_USER:-bayflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
+      TZ: UTC
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - bayflow-pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  bayflow-pgdata:
