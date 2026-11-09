@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 710" width="1100" height="710" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>Bayflow architecture</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5f6368"/>
+    </marker>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="1100" height="710" rx="16" fill="#ffffff"/>
+
+  <!-- Header -->
+  <text x="40" y="44" font-size="24" font-weight="700" fill="#1a1a2e">Bayflow</text>
+  <text x="148" y="44" font-size="15" fill="#5f6368">The smarter way to run your auto workshop</text>
+  <text x="1060" y="44" font-size="13" fill="#9aa0a6" text-anchor="end">Target architecture</text>
+  <line x1="40" y1="62" x2="1060" y2="62" stroke="#e8eaed" stroke-width="1.5"/>
+
+  <!-- ============ Users / browser ============ -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="150" width="170" height="330" rx="14" fill="#e8f0fe" stroke="#4a6fd8" stroke-width="1.5"/>
+  </g>
+  <text x="125" y="180" font-size="15" font-weight="700" fill="#1f3c88" text-anchor="middle">Users</text>
+  <rect x="58" y="198" width="134" height="34" rx="17" fill="#ffffff" stroke="#4a6fd8"/>
+  <text x="125" y="220" font-size="13" fill="#1f3c88" text-anchor="middle">Customer</text>
+  <rect x="58" y="242" width="134" height="34" rx="17" fill="#ffffff" stroke="#4a6fd8"/>
+  <text x="125" y="264" font-size="13" fill="#1f3c88" text-anchor="middle">Service Advisor</text>
+  <rect x="58" y="286" width="134" height="34" rx="17" fill="#ffffff" stroke="#4a6fd8"/>
+  <text x="125" y="308" font-size="13" fill="#1f3c88" text-anchor="middle">Mechanic</text>
+  <rect x="58" y="348" width="134" height="112" rx="10" fill="#ffffff" stroke="#4a6fd8" stroke-dasharray="4 3"/>
+  <text x="125" y="374" font-size="13" font-weight="700" fill="#1f3c88" text-anchor="middle">bayflow-web</text>
+  <text x="125" y="394" font-size="12" fill="#3c4043" text-anchor="middle">React 19 SPA</text>
+  <text x="125" y="412" font-size="12" fill="#3c4043" text-anchor="middle">TypeScript · Vite</text>
+  <text x="125" y="430" font-size="12" fill="#3c4043" text-anchor="middle">TanStack Query</text>
+  <text x="125" y="448" font-size="12" fill="#3c4043" text-anchor="middle">Tailwind · shadcn/ui</text>
+
+  <!-- ============ nginx ============ -->
+  <g filter="url(#shadow)">
+    <rect x="270" y="235" width="170" height="160" rx="14" fill="#e6f4ea" stroke="#2e7d32" stroke-width="1.5"/>
+  </g>
+  <text x="355" y="268" font-size="16" font-weight="700" fill="#1b5e20" text-anchor="middle">nginx</text>
+  <text x="355" y="290" font-size="13" fill="#1b5e20" text-anchor="middle">localhost:3000</text>
+  <line x1="290" y1="304" x2="420" y2="304" stroke="#a5d6a7"/>
+  <text x="355" y="326" font-size="12" fill="#3c4043" text-anchor="middle">Serves the UI</text>
+  <text x="355" y="344" font-size="12" fill="#3c4043" text-anchor="middle">Routes /api/v1/*</text>
+  <text x="355" y="362" font-size="12" fill="#3c4043" text-anchor="middle">Single origin, no CORS</text>
+  <text x="355" y="380" font-size="12" fill="#3c4043" text-anchor="middle">Security headers</text>
+
+  <!-- Users -> nginx -->
+  <line x1="210" y1="315" x2="266" y2="315" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="238" y="305" font-size="11" fill="#5f6368" text-anchor="middle">HTTPS</text>
+
+  <!-- ============ Services ============ -->
+  <!-- auth-service -->
+  <g filter="url(#shadow)">
+    <rect x="530" y="90" width="250" height="125" rx="14" fill="#fff4e5" stroke="#e08a00" stroke-width="1.5"/>
+  </g>
+  <text x="655" y="120" font-size="15" font-weight="700" fill="#8a4b00" text-anchor="middle">auth-service  :8083</text>
+  <text x="655" y="143" font-size="12" fill="#3c4043" text-anchor="middle">Register · Login · Refresh · Logout</text>
+  <text x="655" y="161" font-size="12" fill="#3c4043" text-anchor="middle">Issues RS256 JWTs (15 min)</text>
+  <text x="655" y="179" font-size="12" fill="#3c4043" text-anchor="middle">Publishes JWKS public key</text>
+  <text x="655" y="199" font-size="11" fill="#8a4b00" text-anchor="middle" font-family="Consolas, monospace">/auth  ·  /.well-known/jwks.json</text>
+
+  <!-- appointment-service -->
+  <g filter="url(#shadow)">
+    <rect x="530" y="290" width="250" height="125" rx="14" fill="#fff4e5" stroke="#e08a00" stroke-width="1.5"/>
+  </g>
+  <text x="655" y="320" font-size="15" font-weight="700" fill="#8a4b00" text-anchor="middle">appointment-service  :8081</text>
+  <text x="655" y="343" font-size="12" fill="#3c4043" text-anchor="middle">Customers · Vehicles · Bookings</text>
+  <text x="655" y="361" font-size="12" fill="#3c4043" text-anchor="middle">Arrival and check-in · Outbox retry</text>
+  <text x="655" y="379" font-size="12" fill="#3c4043" text-anchor="middle">Verifies JWT via JWKS</text>
+  <text x="655" y="399" font-size="11" fill="#8a4b00" text-anchor="middle" font-family="Consolas, monospace">/customers /vehicles /appointments</text>
+
+  <!-- workshop-service -->
+  <g filter="url(#shadow)">
+    <rect x="530" y="490" width="250" height="125" rx="14" fill="#fff4e5" stroke="#e08a00" stroke-width="1.5"/>
+  </g>
+  <text x="655" y="520" font-size="15" font-weight="700" fill="#8a4b00" text-anchor="middle">workshop-service  :8082</text>
+  <text x="655" y="543" font-size="12" fill="#3c4043" text-anchor="middle">Job cards · Inspection · Approval</text>
+  <text x="655" y="561" font-size="12" fill="#3c4043" text-anchor="middle">Work, parts, labour · Service history</text>
+  <text x="655" y="579" font-size="12" fill="#3c4043" text-anchor="middle">Verifies JWT via JWKS</text>
+  <text x="655" y="599" font-size="11" fill="#8a4b00" text-anchor="middle" font-family="Consolas, monospace">/job-cards /service-history</text>
+
+  <!-- nginx -> services -->
+  <path d="M440,290 C485,290 485,152 526,152" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="440" y1="315" x2="526" y2="352" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M440,340 C485,340 485,552 526,552" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- appointment -> auth : SYSTEM token -->
+  <line x1="600" y1="290" x2="600" y2="219" stroke="#c26a00" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+  <text x="608" y="252" font-size="11" fill="#8a4b00">SYSTEM token</text>
+  <text x="608" y="266" font-size="11" fill="#8a4b00">(client credentials)</text>
+
+  <!-- appointment -> workshop : create job card -->
+  <line x1="655" y1="415" x2="655" y2="486" stroke="#c26a00" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+  <text x="663" y="446" font-size="11" fill="#8a4b00">On check-in: create job card</text>
+  <text x="663" y="460" font-size="11" fill="#8a4b00">REST · idempotent · retried</text>
+
+  <!-- ============ PostgreSQL ============ -->
+  <g filter="url(#shadow)">
+    <rect x="860" y="190" width="200" height="320" rx="14" fill="#f3e8fd" stroke="#7b3fbf" stroke-width="1.5"/>
+  </g>
+  <text x="960" y="222" font-size="16" font-weight="700" fill="#4a148c" text-anchor="middle">PostgreSQL 16</text>
+  <text x="960" y="243" font-size="12" fill="#3c4043" text-anchor="middle">database · schema: bayflow</text>
+  <text x="960" y="260" font-size="12" fill="#3c4043" text-anchor="middle">Flyway per service</text>
+
+  <rect x="880" y="280" width="160" height="58" rx="8" fill="#ffffff" stroke="#7b3fbf"/>
+  <text x="960" y="304" font-size="13" font-weight="700" fill="#4a148c" text-anchor="middle" font-family="Consolas, monospace">auth_*</text>
+  <text x="960" y="323" font-size="11" fill="#5f6368" text-anchor="middle">users · tokens · clients</text>
+
+  <rect x="880" y="350" width="160" height="58" rx="8" fill="#ffffff" stroke="#7b3fbf"/>
+  <text x="960" y="374" font-size="13" font-weight="700" fill="#4a148c" text-anchor="middle" font-family="Consolas, monospace">apt_*</text>
+  <text x="960" y="393" font-size="11" fill="#5f6368" text-anchor="middle">customers · appointments</text>
+
+  <rect x="880" y="420" width="160" height="58" rx="8" fill="#ffffff" stroke="#7b3fbf"/>
+  <text x="960" y="444" font-size="13" font-weight="700" fill="#4a148c" text-anchor="middle" font-family="Consolas, monospace">ws_*</text>
+  <text x="960" y="463" font-size="11" fill="#5f6368" text-anchor="middle">job cards · history</text>
+
+  <!-- services -> DB (each only its own tables) -->
+  <path d="M780,152 C830,152 830,309 876,309" fill="none" stroke="#7b3fbf" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="780" y1="352" x2="876" y2="379" stroke="#7b3fbf" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M780,552 C830,552 830,449 876,449" fill="none" stroke="#7b3fbf" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="960" y="532" font-size="11" fill="#4a148c" text-anchor="middle">Each service reads and writes</text>
+  <text x="960" y="547" font-size="11" fill="#4a148c" text-anchor="middle">only its own tables</text>
+
+  <!-- ============ Footer: delivery ============ -->
+  <line x1="40" y1="636" x2="1060" y2="636" stroke="#e8eaed" stroke-width="1.5"/>
+  <text x="40" y="660" font-size="12" fill="#5f6368">Docker Compose for local dev  ·  GitHub Actions CI/CD  ·  Images on GHCR: bayflow-web, bayflow-auth, bayflow-appointment, bayflow-workshop</text>
+  <line x1="40" y1="688" x2="70" y2="688" stroke="#5f6368" stroke-width="2"/>
+  <text x="76" y="692" font-size="11" fill="#5f6368">request</text>
+  <line x1="130" y1="688" x2="160" y2="688" stroke="#c26a00" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="166" y="692" font-size="11" fill="#5f6368">service-to-service</text>
+  <line x1="280" y1="688" x2="310" y2="688" stroke="#7b3fbf" stroke-width="2"/>
+  <text x="316" y="692" font-size="11" fill="#5f6368">data</text>
+</svg>
