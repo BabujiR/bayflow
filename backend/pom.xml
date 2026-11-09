@@ -33,7 +33,7 @@
 
         <!-- Not managed by Spring Boot -->
         <springdoc.version>3.0.2</springdoc.version>
-        <jacoco.version>0.8.13</jacoco.version>
+        <jacoco.version>0.8.16</jacoco.version>
 
         <!-- Line coverage required on domain + application packages -->
         <bayflow.coverage.minimum>0.80</bayflow.coverage.minimum>
