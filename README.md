@@ -12,12 +12,17 @@ recorded in the vehicle's service history.
 
 ## Architecture (target)
 
-```
-Browser ──▶ nginx (bayflow-web) ──┬─▶ auth-service         :8083 ─┐
-                                  ├─▶ appointment-service  :8081 ─┼─▶ PostgreSQL
-                                  └─▶ workshop-service     :8082 ─┘   db "bayflow", schema "bayflow"
-appointment-service ──REST (SYSTEM token)──▶ workshop-service
-```
+![Bayflow architecture](docs/architecture.svg)
+
+- **nginx** serves the React app and routes each `/api/v1/*` path to the right
+  service, so the browser talks to a single origin.
+- **auth-service** issues JWTs; the other services verify them with its public
+  key (JWKS).
+- **appointment-service** creates the job card in **workshop-service** at
+  check-in, using a SYSTEM token. The call is idempotent and retried from an
+  outbox if workshop-service is down.
+- All services share one PostgreSQL schema, but each reads and writes **only
+  its own tables** (`auth_*`, `apt_*`, `ws_*`).
 
 | Component | Tech |
 |---|---|
