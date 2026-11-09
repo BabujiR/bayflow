@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 640" width="1100" height="640" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>Appointment workflow</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5f6368"/></marker>
+    <marker id="arrowR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d93025"/></marker>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="120%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.12"/></filter>
+  </defs>
+  <rect x="0" y="0" width="1100" height="640" rx="16" fill="#ffffff"/>
+  <text x="40" y="44" font-size="22" font-weight="700" fill="#1a1a2e">Appointment workflow</text>
+  <text x="40" y="68" font-size="14" fill="#5f6368">appointment-service · any transition not shown returns 409 Conflict</text>
+  <text x="1060" y="44" font-size="13" fill="#9aa0a6" text-anchor="end">Bayflow</text>
+  <line x1="40" y1="84" x2="1060" y2="84" stroke="#e8eaed" stroke-width="1.5"/>
+  <g filter="url(#shadow)"><rect x="60" y="238" width="170" height="64" rx="12" fill="#e8f0fe" stroke="#4a6fd8" stroke-width="1.8"/></g>
+  <text x="145.0" y="267.0" font-size="14" font-weight="700" fill="#1f3c88" text-anchor="middle" font-family="Consolas, Menlo, monospace">BOOKED</text>
+  <text x="145.0" y="285.0" font-size="11.5" fill="#5f6368" text-anchor="middle">↻ can reschedule</text>
+  <g filter="url(#shadow)"><rect x="330" y="238" width="170" height="64" rx="12" fill="#e8f0fe" stroke="#4a6fd8" stroke-width="1.8"/></g>
+  <text x="415.0" y="267.0" font-size="14" font-weight="700" fill="#1f3c88" text-anchor="middle" font-family="Consolas, Menlo, monospace">CONFIRMED</text>
+  <text x="415.0" y="285.0" font-size="11.5" fill="#5f6368" text-anchor="middle">↻ can reschedule</text>
+  <g filter="url(#shadow)"><rect x="600" y="238" width="170" height="64" rx="12" fill="#fff8e1" stroke="#f2a900" stroke-width="1.8"/></g>
+  <text x="685.0" y="267.0" font-size="14" font-weight="700" fill="#7a5600" text-anchor="middle" font-family="Consolas, Menlo, monospace">ARRIVED</text>
+  <text x="685.0" y="285.0" font-size="11.5" fill="#5f6368" text-anchor="middle">customer at the desk</text>
+  <g filter="url(#shadow)"><rect x="870" y="238" width="190" height="64" rx="12" fill="#e6f4ea" stroke="#2e7d32" stroke-width="1.8"/></g>
+  <text x="965.0" y="267.0" font-size="14" font-weight="700" fill="#1b5e20" text-anchor="middle" font-family="Consolas, Menlo, monospace">CHECKED_IN</text>
+  <text x="965.0" y="285.0" font-size="11.5" fill="#5f6368" text-anchor="middle">mileage + time saved</text>
+  <g filter="url(#shadow)"><rect x="205" y="110" width="150" height="56" rx="12" fill="#f1f3f4" stroke="#80868b" stroke-width="1.8"/></g>
+  <text x="280.0" y="143.0" font-size="14" font-weight="700" fill="#3c4043" text-anchor="middle" font-family="Consolas, Menlo, monospace">NO_SHOW</text>
+  <g filter="url(#shadow)"><rect x="205" y="382" width="150" height="56" rx="12" fill="#fdecea" stroke="#d93025" stroke-width="1.8"/></g>
+  <text x="280.0" y="415.0" font-size="14" font-weight="700" fill="#a50e0e" text-anchor="middle" font-family="Consolas, Menlo, monospace">CANCELLED</text>
+  <g filter="url(#shadow)"><rect x="870" y="390" width="190" height="64" rx="12" fill="#fff4e5" stroke="#e08a00" stroke-width="1.8"/></g>
+  <text x="965.0" y="419.0" font-size="14" font-weight="700" fill="#8a4b00" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Job card (OPEN)</text>
+  <text x="965.0" y="437.0" font-size="11.5" fill="#5f6368" text-anchor="middle">in workshop-service</text>
+  <path d="M230,270 L326,270" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="249.5" y="212.5" width="57.1" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="278" y="226" font-size="11.5" fill="#3c4043" text-anchor="middle">confirm</text>
+  <path d="M500,270 L596,270" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="522.7" y="212.5" width="50.6" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="548" y="226" font-size="11.5" fill="#3c4043" text-anchor="middle">arrive</text>
+  <path d="M770,270 L866,270" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="786.2" y="212.5" width="63.5" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="818" y="226" font-size="11.5" fill="#3c4043" text-anchor="middle">check-in</text>
+  <path d="M145,238 C145,195 215,195 238,169" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M415,238 C415,195 345,195 322,169" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="359.0" y="129.5" width="263.2" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="365" y="143" font-size="11.5" fill="#3c4043" text-anchor="start">no-show (only after the scheduled time)</text>
+  <path d="M145,302 C145,345 215,345 238,379" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M415,302 C415,345 345,345 322,379" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="359.0" y="402.5" width="50.6" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="365" y="416" font-size="11.5" fill="#3c4043" text-anchor="start">cancel</text>
+  <path d="M965,302 L965,386" fill="none" stroke="#c26a00" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+  <rect x="967.0" y="336.5" width="115.0" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="973" y="350" font-size="11.5" fill="#8a4b00" text-anchor="start">creates via REST</text>
+  <rect x="40" y="480" width="1020" height="118" rx="10" fill="#f1f3f4" stroke="#80868b" stroke-dasharray="4 3"/>
+  <text x="56" y="504" font-size="13" font-weight="700" fill="#3c4043">Rules</text>
+  <text x="56" y="528" font-size="12" fill="#3c4043">•  confirm, arrive, check-in and no-show: SERVICE_ADVISOR.  cancel and reschedule: the customer (own appointments) or a SERVICE_ADVISOR.</text>
+  <text x="56" y="549" font-size="12" fill="#3c4043">•  Reschedule changes the time but keeps the status; it is allowed only while BOOKED or CONFIRMED.</text>
+  <text x="56" y="570" font-size="12" fill="#3c4043">•  No double booking: a vehicle cannot have two active appointments whose time slots overlap.</text>
+  <text x="56" y="591" font-size="12" fill="#3c4043">•  CHECKED_IN, CANCELLED and NO_SHOW are final. Check-in triggers job card creation (see the check-in flow).</text>
+</svg>

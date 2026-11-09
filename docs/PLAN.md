@@ -120,22 +120,15 @@ optimistic locking.
 ## 4. State machines
 
 ### Appointment
-```
-BOOKED ──confirm──▶ CONFIRMED ──arrive──▶ ARRIVED ──check-in──▶ CHECKED_IN
-  │                    │
-  ├──cancel────────────┴──▶ CANCELLED
-  └──no-show (after scheduled time)──▶ NO_SHOW
-BOOKED/CONFIRMED: reschedule changes the time, keeps the status
-```
+
+![Appointment workflow](appointment-workflow.svg)
+
 Any other transition → `409 Conflict` (Problem Details, type `invalid-transition`).
 
 ### Job card
-```
-OPEN ──inspect──▶ INSPECTED ──submit──▶ AWAITING_APPROVAL
-AWAITING_APPROVAL ──(all items decided)──▶ APPROVED | PARTIALLY_APPROVED | DECLINED
-APPROVED | PARTIALLY_APPROVED ──start──▶ IN_PROGRESS ──complete──▶ COMPLETED
-DECLINED ──complete──▶ COMPLETED (inspection only)
-```
+
+![Job card workflow](jobcard-workflow.svg)
+
 - Adding the first finding moves OPEN → INSPECTED.
 - Submitting with zero recommendations moves the card straight to DECLINED
   (inspection only, see assumption 6).
@@ -217,15 +210,8 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 
 ## 7. Check-in → job card flow
 
-```
-Advisor ──POST /appointments/{id}/check-in──▶ appointment-service
-   1. status ARRIVED → CHECKED_IN, store mileage + time         (one DB transaction,
-   2. insert apt_outbox row "CREATE_JOB_CARD"                     same commit)
-   3. after commit: try to deliver now ─▶ workshop POST /job-cards (SYSTEM token,
-                                          Idempotency on appointmentId)
-        ✓ store job_card_id, mark outbox processed
-        ✗ leave in outbox; scheduler retries with backoff (10 s → 5 min cap)
-```
+![Check-in to job card flow](checkin-flow.svg)
+
 Workshop returns `201` for a new job card and `200` with the existing one when
 the appointmentId is already known, so retries are always safe.
 

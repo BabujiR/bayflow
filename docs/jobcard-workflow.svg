@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1220 670" width="1220" height="670" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>Job card workflow</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5f6368"/></marker>
+    <marker id="arrowR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d93025"/></marker>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="120%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.12"/></filter>
+  </defs>
+  <rect x="0" y="0" width="1220" height="670" rx="16" fill="#ffffff"/>
+  <text x="40" y="44" font-size="22" font-weight="700" fill="#1a1a2e">Job card workflow</text>
+  <text x="40" y="68" font-size="14" fill="#5f6368">workshop-service · any transition not shown returns 409 Conflict</text>
+  <text x="1180" y="44" font-size="13" fill="#9aa0a6" text-anchor="end">Bayflow</text>
+  <line x1="40" y1="84" x2="1180" y2="84" stroke="#e8eaed" stroke-width="1.5"/>
+  <g filter="url(#shadow)"><rect x="40" y="228" width="120" height="60" rx="12" fill="#e8f0fe" stroke="#4a6fd8" stroke-width="1.8"/></g>
+  <text x="100.0" y="255.0" font-size="14" font-weight="700" fill="#1f3c88" text-anchor="middle" font-family="Consolas, Menlo, monospace">OPEN</text>
+  <text x="100.0" y="273.0" font-size="11.5" fill="#5f6368" text-anchor="middle">job card created</text>
+  <g filter="url(#shadow)"><rect x="220" y="228" width="140" height="60" rx="12" fill="#e8f0fe" stroke="#4a6fd8" stroke-width="1.8"/></g>
+  <text x="290.0" y="255.0" font-size="14" font-weight="700" fill="#1f3c88" text-anchor="middle" font-family="Consolas, Menlo, monospace">INSPECTED</text>
+  <text x="290.0" y="273.0" font-size="11.5" fill="#5f6368" text-anchor="middle">findings added</text>
+  <g filter="url(#shadow)"><rect x="430" y="228" width="200" height="60" rx="12" fill="#fff8e1" stroke="#f2a900" stroke-width="1.8"/></g>
+  <text x="530.0" y="255.0" font-size="14" font-weight="700" fill="#7a5600" text-anchor="middle" font-family="Consolas, Menlo, monospace">AWAITING_APPROVAL</text>
+  <text x="530.0" y="273.0" font-size="11.5" fill="#5f6368" text-anchor="middle">customer decides each item</text>
+  <g filter="url(#shadow)"><rect x="740" y="120" width="200" height="60" rx="12" fill="#e6f4ea" stroke="#2e7d32" stroke-width="1.8"/></g>
+  <text x="840.0" y="147.0" font-size="14" font-weight="700" fill="#1b5e20" text-anchor="middle" font-family="Consolas, Menlo, monospace">APPROVED</text>
+  <text x="840.0" y="165.0" font-size="11.5" fill="#5f6368" text-anchor="middle">work on all items</text>
+  <g filter="url(#shadow)"><rect x="740" y="228" width="200" height="60" rx="12" fill="#e6f4ea" stroke="#2e7d32" stroke-width="1.8"/></g>
+  <text x="840.0" y="255.0" font-size="14" font-weight="700" fill="#1b5e20" text-anchor="middle" font-family="Consolas, Menlo, monospace">PARTIALLY_APPROVED</text>
+  <text x="840.0" y="273.0" font-size="11.5" fill="#5f6368" text-anchor="middle">work on approved items</text>
+  <g filter="url(#shadow)"><rect x="740" y="370" width="200" height="60" rx="12" fill="#fdecea" stroke="#d93025" stroke-width="1.8"/></g>
+  <text x="840.0" y="397.0" font-size="14" font-weight="700" fill="#a50e0e" text-anchor="middle" font-family="Consolas, Menlo, monospace">DECLINED</text>
+  <text x="840.0" y="415.0" font-size="11.5" fill="#5f6368" text-anchor="middle">no work done</text>
+  <g filter="url(#shadow)"><rect x="1000" y="174" width="140" height="60" rx="12" fill="#fff4e5" stroke="#e08a00" stroke-width="1.8"/></g>
+  <text x="1070.0" y="201.0" font-size="14" font-weight="700" fill="#8a4b00" text-anchor="middle" font-family="Consolas, Menlo, monospace">IN_PROGRESS</text>
+  <text x="1070.0" y="219.0" font-size="11.5" fill="#5f6368" text-anchor="middle">work · parts · labour</text>
+  <g filter="url(#shadow)"><rect x="990" y="330" width="180" height="60" rx="12" fill="#f3e8fd" stroke="#7b3fbf" stroke-width="1.8"/></g>
+  <text x="1080.0" y="357.0" font-size="14" font-weight="700" fill="#4a148c" text-anchor="middle" font-family="Consolas, Menlo, monospace">COMPLETED</text>
+  <text x="1080.0" y="375.0" font-size="11.5" fill="#5f6368" text-anchor="middle">totals + history entry</text>
+  <path d="M160,258 L216,258" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="148.6" y="201.5" width="82.8" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="190" y="215" font-size="11.5" fill="#3c4043" text-anchor="middle">add finding</text>
+  <path d="M360,258 L426,258" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="327.8" y="201.5" width="134.4" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="395" y="215" font-size="11.5" fill="#3c4043" text-anchor="middle">submit for approval</text>
+  <path d="M630,258 C685,258 685,150 736,150" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="659.5" y="178.5" width="57.1" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="688" y="192" font-size="11.5" fill="#3c4043" text-anchor="middle">all yes</text>
+  <path d="M630,258 L736,258" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="653.2" y="236.5" width="63.5" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="685" y="250" font-size="11.5" fill="#3c4043" text-anchor="middle">some yes</text>
+  <path d="M630,258 C685,258 685,400 736,400" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="640.1" y="324.5" width="95.7" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="688" y="338" font-size="11.5" fill="#3c4043" text-anchor="middle">all no / none</text>
+  <path d="M940,150 C970,150 970,195 996,195" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M940,258 C970,258 970,214 996,214" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="947.9" y="166.5" width="44.2" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="970" y="180" font-size="11.5" fill="#3c4043" text-anchor="middle">start</text>
+  <path d="M1070,234 L1070,326" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="1072.0" y="273.5" width="63.5" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="1078" y="287" font-size="11.5" fill="#3c4043" text-anchor="start">complete</text>
+  <path d="M940,400 C965,400 965,370 986,370" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="875.3" y="441.5" width="179.4" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="965" y="455" font-size="11.5" fill="#3c4043" text-anchor="middle">complete (inspection only)</text>
+  <rect x="40" y="500" width="1140" height="139" rx="10" fill="#f1f3f4" stroke="#80868b" stroke-dasharray="4 3"/>
+  <text x="56" y="524" font-size="13" font-weight="700" fill="#3c4043">Rules</text>
+  <text x="56" y="548" font-size="12" fill="#3c4043">•  Findings and recommendations can be added only while the card is OPEN or INSPECTED; submitting with no recommendations goes straight to DECLINED.</text>
+  <text x="56" y="569" font-size="12" fill="#3c4043">•  Each recommended item is approved or declined once, only while AWAITING_APPROVAL; the card status is computed when the last item is decided.</text>
+  <text x="56" y="590" font-size="12" fill="#3c4043">•  Work logs, parts and labour can be recorded only against approved items, and only while IN_PROGRESS (mechanic taken from the JWT).</text>
+  <text x="56" y="611" font-size="12" fill="#3c4043">•  Completing calculates parts + labour totals (BigDecimal) and writes an immutable service history entry for the vehicle.</text>
+  <text x="56" y="632" font-size="12" fill="#3c4043">•  Optimistic locking (@Version) prevents two users from changing the same card at once; a stale update returns 409.</text>
+</svg>

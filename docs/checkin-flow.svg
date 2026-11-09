@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1140 770" width="1140" height="770" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>Check-in → job card flow</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5f6368"/></marker>
+    <marker id="arrowR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d93025"/></marker>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="120%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.12"/></filter>
+  </defs>
+  <rect x="0" y="0" width="1140" height="770" rx="16" fill="#ffffff"/>
+  <text x="40" y="44" font-size="22" font-weight="700" fill="#1a1a2e">Check-in → job card flow</text>
+  <text x="40" y="68" font-size="14" fill="#5f6368">How a check-in in appointment-service creates exactly one job card in workshop-service</text>
+  <text x="1100" y="44" font-size="13" fill="#9aa0a6" text-anchor="end">Bayflow</text>
+  <line x1="40" y1="84" x2="1100" y2="84" stroke="#e8eaed" stroke-width="1.5"/>
+  <rect x="275" y="205" width="430" height="118" rx="10" fill="#fff8e1" stroke="#f2a900" stroke-dasharray="4 3"/>
+  <text x="697" y="316" font-size="11" fill="#7a5600" text-anchor="end">steps 2–3: one database transaction</text>
+  <rect x="275" y="338" width="845" height="212" rx="10" fill="#e8f0fe" stroke="#4a6fd8" stroke-dasharray="4 3"/>
+  <text x="1112" y="543" font-size="11" fill="#1f3c88" text-anchor="end">steps 4–7: after commit · retried from the outbox if they fail</text>
+  <line x1="120" y1="152" x2="120" y2="600" stroke="#bdc1c6" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <g filter="url(#shadow)"><rect x="35.0" y="100" width="170" height="52" rx="12" fill="#e8f0fe" stroke="#4a6fd8" stroke-width="1.8"/></g>
+  <text x="120.0" y="123.0" font-size="14" font-weight="700" fill="#1f3c88" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">Service Advisor</text>
+  <text x="120.0" y="141.0" font-size="11.5" fill="#5f6368" text-anchor="middle">bayflow-web</text>
+  <line x1="370" y1="152" x2="370" y2="600" stroke="#bdc1c6" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <g filter="url(#shadow)"><rect x="275.0" y="100" width="190" height="52" rx="12" fill="#fff4e5" stroke="#e08a00" stroke-width="1.8"/></g>
+  <text x="370.0" y="131.0" font-size="14" font-weight="700" fill="#8a4b00" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">appointment-service</text>
+  <line x1="600" y1="152" x2="600" y2="600" stroke="#bdc1c6" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <g filter="url(#shadow)"><rect x="520.0" y="100" width="160" height="52" rx="12" fill="#f3e8fd" stroke="#7b3fbf" stroke-width="1.8"/></g>
+  <text x="600.0" y="123.0" font-size="14" font-weight="700" fill="#4a148c" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">PostgreSQL</text>
+  <text x="600.0" y="141.0" font-size="11.5" fill="#5f6368" text-anchor="middle">apt_* tables</text>
+  <line x1="820" y1="152" x2="820" y2="600" stroke="#bdc1c6" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <g filter="url(#shadow)"><rect x="740.0" y="100" width="160" height="52" rx="12" fill="#fff4e5" stroke="#e08a00" stroke-width="1.8"/></g>
+  <text x="820.0" y="131.0" font-size="14" font-weight="700" fill="#8a4b00" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">auth-service</text>
+  <line x1="1020" y1="152" x2="1020" y2="600" stroke="#bdc1c6" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <g filter="url(#shadow)"><rect x="935.0" y="100" width="170" height="52" rx="12" fill="#fff4e5" stroke="#e08a00" stroke-width="1.8"/></g>
+  <text x="1020.0" y="131.0" font-size="14" font-weight="700" fill="#8a4b00" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif">workshop-service</text>
+  <path d="M120,190 L366,190" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="126.3" y="168.5" width="237.4" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="245.0" y="182" font-size="11.5" fill="#202124" text-anchor="middle">1. POST /appointments/{id}/check-in</text>
+  <path d="M370,245 L596,245" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="356.6" y="223.5" width="256.7" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="485.0" y="237" font-size="11.5" fill="#202124" text-anchor="middle">2. ARRIVED → CHECKED_IN, mileage, time</text>
+  <path d="M370,290 L596,290" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="356.6" y="268.5" width="256.7" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="485.0" y="282" font-size="11.5" fill="#202124" text-anchor="middle">3. insert apt_outbox (CREATE_JOB_CARD)</text>
+  <path d="M370,375 L816,375" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="457.0" y="353.5" width="276.0" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="595.0" y="367" font-size="11.5" fill="#202124" text-anchor="middle">4. get SYSTEM token (cached until expiry)</text>
+  <path d="M820,405 L374,405" fill="none" stroke="#5f6368" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+  <rect x="579.3" y="383.5" width="31.3" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="595.0" y="397" font-size="11.5" fill="#5f6368" text-anchor="middle">JWT</text>
+  <path d="M370,448 L1016,448" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="511.9" y="426.5" width="366.2" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="695.0" y="440" font-size="11.5" fill="#202124" text-anchor="middle">5. POST /job-cards  { appointmentId, vehicle, mileage }</text>
+  <path d="M1020,485 L374,485" fill="none" stroke="#5f6368" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+  <rect x="489.4" y="463.5" width="411.3" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="695.0" y="477" font-size="11.5" fill="#5f6368" text-anchor="middle">6. 201 Created (new)  ·  200 OK (already exists)  →  jobCardId</text>
+  <path d="M370,528 L596,528" fill="none" stroke="#5f6368" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="347.0" y="506.5" width="276.0" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="485.0" y="520" font-size="11.5" fill="#202124" text-anchor="middle">7. save jobCardId · mark outbox processed</text>
+  <path d="M370,585 L124,585" fill="none" stroke="#5f6368" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+  <rect x="129.5" y="563.5" width="231.0" height="19.5" rx="4" fill="#ffffff" opacity="0.92"/>
+  <text x="245.0" y="577" font-size="11.5" fill="#5f6368" text-anchor="middle">8. 200 OK · CHECKED_IN + jobCardId</text>
+  <rect x="40" y="625" width="1060" height="97" rx="10" fill="#fdecea" stroke="#d93025" stroke-dasharray="4 3"/>
+  <text x="56" y="649" font-size="13" font-weight="700" fill="#a50e0e">If auth-service or workshop-service is unavailable (steps 4–6)</text>
+  <text x="56" y="673" font-size="12" fill="#3c4043">•  The check-in is already saved, so the advisor still gets 200 OK, with jobCardId shown as "pending".</text>
+  <text x="56" y="694" font-size="12" fill="#3c4043">•  The apt_outbox row stays open; a scheduler retries it with backoff (10 s, doubling, up to 5 min) until it succeeds.</text>
+  <text x="56" y="715" font-size="12" fill="#3c4043">•  workshop-service treats appointmentId as an idempotency key, so a retry can never create a second job card.</text>
+</svg>
