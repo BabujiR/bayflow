@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Maven verify)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/**/pom.xml
+
+      # Unit tests + Testcontainers integration tests (Docker is available on the runner)
+      - name: Build and test
+        run: mvn -B -ntp verify
+
+      - name: Upload test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-reports
+          path: |
+            backend/**/target/surefire-reports/
+            backend/**/target/failsafe-reports/
+            backend/**/target/site/jacoco/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  compose:
+    name: Compose config check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate docker-compose.yml
+        run: docker compose config --quiet
+
+  # Added in later milestones:
+  #   frontend  (M6) - pnpm lint, type-check, Vitest, build
+  #   e2e       (M8) - docker compose up --build + Playwright
