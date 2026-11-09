@@ -32,7 +32,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Not managed by Spring Boot -->
-        <springdoc.version>3.0.2</springdoc.version>
+        <springdoc.version>3.2.0</springdoc.version>
         <jacoco.version>0.8.16</jacoco.version>
 
         <!-- Line coverage required on domain + application packages -->
