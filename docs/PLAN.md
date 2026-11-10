@@ -251,8 +251,20 @@ Frontend foundation (milestone 6):
 - `AuthProvider` restores the session from the refresh cookie on load and refreshes 60 s before expiry.
 - Route guards (`RequireAuth`, `RequireRole`) mirror the API's role rules; navigation shows only the
   current role's screens.
-- API types: auth types are written by hand in milestone 6; `pnpm api:update` (services running)
-  downloads the OpenAPI documents and generates `src/api/schema/*.ts`, which milestone 7 uses.
+- API types: `pnpm api:update` (services running) downloads the OpenAPI documents and generates
+  `src/api/schema/*.ts`; `src/api/types.ts` builds on them and marks the fields the backend always
+  sends as required.
+
+Screens (milestone 7), under `src/features/`:
+- Customers: profile setup on first sign-in, My vehicles (add, edit, service history), Book a
+  service, Appointments (reschedule, cancel), Job cards with approve/decline per item.
+- Service advisor: Today's board (columns by status; confirm, arrive, check-in dialog, no-show),
+  Appointments with day/status filters, Customers (search, create, vehicles, bookings), job card
+  findings, recommendations, submit, decisions on the customer's behalf, complete.
+- Mechanic: My jobs (needs inspection / ready to start / in progress), findings, start, work logs,
+  parts, labour, complete.
+- Admin: User accounts (create staff, enable/disable); read-only appointments, customers and job
+  cards.
 
 Branding: name "Bayflow", tagline "The smarter way to run your auto workshop."
 shown on the login and register pages, in the app header on wide screens, and

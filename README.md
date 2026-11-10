@@ -7,7 +7,7 @@ service history: customers book appointments, service advisors check vehicles
 in and manage job cards, mechanics log the work, and every completed job is
 recorded in the vehicle's service history.
 
-> **Status:** Milestone 6 of 8 — frontend foundation (sign-in, layout, navigation). See
+> **Status:** Milestone 7 of 8 — every role's screens are in the web app. See
 > [docs/PLAN.md](docs/PLAN.md) for the full design and the milestone list.
 
 ## Architecture (target)
@@ -87,6 +87,24 @@ curl -i -X POST http://localhost:8083/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"advisor1","password":"Bayflow!2026"}'
 ```
+
+### Try the whole workflow in the web app
+
+With the backend running and `pnpm dev` in `frontend/` (http://localhost:5173):
+
+1. **customer1** — complete the profile on first sign-in, add a vehicle under
+   *My vehicles*, then *Book a service*.
+2. **advisor1** — on *Today's board* (pick the booking's day): *Confirm* →
+   *Mark arrived* → *Check in* with the odometer reading. The job card opens
+   automatically.
+3. **mechanic1** — *My jobs* → the card under *Needs inspection* → add findings.
+4. **advisor1** — on the job card: add recommended work with estimates, then
+   *Send to customer for approval*.
+5. **customer1** — *Job cards* → approve or decline each item.
+6. **mechanic1** — *Start work*, log work (plus parts and labour) for each
+   approved item, then *Complete job*.
+7. **customer1** — *My vehicles* → the vehicle → its service history.
+8. **admin1** — *User accounts* to create staff; read-only views elsewhere.
 
 ### Try the appointment workflow
 
@@ -170,8 +188,8 @@ to every 5 minutes).
 | 4 | workshop-service: job card, inspection, approval | ✅ done |
 | 5 | Work logging, completion, history + check-in integration | ✅ done |
 | 6 | Frontend foundation | ✅ done |
-| 7 | Frontend screens per role | ⏳ next |
-| 8 | nginx, full compose, Playwright e2e, CD | |
+| 7 | Frontend screens per role | ✅ done |
+| 8 | nginx, full compose, Playwright e2e, CD | ⏳ next |
 
 ## Assumptions
 

@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet } from 'react-router';
 
 import { useAuth } from '@/auth/auth-context';
+import { CustomerProfileGate } from '@/features/customers/CustomerProfileGate';
 import { navItemsFor } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 
@@ -48,7 +49,9 @@ export function AppShell() {
         </nav>
       </header>
       <main id="main" className="mx-auto max-w-7xl px-4 py-8">
-        <Outlet />
+        <CustomerProfileGate>
+          <Outlet />
+        </CustomerProfileGate>
       </main>
     </div>
   );
