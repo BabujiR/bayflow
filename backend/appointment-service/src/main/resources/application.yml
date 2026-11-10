@@ -37,6 +37,19 @@ bayflow:
   appointment:
     workshop-zone: ${BAYFLOW_WORKSHOP_ZONE:America/New_York}
     default-duration-minutes: 60
+  integration:
+    auth-url: ${BAYFLOW_AUTH_URL:http://localhost:8083}
+    workshop-url: ${BAYFLOW_WORKSHOP_URL:http://localhost:8082}
+    client-id: appointment-service
+    client-secret: ${BAYFLOW_SYSTEM_CLIENT_SECRET:dev-system-secret}
+    connect-timeout: 2s
+    read-timeout: 5s
+    dispatcher:
+      enabled: true
+      interval-ms: 10000
+      batch-size: 20
+      initial-backoff: 10s
+      max-backoff: 5m
 
 management:
   endpoints:

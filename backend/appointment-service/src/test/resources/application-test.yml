@@ -3,6 +3,17 @@ bayflow:
     jwt:
       # Never called: tests use spring-security-test's jwt() instead of real tokens.
       jwk-set-uri: http://localhost:1/.well-known/jwks.json
+  integration:
+    # Nothing listens here: check-ins in ordinary tests fail delivery fast and stay in the outbox.
+    # CheckInJobCardIT points these at WireMock instead.
+    auth-url: http://localhost:1
+    workshop-url: http://localhost:1
+    client-secret: test-client-secret
+    connect-timeout: 500ms
+    read-timeout: 2s
+    dispatcher:
+      # Tests trigger retries themselves.
+      enabled: false
 
 logging:
   level:

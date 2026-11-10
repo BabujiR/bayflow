@@ -27,7 +27,8 @@ import com.bayflow.appointment.infrastructure.VehicleRepository;
 import com.bayflow.security.CurrentUser;
 
 /**
- * Booking and the appointment workflow up to check-in. Role checks happen on the API;
+ * Booking and the appointment workflow up to check-in. Check-in also queues the request
+ * that opens the job card in workshop-service (see OutboxService). Role checks happen on the API;
  * this class enforces ownership (customers only touch their own bookings) and the
  * double-booking rule.
  */
@@ -41,14 +42,16 @@ public class AppointmentService {
     private final AppointmentRepository appointments;
     private final VehicleRepository vehicles;
     private final Callers callers;
+    private final OutboxService outbox;
     private final AppointmentProperties properties;
     private final Clock clock;
 
     public AppointmentService(AppointmentRepository appointments, VehicleRepository vehicles, Callers callers,
-            AppointmentProperties properties, Clock clock) {
+            OutboxService outbox, AppointmentProperties properties, Clock clock) {
         this.appointments = appointments;
         this.vehicles = vehicles;
         this.callers = callers;
+        this.outbox = outbox;
         this.properties = properties;
         this.clock = clock;
     }
@@ -132,7 +135,15 @@ public class AppointmentService {
                     + ") is lower than the last recorded reading (" + recorded + ").");
         }
         appointment.checkIn(mileage, clock.instant());
+        // Saved in this transaction: if the check-in commits, the job-card request will be delivered.
+        outbox.enqueueJobCard(appointment);
         return appointment;
+    }
+
+    /** Re-reads an appointment, e.g. to pick up the job card id after delivery. */
+    @Transactional(readOnly = true)
+    public Appointment reload(UUID id) {
+        return find(id);
     }
 
     @Transactional

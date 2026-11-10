@@ -23,7 +23,7 @@
         <module>common-security</module>
         <module>auth-service</module>
         <module>appointment-service</module>
-        <!-- M4: workshop-service -->
+        <module>workshop-service</module>
     </modules>
 
     <properties>
@@ -33,6 +33,7 @@
 
         <!-- Not managed by Spring Boot -->
         <springdoc.version>3.2.0</springdoc.version>
+        <wiremock.version>3.13.2</wiremock.version>
         <jacoco.version>0.8.16</jacoco.version>
 
         <!-- Line coverage required on domain + application packages -->
@@ -46,6 +47,11 @@
                 <groupId>com.bayflow</groupId>
                 <artifactId>common-security</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wiremock</groupId>
+                <artifactId>wiremock-standalone</artifactId>
+                <version>${wiremock.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.springdoc</groupId>

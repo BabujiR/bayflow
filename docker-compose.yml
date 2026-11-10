@@ -1,5 +1,5 @@
 # Bayflow local development stack.
-# Milestone 3: PostgreSQL, auth-service and appointment-service. workshop-service, nginx and the UI follow later.
+# Milestone 5: PostgreSQL and the three services; check-in opens the job card automatically. nginx and the UI follow.
 #
 #   docker compose up -d          start
 #   docker compose ps             check health
@@ -77,8 +77,36 @@ services:
       # Tokens are verified with auth-service's public key
       BAYFLOW_JWKS_URI: http://auth-service:8083/.well-known/jwks.json
       BAYFLOW_WORKSHOP_ZONE: ${BAYFLOW_WORKSHOP_ZONE:-America/New_York}
+      # Check-in opens the job card in workshop-service using a SYSTEM token from auth-service.
+      # If workshop-service is down, the request waits in the outbox and is retried.
+      BAYFLOW_AUTH_URL: http://auth-service:8083
+      BAYFLOW_WORKSHOP_URL: http://workshop-service:8082
+      BAYFLOW_SYSTEM_CLIENT_SECRET: ${BAYFLOW_SYSTEM_CLIENT_SECRET:-dev-system-secret}
     ports:
       - "${APPOINTMENT_PORT:-8081}:8081"
+
+  workshop-service:
+    build:
+      context: ./backend
+      dockerfile: workshop-service/Dockerfile
+    image: bayflow-workshop:local
+    container_name: bayflow-workshop
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    environment:
+      BAYFLOW_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-bayflow}
+      BAYFLOW_DB_USER: ${POSTGRES_USER:-bayflow}
+      BAYFLOW_DB_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
+      # Public key for verifying tokens, fetched from auth-service
+      BAYFLOW_JWKS_URI: http://auth-service:8083/.well-known/jwks.json
+      BAYFLOW_LABOUR_RATE: ${BAYFLOW_LABOUR_RATE:-95.00}
+      BAYFLOW_CURRENCY: ${BAYFLOW_CURRENCY:-USD}
+    ports:
+      - "${WORKSHOP_PORT:-8082}:8082"
 
 volumes:
   bayflow-pgdata:

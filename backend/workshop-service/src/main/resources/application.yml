@@ -1,0 +1,63 @@
+server:
+  port: ${PORT:8082}
+  forward-headers-strategy: native
+  error:
+    include-message: never
+    include-stacktrace: never
+
+spring:
+  application:
+    name: workshop-service
+  datasource:
+    url: ${BAYFLOW_DB_URL:jdbc:postgresql://localhost:5432/bayflow}
+    username: ${BAYFLOW_DB_USER:bayflow}
+    password: ${BAYFLOW_DB_PASSWORD:bayflow}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: bayflow
+  flyway:
+    # Shared schema "bayflow"; this service owns the ws_* tables and its own history table.
+    schemas: bayflow
+    default-schema: bayflow
+    table: flyway_history_workshop
+    baseline-on-migrate: true
+    baseline-version: "0"
+    locations: classpath:db/migration
+
+bayflow:
+  security:
+    jwt:
+      jwk-set-uri: ${BAYFLOW_JWKS_URI:http://localhost:8083/.well-known/jwks.json}
+      issuer: ${BAYFLOW_JWT_ISSUER:bayflow-auth}
+      audience: ${BAYFLOW_JWT_AUDIENCE:bayflow}
+  workshop:
+    labour-rate: ${BAYFLOW_LABOUR_RATE:95.00}
+    currency: ${BAYFLOW_CURRENCY:USD}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+info:
+  app:
+    name: Bayflow workshop-service
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.bayflow: INFO

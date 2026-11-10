@@ -28,6 +28,7 @@ updates:
     directories:
       - /backend/auth-service
       - /backend/appointment-service
+      - /backend/workshop-service
     schedule:
       interval: weekly
     ignore:
@@ -38,4 +39,3 @@ updates:
 
   # Added in later milestones:
   #   npm    /frontend           (M6)
-  #   docker /backend/workshop-service (M4)
