@@ -22,25 +22,24 @@ class JobCardTest {
     private static final Instant NOW = Instant.parse("2026-11-16T15:00:00Z");
     private static final BigDecimal RATE = new BigDecimal("95.00");
 
-    /** Statuses reachable in milestone 4 (IN_PROGRESS and COMPLETED arrive with milestone 5). */
-    private static final List<JobCardStatus> REACHABLE = List.of(JobCardStatus.OPEN, JobCardStatus.INSPECTED,
-            JobCardStatus.AWAITING_APPROVAL, JobCardStatus.APPROVED, JobCardStatus.PARTIALLY_APPROVED,
-            JobCardStatus.DECLINED);
 
     /** The expected state machine, written out independently of the production table. */
     private static final Map<JobCardAction, Set<JobCardStatus>> ALLOWED = Map.of(
             JobCardAction.ADD_FINDING, EnumSet.of(JobCardStatus.OPEN, JobCardStatus.INSPECTED),
             JobCardAction.ADD_RECOMMENDATION, EnumSet.of(JobCardStatus.OPEN, JobCardStatus.INSPECTED),
             JobCardAction.SUBMIT_FOR_APPROVAL, EnumSet.of(JobCardStatus.INSPECTED),
-            JobCardAction.DECIDE_ITEM, EnumSet.of(JobCardStatus.AWAITING_APPROVAL));
+            JobCardAction.DECIDE_ITEM, EnumSet.of(JobCardStatus.AWAITING_APPROVAL),
+            JobCardAction.START, EnumSet.of(JobCardStatus.APPROVED, JobCardStatus.PARTIALLY_APPROVED),
+            JobCardAction.RECORD_WORK, EnumSet.of(JobCardStatus.IN_PROGRESS),
+            JobCardAction.COMPLETE, EnumSet.of(JobCardStatus.IN_PROGRESS, JobCardStatus.DECLINED));
 
-    static Stream<Arguments> everyReachableStatusAndAction() {
-        return REACHABLE.stream()
+    static Stream<Arguments> everyStatusAndAction() {
+        return Stream.of(JobCardStatus.values())
                 .flatMap(status -> Stream.of(JobCardAction.values()).map(action -> Arguments.of(status, action)));
     }
 
     @ParameterizedTest(name = "{1} from {0}")
-    @MethodSource("everyReachableStatusAndAction")
+    @MethodSource("everyStatusAndAction")
     void stateMachineAllowsExactlyTheDocumentedTransitions(JobCardStatus from, JobCardAction action) {
         JobCard card = inStatus(from);
         boolean allowed = ALLOWED.get(action).contains(from);
@@ -58,11 +57,108 @@ class JobCardTest {
     }
 
     @Test
-    void neitherWorkStatusAllowsAnyMilestone4Action() {
+    void completedIsFinal() {
         for (JobCardAction action : JobCardAction.values()) {
-            assertThat(action.isAllowedFrom(JobCardStatus.IN_PROGRESS)).isFalse();
             assertThat(action.isAllowedFrom(JobCardStatus.COMPLETED)).isFalse();
         }
+    }
+
+    // ---- work and completion ----------------------------------------------------
+
+    @Test
+    void completionAddsUpPartsAndLabour() {
+        JobCard card = decided(true, false);
+        RecommendedWorkItem pads = card.getRecommendations().get(0);
+        card.start(NOW);
+        card.logWork(pads.getId(), "mechanic1", "Fitted new front pads", NOW);
+        PartUsage part = card.addPart(pads.getId(), "BP-220", "Brake pad set", 2, new BigDecimal("45.25"),
+                "mechanic1", NOW);
+        LabourEntry labour = card.addLabour(pads.getId(), "mechanic1", new BigDecimal("1.25"), RATE, NOW);
+        card.addLabour(pads.getId(), "mechanic2", new BigDecimal("0.5"), new BigDecimal("80"), NOW);
+
+        Instant done = NOW.plusSeconds(3600);
+        card.complete(done);
+
+        assertThat(part.lineTotal()).isEqualByComparingTo("90.50");
+        assertThat(labour.cost()).isEqualByComparingTo("118.75");
+        assertThat(card.getPartsTotal()).isEqualByComparingTo("90.50");
+        assertThat(card.getLabourTotal()).isEqualByComparingTo("158.75");
+        assertThat(card.getGrandTotal()).isEqualByComparingTo("249.25");
+        assertThat(card.getStatus()).isEqualTo(JobCardStatus.COMPLETED);
+        assertThat(card.getCompletedAt()).isEqualTo(done);
+        assertThat(card.getStartedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void workCanOnlyBeRecordedAgainstApprovedItems() {
+        JobCard card = decided(true, false);
+        UUID declined = card.getRecommendations().get(1).getId();
+        card.start(NOW);
+
+        assertThatThrownBy(() -> card.logWork(declined, "mechanic1", "x", NOW))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("item-not-approved"));
+        assertThatThrownBy(() -> card.addPart(declined, "P", "Part", 1, BigDecimal.ONE, "m", NOW))
+                .isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> card.addLabour(UUID.randomUUID(), "m", BigDecimal.ONE, RATE, NOW))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("item-not-found"));
+    }
+
+    @Test
+    void everyApprovedItemNeedsAWorkLogBeforeCompletion() {
+        JobCard card = decided(true, true);
+        card.start(NOW);
+        card.logWork(card.getRecommendations().get(0).getId(), "mechanic1", "Pads done", NOW);
+
+        assertThatThrownBy(() -> card.complete(NOW))
+                .isInstanceOfSatisfying(BusinessRuleException.class, e -> {
+                    assertThat(e.getCode()).isEqualTo("work-incomplete");
+                    assertThat(e.getMessage()).contains("Replace wipers");
+                });
+        assertThat(card.getStatus()).isEqualTo(JobCardStatus.IN_PROGRESS);
+    }
+
+    @Test
+    void declinedCardCompletesAsInspectionOnlyWithZeroTotals() {
+        JobCard card = decided(false, false);
+
+        card.complete(NOW);
+
+        assertThat(card.getStatus()).isEqualTo(JobCardStatus.COMPLETED);
+        assertThat(card.getGrandTotal()).isEqualByComparingTo("0.00");
+        assertThat(ServiceHistoryEntry.record(card, "{}").getTotalCost()).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void historyEntryCopiesTheCompletedCard() {
+        JobCard card = inStatus(JobCardStatus.COMPLETED);
+
+        ServiceHistoryEntry entry = ServiceHistoryEntry.record(card, "{\"work\":[]}");
+
+        assertThat(entry.getJobCardId()).isEqualTo(card.getId());
+        assertThat(entry.getVehicleId()).isEqualTo(card.getVehicleId());
+        assertThat(entry.getMileage()).isEqualTo(12_000);
+        assertThat(entry.getServiceDate()).isEqualTo(card.getCompletedAt());
+        assertThat(entry.getTotalCost()).isEqualByComparingTo(card.getGrandTotal());
+        assertThat(entry.isOwnedBy(card.getCustomerUserId())).isTrue();
+        assertThatThrownBy(() -> ServiceHistoryEntry.record(inStatus(JobCardStatus.IN_PROGRESS), "{}"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void partsAndLabourRejectNonsense() {
+        JobCard card = inStatus(JobCardStatus.IN_PROGRESS);
+        UUID item = card.getRecommendations().get(0).getId();
+
+        assertThatThrownBy(() -> card.addPart(item, "P", "Part", 0, BigDecimal.ONE, "m", NOW))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> card.addPart(item, "P", "Part", 1, new BigDecimal("-1"), "m", NOW))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> card.addLabour(item, "m", BigDecimal.ZERO, RATE, NOW))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> card.addLabour(item, "m", BigDecimal.ONE, new BigDecimal("-5"), NOW))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -200,7 +296,8 @@ class JobCardTest {
             case APPROVED -> decideAll(awaiting(card), true, true);
             case PARTIALLY_APPROVED -> decideAll(awaiting(card), true, false);
             case DECLINED -> decideAll(awaiting(card), false, false);
-            default -> throw new IllegalArgumentException("Not reachable in milestone 4: " + status);
+            case IN_PROGRESS -> inProgress(card);
+            case COMPLETED -> inProgress(card).complete(NOW);
         }
         assertThat(card.getStatus()).isEqualTo(status);
         return card;
@@ -221,6 +318,15 @@ class JobCardTest {
         return card;
     }
 
+    /** Both items approved, work started and logged for each, ready to complete. */
+    private static JobCard inProgress(JobCard card) {
+        decideAll(awaiting(card), true, true).start(NOW);
+        for (RecommendedWorkItem item : card.getRecommendations()) {
+            card.logWork(item.getId(), "mechanic1", "Done: " + item.getDescription(), NOW);
+        }
+        return card;
+    }
+
     private static JobCard decided(boolean first, boolean second) {
         return decideAll(awaiting(open()), first, second);
     }
@@ -236,6 +342,14 @@ class JobCardTest {
                         : card.getRecommendations().get(0).getId();
                 card.decide(itemId, true, "customer1", NOW);
             }
+            case START -> card.start(NOW);
+            case RECORD_WORK -> {
+                UUID itemId = card.getRecommendations().isEmpty()
+                        ? UUID.randomUUID()
+                        : card.getRecommendations().get(0).getId();
+                card.logWork(itemId, "mechanic1", "More work", NOW);
+            }
+            case COMPLETE -> card.complete(NOW);
         }
     }
 
@@ -247,6 +361,8 @@ class JobCardTest {
             case SUBMIT_FOR_APPROVAL -> JobCardStatus.DECLINED;
             // one of two items decided: still waiting for the other
             case DECIDE_ITEM -> JobCardStatus.AWAITING_APPROVAL;
+            case START, RECORD_WORK -> JobCardStatus.IN_PROGRESS;
+            case COMPLETE -> JobCardStatus.COMPLETED;
         };
     }
 }

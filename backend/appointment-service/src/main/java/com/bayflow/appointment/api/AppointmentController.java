@@ -27,6 +27,7 @@ import com.bayflow.appointment.api.AppointmentDtos.RescheduleRequest;
 import com.bayflow.appointment.application.AppointmentService;
 import com.bayflow.appointment.application.AppointmentService.ListQuery;
 import com.bayflow.appointment.domain.AppointmentStatus;
+import com.bayflow.appointment.integration.JobCardDispatcher;
 import com.bayflow.security.CurrentUser;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,9 +41,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class AppointmentController {
 
     private final AppointmentService appointments;
+    private final JobCardDispatcher jobCardDispatcher;
 
-    public AppointmentController(AppointmentService appointments) {
+    public AppointmentController(AppointmentService appointments, JobCardDispatcher jobCardDispatcher) {
         this.appointments = appointments;
+        this.jobCardDispatcher = jobCardDispatcher;
     }
 
     @PostMapping
@@ -94,9 +97,15 @@ public class AppointmentController {
 
     @PostMapping("/{id}/check-in")
     @PreAuthorize("hasRole('SERVICE_ADVISOR')")
-    @Operation(summary = "ARRIVED → CHECKED_IN, recording the odometer reading")
+    @Operation(summary = "ARRIVED → CHECKED_IN, recording the odometer reading",
+            description = "Also opens the job card in workshop-service. If that service is unavailable the "
+                    + "check-in still succeeds, jobCardId stays empty, and the job card is created by a "
+                    + "background retry.")
     public AppointmentResponse checkIn(@PathVariable UUID id, @Valid @RequestBody CheckInRequest request) {
-        return AppointmentResponse.from(appointments.checkIn(id, request.mileage()));
+        appointments.checkIn(id, request.mileage());
+        // After the check-in has committed: try to open the job card straight away.
+        jobCardDispatcher.dispatchFor(id);
+        return AppointmentResponse.from(appointments.reload(id));
     }
 
     @PostMapping("/{id}/no-show")

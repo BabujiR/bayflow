@@ -21,9 +21,12 @@ import com.bayflow.security.CurrentUser;
 import com.bayflow.workshop.api.WorkshopDtos.FindingRequest;
 import com.bayflow.workshop.api.WorkshopDtos.JobCardResponse;
 import com.bayflow.workshop.api.WorkshopDtos.JobCardSummary;
+import com.bayflow.workshop.api.WorkshopDtos.LabourRequest;
 import com.bayflow.workshop.api.WorkshopDtos.OpenJobCardRequest;
 import com.bayflow.workshop.api.WorkshopDtos.PageResponse;
+import com.bayflow.workshop.api.WorkshopDtos.PartRequest;
 import com.bayflow.workshop.api.WorkshopDtos.RecommendationRequest;
+import com.bayflow.workshop.api.WorkshopDtos.WorkLogRequest;
 import com.bayflow.workshop.application.JobCardService;
 import com.bayflow.workshop.application.JobCardService.OpenResult;
 import com.bayflow.workshop.config.WorkshopProperties;
@@ -125,6 +128,48 @@ public class JobCardController {
     @Operation(summary = "Decline one recommendation (customer, or advisor on the customer's behalf)")
     public JobCardResponse decline(@PathVariable UUID id, @PathVariable UUID itemId, Authentication auth) {
         return response(jobCards.decide(CurrentUser.from(auth), id, itemId, false));
+    }
+
+    @PostMapping("/{id}/start")
+    @PreAuthorize("hasRole('MECHANIC')")
+    @Operation(summary = "APPROVED/PARTIALLY_APPROVED → IN_PROGRESS")
+    public JobCardResponse start(@PathVariable UUID id) {
+        return response(jobCards.start(id));
+    }
+
+    @PostMapping("/{id}/work-logs")
+    @PreAuthorize("hasRole('MECHANIC')")
+    @Operation(summary = "Log work done on an approved recommendation (IN_PROGRESS)")
+    public JobCardResponse logWork(@PathVariable UUID id, @Valid @RequestBody WorkLogRequest request,
+            Authentication auth) {
+        return response(jobCards.logWork(CurrentUser.from(auth), id, request.recommendationId(),
+                request.description()));
+    }
+
+    @PostMapping("/{id}/parts")
+    @PreAuthorize("hasRole('MECHANIC')")
+    @Operation(summary = "Record a part used for an approved recommendation (IN_PROGRESS)")
+    public JobCardResponse addPart(@PathVariable UUID id, @Valid @RequestBody PartRequest request,
+            Authentication auth) {
+        return response(jobCards.addPart(CurrentUser.from(auth), id, request.recommendationId(),
+                request.partNumber(), request.name(), request.quantity(), request.unitPrice()));
+    }
+
+    @PostMapping("/{id}/labour")
+    @PreAuthorize("hasRole('MECHANIC')")
+    @Operation(summary = "Record labour hours for an approved recommendation (IN_PROGRESS)",
+            description = "hourlyRate is optional and defaults to the workshop labour rate.")
+    public JobCardResponse addLabour(@PathVariable UUID id, @Valid @RequestBody LabourRequest request,
+            Authentication auth) {
+        return response(jobCards.addLabour(CurrentUser.from(auth), id, request.recommendationId(),
+                request.hours(), request.hourlyRate()));
+    }
+
+    @PostMapping("/{id}/complete")
+    @PreAuthorize("hasAnyRole('SERVICE_ADVISOR', 'MECHANIC')")
+    @Operation(summary = "IN_PROGRESS/DECLINED → COMPLETED; calculates totals and writes the service history")
+    public JobCardResponse complete(@PathVariable UUID id) {
+        return response(jobCards.complete(id));
     }
 
     private JobCardResponse response(JobCard card) {

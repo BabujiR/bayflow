@@ -291,6 +291,16 @@ in the page `<meta name="description">`.
 13. **Concurrent refreshes**: two tabs refreshing with the same cookie at the
     same moment look like token reuse and end the session; the frontend
     (milestone 6) de-duplicates refresh calls to avoid this.
+14. **Completing a job** needs at least one work log for every approved
+    recommendation. Parts and labour are optional per item. Labour entries use
+    the workshop rate unless the mechanic enters another rate.
+15. **Service history** entries are written in the same transaction as the
+    completion and never change. They store a snapshot (findings, work done,
+    declined items, parts, labour, totals). Customers see entries from jobs on
+    their own account.
+16. **Job-card delivery** is at-least-once: the immediate attempt after check-in
+    and the scheduled retry may both send the same request; workshop-service is
+    idempotent on the appointment id, so only one job card ever exists.
 
 ---
 

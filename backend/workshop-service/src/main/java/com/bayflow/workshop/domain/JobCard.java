@@ -1,12 +1,14 @@
 package com.bayflow.workshop.domain;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -21,8 +23,8 @@ import jakarta.persistence.Version;
 
 /**
  * The workshop's record for one checked-in vehicle. It is created from an appointment
- * (exactly one job card per appointment) and moves through inspection and customer
- * approval; the methods below enforce the state machine in {@link JobCardAction}.
+ * (exactly one job card per appointment) and moves through inspection, customer approval,
+ * work and completion; the methods below enforce the state machine in {@link JobCardAction}.
  */
 @Entity
 @Table(name = "ws_job_cards")
@@ -68,11 +70,39 @@ public class JobCard {
     @OrderBy("createdAt ASC, id ASC")
     private List<RecommendedWorkItem> recommendations = new ArrayList<>();
 
+    @OneToMany(mappedBy = "jobCard", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("completedAt ASC, id ASC")
+    private List<WorkLog> workLogs = new ArrayList<>();
+
+    @OneToMany(mappedBy = "jobCard", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC, id ASC")
+    private List<PartUsage> parts = new ArrayList<>();
+
+    @OneToMany(mappedBy = "jobCard", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC, id ASC")
+    private List<LabourEntry> labour = new ArrayList<>();
+
     @Column(name = "submitted_at")
     private Instant submittedAt;
 
     @Column(name = "decided_at")
     private Instant decidedAt;
+
+    @Column(name = "started_at")
+    private Instant startedAt;
+
+    @Column(name = "completed_at")
+    private Instant completedAt;
+
+    /** Set on completion. */
+    @Column(name = "parts_total", precision = 12, scale = 2)
+    private BigDecimal partsTotal;
+
+    @Column(name = "labour_total", precision = 12, scale = 2)
+    private BigDecimal labourTotal;
+
+    @Column(name = "grand_total", precision = 12, scale = 2)
+    private BigDecimal grandTotal;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -173,6 +203,84 @@ public class JobCard {
         return approved == 0 ? JobCardStatus.DECLINED : JobCardStatus.PARTIALLY_APPROVED;
     }
 
+    // ---- work ----------------------------------------------------------------------------
+
+    public void start(Instant now) {
+        require(JobCardAction.START);
+        status = JobCardStatus.IN_PROGRESS;
+        startedAt = now;
+        updatedAt = now;
+    }
+
+    public WorkLog logWork(UUID recommendationId, String mechanic, String description, Instant now) {
+        require(JobCardAction.RECORD_WORK);
+        WorkLog log = new WorkLog(this, approvedRecommendation(recommendationId), mechanic, description, now);
+        workLogs.add(log);
+        updatedAt = now;
+        return log;
+    }
+
+    public PartUsage addPart(UUID recommendationId, String partNumber, String name, int quantity,
+            BigDecimal unitPrice, String recordedBy, Instant now) {
+        require(JobCardAction.RECORD_WORK);
+        PartUsage part = new PartUsage(this, approvedRecommendation(recommendationId), partNumber, name, quantity,
+                unitPrice, recordedBy, now);
+        parts.add(part);
+        updatedAt = now;
+        return part;
+    }
+
+    public LabourEntry addLabour(UUID recommendationId, String mechanic, BigDecimal hours, BigDecimal hourlyRate,
+            Instant now) {
+        require(JobCardAction.RECORD_WORK);
+        LabourEntry entry = new LabourEntry(this, approvedRecommendation(recommendationId), mechanic, hours,
+                hourlyRate, now);
+        labour.add(entry);
+        updatedAt = now;
+        return entry;
+    }
+
+    /**
+     * Finishes the job and fixes the totals. Every approved recommendation needs at least one
+     * work log first. A DECLINED card completes as inspection only, with zero totals.
+     */
+    public void complete(Instant now) {
+        require(JobCardAction.COMPLETE);
+        if (status == JobCardStatus.IN_PROGRESS) {
+            List<String> unfinished = recommendations.stream()
+                    .filter(RecommendedWorkItem::isApproved)
+                    .filter(item -> workLogs.stream().noneMatch(log -> log.getRecommendation() == item))
+                    .map(RecommendedWorkItem::getDescription)
+                    .toList();
+            if (!unfinished.isEmpty()) {
+                throw new BusinessRuleException("work-incomplete",
+                        "Log the work done for every approved item before completing. Missing: "
+                                + String.join(", ", unfinished) + ".");
+            }
+        }
+        partsTotal = sum(parts, PartUsage::lineTotal);
+        labourTotal = sum(labour, LabourEntry::cost);
+        grandTotal = partsTotal.add(labourTotal);
+        status = JobCardStatus.COMPLETED;
+        completedAt = now;
+        updatedAt = now;
+    }
+
+    private RecommendedWorkItem approvedRecommendation(UUID recommendationId) {
+        RecommendedWorkItem item = findRecommendation(recommendationId)
+                .orElseThrow(() -> new BusinessRuleException("item-not-found",
+                        "This job card has no recommendation " + recommendationId + "."));
+        if (!item.isApproved()) {
+            throw new BusinessRuleException("item-not-approved",
+                    "Work can only be recorded against recommendations the customer approved.");
+        }
+        return item;
+    }
+
+    private static <T> BigDecimal sum(List<T> rows, Function<T, BigDecimal> amount) {
+        return rows.stream().map(amount).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
+    }
+
     // ---- queries -------------------------------------------------------------------------
 
     public Optional<RecommendedWorkItem> findRecommendation(UUID itemId) {
@@ -215,6 +323,14 @@ public class JobCard {
     public JobCardStatus getStatus() { return status; }
     public List<InspectionFinding> getFindings() { return Collections.unmodifiableList(findings); }
     public List<RecommendedWorkItem> getRecommendations() { return Collections.unmodifiableList(recommendations); }
+    public List<WorkLog> getWorkLogs() { return Collections.unmodifiableList(workLogs); }
+    public List<PartUsage> getParts() { return Collections.unmodifiableList(parts); }
+    public List<LabourEntry> getLabour() { return Collections.unmodifiableList(labour); }
+    public Instant getStartedAt() { return startedAt; }
+    public Instant getCompletedAt() { return completedAt; }
+    public BigDecimal getPartsTotal() { return partsTotal; }
+    public BigDecimal getLabourTotal() { return labourTotal; }
+    public BigDecimal getGrandTotal() { return grandTotal; }
     public Instant getSubmittedAt() { return submittedAt; }
     public Instant getDecidedAt() { return decidedAt; }
     public Instant getCreatedAt() { return createdAt; }

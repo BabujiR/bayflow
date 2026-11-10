@@ -7,8 +7,8 @@ public enum JobCardStatus {
     APPROVED,
     PARTIALLY_APPROVED,
     DECLINED,
-    /** Milestone 5: work under way. */
+    /** Approved work under way. */
     IN_PROGRESS,
-    /** Milestone 5: work finished, history recorded. */
+    /** Finished; totals calculated and service history recorded. */
     COMPLETED
 }

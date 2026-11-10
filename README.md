@@ -7,7 +7,7 @@ service history: customers book appointments, service advisors check vehicles
 in and manage job cards, mechanics log the work, and every completed job is
 recorded in the vehicle's service history.
 
-> **Status:** Milestone 4 of 8 — workshop-service (inspection and approval). See
+> **Status:** Milestone 5 of 8 — the backend workflow is complete. See
 > [docs/PLAN.md](docs/PLAN.md) for the full design and the milestone list.
 
 ## Architecture (target)
@@ -92,21 +92,26 @@ CANCELLED / NO_SHOW; see the diagram in [docs/PLAN.md](docs/PLAN.md#4-state-mach
 Out-of-order steps return **409**, and a vehicle can't have two bookings that
 overlap in time.
 
-### Try the workshop (inspection and approval)
+### Try the workshop: from check-in to service history
 
-Until milestone 5 connects check-in to the workshop automatically, open the
-job card yourself in the workshop Swagger UI:
+Checking a vehicle in (step 3 above) now opens its job card in workshop-service
+automatically; the appointment shows the `jobCardId`. Then, in the workshop
+Swagger UI:
 
-1. As `advisor1`: `POST /job-cards` with the checked-in appointment's
-   `appointmentId`, `vehicleId`, `vin`, `registration`, `customerName`,
-   `mileage`, and `customerUserId` = customer1's user id (from `GET /api/v1/auth/me`
-   as customer1).
-2. As `mechanic1` or `advisor1`: `POST /job-cards/{id}/findings`.
-3. As `advisor1`: `POST /job-cards/{id}/recommendations` (parts cost + labour
+1. As `mechanic1` or `advisor1`: `POST /job-cards/{id}/findings`.
+2. As `advisor1`: `POST /job-cards/{id}/recommendations` (parts cost + labour
    hours; labour is priced at `BAYFLOW_LABOUR_RATE`), then `submit-for-approval`.
-4. As `customer1`: `GET /job-cards/{id}` to see the estimates, then
-   `approve` or `decline` each recommendation. The card ends APPROVED,
-   PARTIALLY_APPROVED or DECLINED.
+3. As `customer1`: `GET /job-cards/{id}` to see the estimates, then `approve` or
+   `decline` each recommendation.
+4. As `mechanic1`: `start`, then for each approved item log `work-logs`,
+   `parts` and `labour`.
+5. As `mechanic1` or `advisor1`: `complete`. Totals are calculated and the job
+   is written to the vehicle's history: `GET /service-history/vehicles/{vehicleId}`
+   (customers see their own vehicles' history).
+
+If workshop-service is down at check-in, the check-in still succeeds; the job
+card is created automatically when it is back (retried after 10 s, backing off
+to every 5 minutes).
 
 ## How authentication works
 
@@ -153,8 +158,8 @@ job card yourself in the workshop Swagger UI:
 | 2 | common-security + auth-service | ✅ done |
 | 3 | appointment-service | ✅ done |
 | 4 | workshop-service: job card, inspection, approval | ✅ done |
-| 5 | Work logging, completion, history + check-in integration | ⏳ next |
-| 6 | Frontend foundation | |
+| 5 | Work logging, completion, history + check-in integration | ✅ done |
+| 6 | Frontend foundation | ⏳ next |
 | 7 | Frontend screens per role | |
 | 8 | nginx, full compose, Playwright e2e, CD | |
 

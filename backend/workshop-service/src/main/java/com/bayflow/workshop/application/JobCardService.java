@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bayflow.security.CurrentUser;
+import com.bayflow.workshop.config.WorkshopProperties;
 import com.bayflow.workshop.domain.JobCard;
 import com.bayflow.workshop.domain.JobCardStatus;
 import com.bayflow.workshop.domain.Severity;
@@ -34,10 +35,15 @@ public class JobCardService {
     }
 
     private final JobCardRepository jobCards;
+    private final ServiceHistoryService history;
+    private final WorkshopProperties properties;
     private final Clock clock;
 
-    public JobCardService(JobCardRepository jobCards, Clock clock) {
+    public JobCardService(JobCardRepository jobCards, ServiceHistoryService history, WorkshopProperties properties,
+            Clock clock) {
         this.jobCards = jobCards;
+        this.history = history;
+        this.properties = properties;
         this.clock = clock;
     }
 
@@ -121,6 +127,49 @@ public class JobCardService {
         return loaded(card);
     }
 
+    // ---- work and completion ---------------------------------------------------------
+
+    @Transactional
+    public JobCard start(UUID id) {
+        JobCard card = find(id);
+        card.start(clock.instant());
+        return loaded(card);
+    }
+
+    @Transactional
+    public JobCard logWork(CurrentUser user, UUID id, UUID recommendationId, String description) {
+        JobCard card = find(id);
+        card.logWork(recommendationId, user.username(), description, clock.instant());
+        return loaded(card);
+    }
+
+    @Transactional
+    public JobCard addPart(CurrentUser user, UUID id, UUID recommendationId, String partNumber, String name,
+            int quantity, BigDecimal unitPrice) {
+        JobCard card = find(id);
+        card.addPart(recommendationId, partNumber, name, quantity, unitPrice, user.username(), clock.instant());
+        return loaded(card);
+    }
+
+    /** {@code hourlyRate} defaults to the workshop rate when not given. */
+    @Transactional
+    public JobCard addLabour(CurrentUser user, UUID id, UUID recommendationId, BigDecimal hours,
+            BigDecimal hourlyRate) {
+        JobCard card = find(id);
+        BigDecimal rate = hourlyRate != null ? hourlyRate : properties.getLabourRate();
+        card.addLabour(recommendationId, user.username(), hours, rate, clock.instant());
+        return loaded(card);
+    }
+
+    /** Completes the card and writes its service-history entry in the same transaction. */
+    @Transactional
+    public JobCard complete(UUID id) {
+        JobCard card = find(id);
+        card.complete(clock.instant());
+        history.record(card);
+        return loaded(card);
+    }
+
     private JobCard find(UUID id) {
         return jobCards.findById(id).orElseThrow(() -> ApiException.notFound("Job card"));
     }
@@ -149,6 +198,9 @@ public class JobCardService {
     private static JobCard loaded(JobCard card) {
         card.getFindings().size();
         card.getRecommendations().size();
+        card.getWorkLogs().size();
+        card.getParts().size();
+        card.getLabour().size();
         return card;
     }
 }

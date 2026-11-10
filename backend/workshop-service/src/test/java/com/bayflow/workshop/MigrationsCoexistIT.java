@@ -43,8 +43,9 @@ class MigrationsCoexistIT {
         List<String> tables = tables(url);
         assertThat(tables).contains(
                 "auth_users", "auth_user_roles", "auth_refresh_tokens", "auth_clients",
-                "apt_customers", "apt_vehicles", "apt_appointments",
-                "ws_job_cards", "ws_inspection_findings", "ws_recommended_items",
+                "apt_customers", "apt_vehicles", "apt_appointments", "apt_outbox",
+                "ws_job_cards", "ws_inspection_findings", "ws_recommended_items", "ws_work_logs",
+                "ws_part_usages", "ws_labour_entries", "ws_service_history",
                 "flyway_history_auth", "flyway_history_appointment", "flyway_history_workshop");
 
         // Starting again (e.g. a restart) applies nothing new.

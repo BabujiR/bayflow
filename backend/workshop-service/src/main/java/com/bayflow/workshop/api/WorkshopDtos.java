@@ -9,6 +9,8 @@ import java.util.function.Function;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -17,12 +19,17 @@ import jakarta.validation.constraints.Size;
 import org.springframework.data.domain.Page;
 
 import com.bayflow.workshop.application.JobCardService.OpenCommand;
+import com.bayflow.workshop.application.ServiceRecord;
 import com.bayflow.workshop.domain.ApprovalStatus;
 import com.bayflow.workshop.domain.InspectionFinding;
 import com.bayflow.workshop.domain.JobCard;
 import com.bayflow.workshop.domain.JobCardStatus;
+import com.bayflow.workshop.domain.LabourEntry;
+import com.bayflow.workshop.domain.PartUsage;
 import com.bayflow.workshop.domain.RecommendedWorkItem;
+import com.bayflow.workshop.domain.ServiceHistoryEntry;
 import com.bayflow.workshop.domain.Severity;
+import com.bayflow.workshop.domain.WorkLog;
 
 /** Request and response bodies of the workshop API. */
 public final class WorkshopDtos {
@@ -58,7 +65,52 @@ public final class WorkshopDtos {
             BigDecimal estimatedLabourHours) {
     }
 
+    public record WorkLogRequest(@NotNull UUID recommendationId, @NotBlank @Size(max = 1000) String description) {
+    }
+
+    public record PartRequest(
+            @NotNull UUID recommendationId,
+            @NotBlank @Size(max = 50) String partNumber,
+            @NotBlank @Size(max = 200) String name,
+            @NotNull @Min(1) @Max(1000) Integer quantity,
+            @NotNull @DecimalMin("0.00") @Digits(integer = 10, fraction = 2) BigDecimal unitPrice) {
+    }
+
+    /** {@code hourlyRate} is optional; the workshop rate is used when it is missing. */
+    public record LabourRequest(
+            @NotNull UUID recommendationId,
+            @NotNull @DecimalMin("0.01") @DecimalMax("24.00") @Digits(integer = 2, fraction = 2) BigDecimal hours,
+            @DecimalMin("0.00") @Digits(integer = 8, fraction = 2) BigDecimal hourlyRate) {
+    }
+
     // ---- responses ------------------------------------------------------------------
+
+    public record WorkLogResponse(UUID id, UUID recommendationId, String mechanic, String description,
+            Instant completedAt) {
+
+        static WorkLogResponse from(WorkLog w) {
+            return new WorkLogResponse(w.getId(), w.getRecommendation().getId(), w.getMechanic(), w.getDescription(),
+                    w.getCompletedAt());
+        }
+    }
+
+    public record PartResponse(UUID id, UUID recommendationId, String partNumber, String name, int quantity,
+            BigDecimal unitPrice, BigDecimal lineTotal, String recordedBy) {
+
+        static PartResponse from(PartUsage p) {
+            return new PartResponse(p.getId(), p.getRecommendation().getId(), p.getPartNumber(), p.getName(),
+                    p.getQuantity(), p.getUnitPrice(), p.lineTotal(), p.getRecordedBy());
+        }
+    }
+
+    public record LabourResponse(UUID id, UUID recommendationId, String mechanic, BigDecimal hours,
+            BigDecimal hourlyRate, BigDecimal cost) {
+
+        static LabourResponse from(LabourEntry l) {
+            return new LabourResponse(l.getId(), l.getRecommendation().getId(), l.getMechanic(), l.getHours(),
+                    l.getHourlyRate(), l.cost());
+        }
+    }
 
     public record FindingResponse(UUID id, String description, Severity severity, String recordedBy,
             Instant createdAt) {
@@ -80,20 +132,43 @@ public final class WorkshopDtos {
         }
     }
 
-    /** Full job card, with the estimates the customer approves against. */
+    /**
+     * Full job card: estimates the customer approves against, the work recorded, and (once
+     * COMPLETED) the final totals.
+     */
     public record JobCardResponse(UUID id, UUID appointmentId, UUID vehicleId, String vin, String registration,
             UUID customerUserId, String customerName, int mileage, JobCardStatus status,
             List<FindingResponse> findings, List<RecommendationResponse> recommendations,
+            List<WorkLogResponse> workLogs, List<PartResponse> parts, List<LabourResponse> labour,
             BigDecimal labourRate, String currency, BigDecimal estimatedTotal, BigDecimal approvedEstimate,
-            Instant submittedAt, Instant decidedAt, Instant createdAt, Instant updatedAt) {
+            BigDecimal partsTotal, BigDecimal labourTotal, BigDecimal grandTotal,
+            Instant submittedAt, Instant decidedAt, Instant startedAt, Instant completedAt,
+            Instant createdAt, Instant updatedAt) {
 
         static JobCardResponse from(JobCard c, BigDecimal rate, String currency) {
             return new JobCardResponse(c.getId(), c.getAppointmentId(), c.getVehicleId(), c.getVin(),
                     c.getRegistration(), c.getCustomerUserId(), c.getCustomerName(), c.getMileage(), c.getStatus(),
                     c.getFindings().stream().map(FindingResponse::from).toList(),
                     c.getRecommendations().stream().map(i -> RecommendationResponse.from(i, rate)).toList(),
-                    rate, currency, c.estimatedTotal(rate), c.approvedEstimate(rate), c.getSubmittedAt(),
-                    c.getDecidedAt(), c.getCreatedAt(), c.getUpdatedAt());
+                    c.getWorkLogs().stream().map(WorkLogResponse::from).toList(),
+                    c.getParts().stream().map(PartResponse::from).toList(),
+                    c.getLabour().stream().map(LabourResponse::from).toList(),
+                    rate, currency, c.estimatedTotal(rate), c.approvedEstimate(rate),
+                    c.getPartsTotal(), c.getLabourTotal(), c.getGrandTotal(),
+                    c.getSubmittedAt(), c.getDecidedAt(), c.getStartedAt(), c.getCompletedAt(),
+                    c.getCreatedAt(), c.getUpdatedAt());
+        }
+    }
+
+    /** One completed job in a vehicle's service history. */
+    public record ServiceHistoryResponse(UUID id, UUID vehicleId, UUID jobCardId, UUID appointmentId, String vin,
+            String registration, Instant serviceDate, int mileage, BigDecimal partsTotal, BigDecimal labourTotal,
+            BigDecimal totalCost, String currency, ServiceRecord details) {
+
+        static ServiceHistoryResponse from(ServiceHistoryEntry e, ServiceRecord details, String currency) {
+            return new ServiceHistoryResponse(e.getId(), e.getVehicleId(), e.getJobCardId(), e.getAppointmentId(),
+                    e.getVin(), e.getRegistration(), e.getServiceDate(), e.getMileage(), e.getPartsTotal(),
+                    e.getLabourTotal(), e.getTotalCost(), currency, details);
         }
     }
 
