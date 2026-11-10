@@ -22,7 +22,8 @@
     <modules>
         <module>common-security</module>
         <module>auth-service</module>
-        <!-- M3: appointment-service, M4: workshop-service -->
+        <module>appointment-service</module>
+        <!-- M4: workshop-service -->
     </modules>
 
     <properties>

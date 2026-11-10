@@ -7,7 +7,7 @@ service history: customers book appointments, service advisors check vehicles
 in and manage job cards, mechanics log the work, and every completed job is
 recorded in the vehicle's service history.
 
-> **Status:** Milestone 2 of 8 — auth-service and shared security. See
+> **Status:** Milestone 3 of 8 — appointment-service. See
 > [docs/PLAN.md](docs/PLAN.md) for the full design and the milestone list.
 
 ## Architecture (target)
@@ -48,14 +48,15 @@ cp .env.example .env                 # PowerShell: Copy-Item .env.example .env
 # 2. Build and test the backend (needs Docker running for Testcontainers)
 mvn -f backend/pom.xml verify
 
-# 3. Start PostgreSQL + auth-service
+# 3. Start PostgreSQL, auth-service and appointment-service
 docker compose up -d --build
-docker compose ps                    # both should become "healthy"
+docker compose ps                    # all should become "healthy"
 ```
 
 | What | URL |
 |---|---|
 | Auth API docs (Swagger UI) | http://localhost:8083/swagger-ui.html |
+| Appointment API docs (Swagger UI) | http://localhost:8081/swagger-ui.html |
 | Public signing key (JWKS) | http://localhost:8083/.well-known/jwks.json |
 | Health | http://localhost:8083/actuator/health |
 
@@ -75,6 +76,20 @@ curl -i -X POST http://localhost:8083/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"advisor1","password":"Bayflow!2026"}'
 ```
+
+### Try the appointment workflow
+
+1. In the auth Swagger UI, log in as `customer1` and copy the `accessToken`.
+2. In the appointment Swagger UI, click **Authorize** and paste it, then:
+   `POST /customers/me` (your profile) → `POST /vehicles` → `POST /appointments`
+   (a future `scheduledAt`, e.g. `2026-12-01T15:00:00Z`).
+3. Log in as `advisor1`, authorize, and move the booking along:
+   `confirm` → `arrive` → `check-in` (with the odometer reading).
+
+Appointment statuses: BOOKED → CONFIRMED → ARRIVED → CHECKED_IN, or
+CANCELLED / NO_SHOW; see the diagram in [docs/PLAN.md](docs/PLAN.md#4-state-machines).
+Out-of-order steps return **409**, and a vehicle can't have two bookings that
+overlap in time.
 
 ## How authentication works
 
@@ -119,8 +134,8 @@ curl -i -X POST http://localhost:8083/api/v1/auth/login \
 |---|---|---|
 | 1 | Monorepo skeleton, compose (Postgres), CI skeleton | ✅ done |
 | 2 | common-security + auth-service | ✅ done |
-| 3 | appointment-service | ⏳ next |
-| 4 | workshop-service: job card, inspection, approval | |
+| 3 | appointment-service | ✅ done |
+| 4 | workshop-service: job card, inspection, approval | ⏳ next |
 | 5 | Work logging, completion, history + check-in integration | |
 | 6 | Frontend foundation | |
 | 7 | Frontend screens per role | |

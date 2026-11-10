@@ -92,10 +92,13 @@ optimistic locking.
 **appointment-service**
 - `apt_customers` (id, user_id unique, name, email, phone, created_at, version)
 - `apt_vehicles` (id, customer_id → apt_customers, vin unique, registration,
-  make, model, year, mileage, created_at, version)
-- `apt_appointments` (id, customer_id, vehicle_id, scheduled_at,
+  make, model, model_year, mileage, created_at, version)
+- `apt_appointments` (id, customer_id, vehicle_id, scheduled_at, ends_at,
   duration_minutes, service_type, notes, status, arrival_mileage,
-  checked_in_at, job_card_id, created_at, updated_at, version)
+  confirmed_at, arrived_at, checked_in_at, cancelled_at, job_card_id,
+  created_at, updated_at, version) — an exclusion constraint (`btree_gist`)
+  stops overlapping active bookings for the same vehicle even under
+  concurrent requests
 - `apt_outbox` (id, aggregate_id, type, payload jsonb, attempts,
   next_attempt_at, last_error, processed_at, created_at)
 
@@ -275,9 +278,12 @@ in the page `<meta name="description">`.
    be overridden per labour entry.
 10. **Dev seed users** (`customer1`, `advisor1`, `mechanic1`) load only under
     the `dev` profile and are documented in the README.
-11. **Rate limiting** is in memory (one auth-service instance). Running several
+11. **Opening hours** are not enforced yet: any future time is bookable.
+    Check-in mileage may not be lower than the vehicle's last reading, and it
+    becomes the vehicle's new mileage.
+12. **Rate limiting** is in memory (one auth-service instance). Running several
     instances would need a shared store such as Redis.
-12. **Concurrent refreshes**: two tabs refreshing with the same cookie at the
+13. **Concurrent refreshes**: two tabs refreshing with the same cookie at the
     same moment look like token reuse and end the session; the frontend
     (milestone 6) de-duplicates refresh calls to avoid this.
 

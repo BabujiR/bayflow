@@ -27,9 +27,10 @@ updates:
   - package-ecosystem: docker
     directories:
       - /backend/auth-service
+      - /backend/appointment-service
     schedule:
       interval: weekly
 
   # Added in later milestones:
   #   npm    /frontend           (M6)
-  #   docker /backend/appointment-service, /backend/workshop-service (M3-M4)
+  #   docker /backend/workshop-service (M4)
