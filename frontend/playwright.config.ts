@@ -1,22 +1,43 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * End-to-end tests against the full stack started with `docker compose up -d --build`
- * (web app on http://localhost:3000, demo users seeded by the dev profile).
+ * Recorded end-to-end scenarios against the full stack started with
+ * `docker compose up -d --build` (web app on http://localhost:3000, demo users seeded).
+ *
+ *   pnpm e2e                  all scenarios, desktop + phone
+ *   pnpm e2e --project=desktop
+ *   pnpm e2e -g "double booking"
+ *
+ * Every actor in every scenario is recorded. Open e2e-videos/index.html afterwards to watch
+ * them side by side; playwright-report/ has the same videos plus traces.
+ *
+ * E2E_SLOWMO (ms per action, default 250) and E2E_STEP_PAUSE (ms per caption, default 900)
+ * set the pace of the videos; set both to 0 for a fast run.
  */
 export default defineConfig({
   testDir: './e2e',
-  timeout: 120_000,
-  expect: { timeout: 15_000 },
+  testMatch: '**/*.spec.ts',
+  timeout: 240_000,
+  expect: { timeout: 20_000 },
   fullyParallel: false,
   workers: 1,
-  retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : [['list']],
+  retries: 0,
+  reporter: [
+    ['list'],
+    ['html', { open: 'never' }],
+    ['./e2e/support/video-reporter.ts', { outputDir: 'e2e-videos' }],
+  ],
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3000',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    // Scenarios record their own per-actor videos (see e2e/support/bayflow.ts).
+    video: 'off',
+    actionTimeout: 20_000,
+    launchOptions: { slowMo: Number(process.env.E2E_SLOWMO ?? 250) },
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
+    { name: 'phone', use: { ...devices['Pixel 7'] }, grep: /@mobile/ },
+  ],
 });
