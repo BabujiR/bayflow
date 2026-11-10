@@ -1,0 +1,92 @@
+server:
+  port: ${PORT:8083}
+  # Trust X-Forwarded-* from nginx so the client IP used for rate limiting is the real one
+  forward-headers-strategy: native
+  error:
+    include-message: never
+    include-stacktrace: never
+
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: ${BAYFLOW_DB_URL:jdbc:postgresql://localhost:5432/bayflow}
+    username: ${BAYFLOW_DB_USER:bayflow}
+    password: ${BAYFLOW_DB_PASSWORD:bayflow}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: bayflow
+  flyway:
+    # All services share schema "bayflow"; each keeps its own history table.
+    schemas: bayflow
+    default-schema: bayflow
+    table: flyway_history_auth
+    # Another service may already have tables in the schema. Baseline at 0 so V1 still runs.
+    baseline-on-migrate: true
+    baseline-version: "0"
+    locations: classpath:db/migration
+  data:
+    web:
+      pageable:
+        max-page-size: 100
+
+bayflow:
+  auth:
+    issuer: ${BAYFLOW_JWT_ISSUER:bayflow-auth}
+    audience: ${BAYFLOW_JWT_AUDIENCE:bayflow}
+    access-token-ttl: 15m
+    refresh-token-ttl: 7d
+    system-token-ttl: 10m
+    keys:
+      private-key-path: ${BAYFLOW_JWT_PRIVATE_KEY_PATH:}
+      public-key-path: ${BAYFLOW_JWT_PUBLIC_KEY_PATH:}
+      key-id: ${BAYFLOW_JWT_KEY_ID:}
+      allow-ephemeral: ${BAYFLOW_JWT_ALLOW_EPHEMERAL:true}
+    cookie:
+      name: bayflow_rt
+      path: /api/v1/auth
+      secure: ${BAYFLOW_COOKIE_SECURE:true}
+      same-site: Strict
+    login:
+      max-failed-attempts: 5
+      lock-duration: 15m
+      max-attempts-per-minute: 10
+    bootstrap-admin:
+      username: ${BAYFLOW_BOOTSTRAP_ADMIN_USERNAME:admin}
+      email: ${BAYFLOW_BOOTSTRAP_ADMIN_EMAIL:admin@bayflow.local}
+      password: ${BAYFLOW_BOOTSTRAP_ADMIN_PASSWORD:}
+    clients:
+      appointment-service:
+        secret: ${BAYFLOW_SYSTEM_CLIENT_SECRET:dev-system-secret}
+        roles: [SYSTEM]
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: Bayflow auth-service
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.bayflow: INFO

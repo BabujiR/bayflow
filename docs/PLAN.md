@@ -92,10 +92,13 @@ optimistic locking.
 **appointment-service**
 - `apt_customers` (id, user_id unique, name, email, phone, created_at, version)
 - `apt_vehicles` (id, customer_id → apt_customers, vin unique, registration,
-  make, model, year, mileage, created_at, version)
-- `apt_appointments` (id, customer_id, vehicle_id, scheduled_at,
+  make, model, model_year, mileage, created_at, version)
+- `apt_appointments` (id, customer_id, vehicle_id, scheduled_at, ends_at,
   duration_minutes, service_type, notes, status, arrival_mileage,
-  checked_in_at, job_card_id, created_at, updated_at, version)
+  confirmed_at, arrived_at, checked_in_at, cancelled_at, job_card_id,
+  created_at, updated_at, version) — an exclusion constraint (`btree_gist`)
+  stops overlapping active bookings for the same vehicle even under
+  concurrent requests
 - `apt_outbox` (id, aggregate_id, type, payload jsonb, attempts,
   next_attempt_at, last_error, processed_at, created_at)
 
@@ -154,18 +157,18 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 | POST | /auth/logout | refresh cookie |
 | GET | /auth/me | any authenticated |
 | POST | /auth/token | client credentials (SYSTEM) |
-| POST/GET | /auth/users | SERVICE_ADVISOR |
-| PATCH | /auth/users/{id} | SERVICE_ADVISOR (enable/disable) |
+| POST/GET | /auth/users | ADMIN |
+| PATCH | /auth/users/{id} | ADMIN (enable/disable) |
 | GET | /.well-known/jwks.json | public |
 
 ### appointment-service (:8081)
 | Method | Path | Who |
 |---|---|---|
 | POST/GET | /customers/me | CUSTOMER |
-| POST/GET | /customers, GET /customers/{id} | SERVICE_ADVISOR |
-| POST/GET | /vehicles, GET/PUT /vehicles/{id} | CUSTOMER (own), SERVICE_ADVISOR |
+| POST/GET | /customers, GET /customers/{id} | SERVICE_ADVISOR (ADMIN: GET only) |
+| POST/GET | /vehicles, GET/PUT /vehicles/{id} | CUSTOMER (own), SERVICE_ADVISOR (ADMIN: GET only) |
 | POST | /appointments | CUSTOMER (own vehicle), SERVICE_ADVISOR |
-| GET | /appointments?date=&status=&vehicleId= | CUSTOMER (own), SERVICE_ADVISOR (all), MECHANIC (today's CHECKED_IN) |
+| GET | /appointments?date=&status=&vehicleId= | CUSTOMER (own), SERVICE_ADVISOR (all), MECHANIC (today's CHECKED_IN), ADMIN (all, read-only) |
 | GET | /appointments/{id} | as above |
 | POST | /appointments/{id}/confirm, /arrive, /check-in, /no-show | SERVICE_ADVISOR |
 | POST | /appointments/{id}/cancel | CUSTOMER (own), SERVICE_ADVISOR |
@@ -175,7 +178,7 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 | Method | Path | Who |
 |---|---|---|
 | POST | /job-cards | SYSTEM, SERVICE_ADVISOR (idempotent on appointmentId) |
-| GET | /job-cards?status= , /job-cards/{id} | CUSTOMER (own), SERVICE_ADVISOR, MECHANIC |
+| GET | /job-cards?status= , /job-cards/{id} | CUSTOMER (own), SERVICE_ADVISOR, MECHANIC, ADMIN |
 | POST | /job-cards/{id}/findings | SERVICE_ADVISOR, MECHANIC |
 | POST | /job-cards/{id}/recommendations | SERVICE_ADVISOR |
 | POST | /job-cards/{id}/submit-for-approval | SERVICE_ADVISOR |
@@ -183,7 +186,7 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 | POST | /job-cards/{id}/start | MECHANIC |
 | POST | /job-cards/{id}/work-logs, /parts, /labour | MECHANIC |
 | POST | /job-cards/{id}/complete | SERVICE_ADVISOR, MECHANIC |
-| GET | /service-history/vehicles/{vehicleId} | CUSTOMER (own), SERVICE_ADVISOR, MECHANIC |
+| GET | /service-history/vehicles/{vehicleId} | CUSTOMER (own), SERVICE_ADVISOR, MECHANIC, ADMIN |
 
 ---
 
@@ -194,7 +197,13 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 - Claims: `sub`, `username`, `roles`, `iss=bayflow-auth`, `aud=bayflow`,
   `iat`, `exp`, `jti`.
 - Refresh tokens: opaque, 7 days, stored as SHA-256 hash, rotated on every use,
-  reuse revokes the whole family. Sent only as cookie `bayflow_rt`
+  reuse revokes the whole family.
+- Public auth endpoints (register, login, refresh, logout, token) ignore any
+  `Authorization` header, so a stale access token in the browser never blocks
+  a refresh.
+- Signing key from PEM files (`BAYFLOW_JWT_PRIVATE_KEY_PATH` /
+  `BAYFLOW_JWT_PUBLIC_KEY_PATH`); in dev a throwaway key is generated when none
+  is configured (`BAYFLOW_JWT_ALLOW_EPHEMERAL=false` disables that). Sent only as cookie `bayflow_rt`
   (`HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth`).
 - Passwords: BCrypt. Login: rate limited per username + IP (Bucket4j, in
   memory); account locked for 15 minutes after 5 failures.
@@ -228,8 +237,9 @@ in-memory access token with silent refresh. Served by nginx, which proxies
 |---|---|
 | Public | Login, Register |
 | CUSTOMER | Complete profile, My vehicles, Book appointment, My appointments, Approve work, Service history |
-| SERVICE_ADVISOR | Today board (by status), Check-in dialog, Job cards list/detail, Customers, Service history, Staff users |
+| SERVICE_ADVISOR | Today board (by status), Check-in dialog, Job cards list/detail, Customers, Service history |
 | MECHANIC | My jobs queue, Job card detail (start, log work/parts/labour, complete) |
+| ADMIN | User accounts (create, enable/disable), read-only views of appointments, job cards and history |
 
 Shared job card detail page with a status timeline; actions shown per role.
 
@@ -249,8 +259,12 @@ in the page `<meta name="description">`.
    same vehicle among BOOKED/CONFIRMED/ARRIVED appointments.
 3. **Mileage** is stored as an integer in miles; currency is a single
    configurable currency (default USD).
-4. **No separate admin role**: SERVICE_ADVISOR manages staff accounts.
-   Registration always creates CUSTOMER accounts.
+4. **ADMIN role**: ADMIN manages user accounts (create SERVICE_ADVISOR,
+   MECHANIC or ADMIN accounts; enable/disable) and has read-only access to
+   customers, appointments, job cards and history; it does not run workshop
+   operations. Registration always creates CUSTOMER accounts. The first admin
+   comes from `BAYFLOW_BOOTSTRAP_ADMIN_*` settings (created only while no admin
+   exists); in dev the demo user `admin1` is seeded.
 5. **Profile**: after registering, a customer creates their profile with
    `POST /customers/me`; the UI prompts for it on first login.
 6. **Inspection-only jobs**: if no work is recommended, the advisor submits
@@ -264,6 +278,14 @@ in the page `<meta name="description">`.
    be overridden per labour entry.
 10. **Dev seed users** (`customer1`, `advisor1`, `mechanic1`) load only under
     the `dev` profile and are documented in the README.
+11. **Opening hours** are not enforced yet: any future time is bookable.
+    Check-in mileage may not be lower than the vehicle's last reading, and it
+    becomes the vehicle's new mileage.
+12. **Rate limiting** is in memory (one auth-service instance). Running several
+    instances would need a shared store such as Redis.
+13. **Concurrent refreshes**: two tabs refreshing with the same cookie at the
+    same moment look like token reuse and end the session; the frontend
+    (milestone 6) de-duplicates refresh calls to avoid this.
 
 ---
 

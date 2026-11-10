@@ -7,8 +7,8 @@ service history: customers book appointments, service advisors check vehicles
 in and manage job cards, mechanics log the work, and every completed job is
 recorded in the vehicle's service history.
 
-> **Status:** Milestone 1 of 8 — monorepo skeleton. See [docs/PLAN.md](docs/PLAN.md)
-> for the full design and the milestone list.
+> **Status:** Milestone 3 of 8 — appointment-service. See
+> [docs/PLAN.md](docs/PLAN.md) for the full design and the milestone list.
 
 ## Architecture (target)
 
@@ -39,24 +39,82 @@ recorded in the vehicle's service history.
 - Docker Desktop (for Postgres, Testcontainers and the full stack)
 - Node 22 LTS + pnpm (from milestone 6)
 
-## Quick start (milestone 1)
+## Quick start
 
 ```bash
-# 1. Optional: copy the environment template and adjust ports or passwords
-cp .env.example .env
+# 1. Optional: copy the environment template and adjust ports or secrets
+cp .env.example .env                 # PowerShell: Copy-Item .env.example .env
 
-# 2. Start PostgreSQL
-docker compose up -d
-docker compose ps          # postgres should be "healthy"
-
-# 3. Check the schema exists
-docker compose exec postgres psql -U bayflow -d bayflow -c "\dn"
-
-# 4. Build the backend (no modules yet; validates the parent build)
+# 2. Build and test the backend (needs Docker running for Testcontainers)
 mvn -f backend/pom.xml verify
+
+# 3. Start PostgreSQL, auth-service and appointment-service
+docker compose up -d --build
+docker compose ps                    # all should become "healthy"
 ```
 
-On Windows PowerShell use `Copy-Item .env.example .env` for step 1.
+| What | URL |
+|---|---|
+| Auth API docs (Swagger UI) | http://localhost:8083/swagger-ui.html |
+| Appointment API docs (Swagger UI) | http://localhost:8081/swagger-ui.html |
+| Public signing key (JWKS) | http://localhost:8083/.well-known/jwks.json |
+| Health | http://localhost:8083/actuator/health |
+
+### Demo users (`dev` profile only)
+
+| Username | Password | Role |
+|---|---|---|
+| `customer1` | `Bayflow!2026` | CUSTOMER |
+| `advisor1` | `Bayflow!2026` | SERVICE_ADVISOR |
+| `mechanic1` | `Bayflow!2026` | MECHANIC |
+| `admin1` | `Bayflow!2026` | ADMIN |
+
+Try it:
+
+```bash
+curl -i -X POST http://localhost:8083/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"advisor1","password":"Bayflow!2026"}'
+```
+
+### Try the appointment workflow
+
+1. In the auth Swagger UI, log in as `customer1` and copy the `accessToken`.
+2. In the appointment Swagger UI, click **Authorize** and paste it, then:
+   `POST /customers/me` (your profile) → `POST /vehicles` → `POST /appointments`
+   (a future `scheduledAt`, e.g. `2026-12-01T15:00:00Z`).
+3. Log in as `advisor1`, authorize, and move the booking along:
+   `confirm` → `arrive` → `check-in` (with the odometer reading).
+
+Appointment statuses: BOOKED → CONFIRMED → ARRIVED → CHECKED_IN, or
+CANCELLED / NO_SHOW; see the diagram in [docs/PLAN.md](docs/PLAN.md#4-state-machines).
+Out-of-order steps return **409**, and a vehicle can't have two bookings that
+overlap in time.
+
+## How authentication works
+
+- **auth-service** stores users (BCrypt passwords) and signs **access tokens**:
+  RS256 JWTs valid for 15 minutes with claims `sub` (user id), `username`,
+  `roles`, `iss=bayflow-auth`, `aud=bayflow`.
+- The **refresh token** is a random value sent only as the `bayflow_rt` cookie
+  (`HttpOnly`, `SameSite=Strict`, path `/api/v1/auth`), valid 7 days. Only its
+  hash is stored. Every `/auth/refresh` rotates it; replaying an old one ends
+  the whole session.
+- Other services verify tokens with the public key from
+  `/.well-known/jwks.json` (shared setup in `backend/common-security`).
+- **appointment-service** gets a short-lived `SYSTEM` token from
+  `POST /api/v1/auth/token` (client credentials) to call workshop-service.
+- **Roles:** CUSTOMER (self-registered), SERVICE_ADVISOR, MECHANIC and ADMIN.
+  Only an ADMIN creates or disables staff accounts (`/api/v1/auth/users`).
+  The first admin outside dev is created from `BAYFLOW_BOOTSTRAP_ADMIN_*` in
+  `.env` when no admin exists yet.
+- Login is protected by a rate limit (10 attempts/minute per username + IP)
+  and a 15-minute lock after 5 wrong passwords.
+- Signing key: without configuration, auth-service generates a throwaway key at
+  startup (tokens stop working after a restart). For a stable key run
+  `scripts/generate-dev-keys.sh` (or `.ps1`) and set the two
+  `BAYFLOW_JWT_*_KEY_PATH` lines in `.env`. In production set
+  `BAYFLOW_JWT_ALLOW_EPHEMERAL=false` and mount real keys.
 
 ## Repository layout
 
@@ -66,7 +124,7 @@ On Windows PowerShell use `Copy-Item .env.example .env` for step 1.
 | `frontend/` | bayflow-web React app (milestone 6) |
 | `infra/postgres/init/` | creates schema `bayflow` on first start |
 | `infra/nginx/` | reverse proxy config (milestone 8) |
-| `scripts/` | helper scripts (dev JWT keys from milestone 2) |
+| `scripts/` | helper scripts (dev JWT key generation) |
 | `docs/` | build plan and design notes |
 | `.github/` | CI/CD workflows and Dependabot |
 
@@ -75,9 +133,9 @@ On Windows PowerShell use `Copy-Item .env.example .env` for step 1.
 | # | Scope | Status |
 |---|---|---|
 | 1 | Monorepo skeleton, compose (Postgres), CI skeleton | ✅ done |
-| 2 | common-security + auth-service | ⏳ next |
-| 3 | appointment-service | |
-| 4 | workshop-service: job card, inspection, approval | |
+| 2 | common-security + auth-service | ✅ done |
+| 3 | appointment-service | ✅ done |
+| 4 | workshop-service: job card, inspection, approval | ⏳ next |
 | 5 | Work logging, completion, history + check-in integration | |
 | 6 | Frontend foundation | |
 | 7 | Frontend screens per role | |
@@ -87,5 +145,5 @@ On Windows PowerShell use `Copy-Item .env.example .env` for step 1.
 
 Documented in [docs/PLAN.md § 9](docs/PLAN.md#9-assumptions). The main ones:
 one workshop time zone (default `America/New_York`), 60-minute default slots,
-mileage in miles, a single currency (USD), and SERVICE_ADVISOR also manages
-staff accounts.
+mileage in miles, a single currency (USD), and a separate ADMIN role that
+manages user accounts.

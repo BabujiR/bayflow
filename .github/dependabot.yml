@@ -24,6 +24,13 @@ updates:
       # manual change (new data volume path in 18+, data migration).
       - dependency-name: "postgres"
 
+  - package-ecosystem: docker
+    directories:
+      - /backend/auth-service
+      - /backend/appointment-service
+    schedule:
+      interval: weekly
+
   # Added in later milestones:
   #   npm    /frontend           (M6)
-  #   docker /backend/*-service  (M2-M4 Dockerfiles)
+  #   docker /backend/workshop-service (M4)
