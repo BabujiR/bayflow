@@ -1,6 +1,6 @@
 # Build context: ./backend   (docker build -f auth-service/Dockerfile backend)
 
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-26 AS build
 WORKDIR /workspace
 COPY . .
 RUN --mount=type=cache,target=/root/.m2 \
