@@ -142,7 +142,37 @@ service's Swagger UI and paste it.
 |---|---|
 | `mvn -f backend/pom.xml verify` | Unit tests (state machines, rules), Testcontainers integration tests for every service against PostgreSQL 16, WireMock tests of the check-in → job card integration, the shared-schema migration test, JaCoCo ≥ 80% on domain and application code. Needs Docker running. |
 | `pnpm test` (in `frontend/`) | Vitest + Testing Library + MSW: sign-in flow, forms, role-based screens. |
-| `pnpm e2e` (in `frontend/`) | Playwright against the running stack (`docker compose up -d --build`): a new customer registers and books, the advisor checks the car in and recommends work, the customer approves, the mechanic does the work, and the customer sees the service history. First time: `pnpm e2e:install`. |
+| `pnpm e2e` (in `frontend/`) | 23 recorded Playwright scenarios against the running stack (`docker compose up -d --build`): the full journey plus edge cases (lockout, roles, data isolation, double booking, concurrent advisors, odometer rules, partial/declined approval, work rules, workshop outage). Every actor is filmed; open `frontend/e2e-videos/index.html` to watch them side by side. First time: `pnpm e2e:install`. See *End-to-end scenarios* below. |
+
+## End-to-end scenarios
+
+```bash
+docker compose up -d --build --wait     # the stack on http://localhost:3000
+cd frontend
+pnpm e2e:install                        # once: Playwright's Chromium
+pnpm e2e                                # all scenarios, desktop + phone (~25–35 min)
+pnpm e2e --project=desktop -g "double booking"   # one scenario
+```
+
+Afterwards open **`frontend/e2e-videos/index.html`**: pick a scenario and every person in it
+(customer, advisor, mechanic, admin) plays side by side, in sync. A caption on each screen
+says who they are and what is being tried; amber captions are edge cases, green ones are
+checks. The timeline under the videos jumps to any step. `playwright-report/` has the same
+videos plus a trace for any failure.
+
+| File | Scenarios |
+|---|---|
+| `01-happy-path` | Sign-up → booking → check-in → inspection → partial approval → work, parts, labour → service history |
+| `02-accounts-and-access` | Sign-up validation and duplicates; lockout after 5 wrong passwords; deep link and sign-out; what each role may open (UI and API); one customer can't see another's job card or car; disabling a user revokes their session |
+| `03-booking` | Profile required first; VIN format and uniqueness; double booking (overlap, wrap-around, back-to-back allowed, past time); reschedule into a clash; cancelled slot can be rebooked; advisor books for a walk-in |
+| `04-check-in` | Two advisors on the same booking (409 on the stale screen); odometer validation and "never backwards"; no-show only after the start time; no check-in before arrival; no second check-in |
+| `05-job-card` | Decline everything → inspection only; no work needed; customer and advisor decide the same item at once; only approved items can be worked on; every approved item needs work before completing; completed cards are locked; who can do what |
+| `06-resilience` | Stops `workshop-service`, checks in, starts it again: the job card arrives from the outbox, exactly once. Needs the Docker CLI; skip with `E2E_SKIP_CHAOS=1` |
+
+Pace of the videos: `E2E_SLOWMO` (ms per action, default 250) and `E2E_STEP_PAUSE` (ms per
+caption, default 900); set both to `0` for a fast run. The scenarios create their own
+customers, so they can run again and again against the same database; staff logins are
+spaced out to stay under the 10-per-minute login limit.
 
 ## CI/CD
 
@@ -151,7 +181,7 @@ service's Swagger UI and paste it.
   - *frontend*: lint, type-check, unit tests, build
   - *compose*: validates `docker-compose.yml`
   - *e2e* (after backend and frontend pass): `docker compose up --build --wait`, runs
-    Playwright, uploads the report, prints service logs on failure
+    Playwright, uploads the report and the scenario videos, prints service logs on failure
 - **CD** (`.github/workflows/cd.yml`, after CI succeeds on `main`): builds and pushes
   `ghcr.io/<owner>/bayflow-auth`, `bayflow-appointment`, `bayflow-workshop` and
   `bayflow-web`, tagged with the commit SHA and `latest`.

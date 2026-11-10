@@ -42,6 +42,17 @@ export interface VehicleFormResult {
 }
 
 /** Add a vehicle (with VIN) or edit one (VIN fixed). Server errors like "VIN taken" show on the field. */
+/**
+ * Errors the form shows next to its own fields. Callers pass this to useAction's onError so
+ * the same message is not also shown as a toast.
+ */
+export function isVehicleFieldError(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    (error.code === 'vin-taken' || error.code === 'invalid-vin' || Object.keys(error.fieldErrors).length > 0)
+  );
+}
+
 export function VehicleForm({
   vehicle,
   submitLabel,

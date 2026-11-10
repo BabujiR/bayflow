@@ -94,7 +94,7 @@ jobs:
     name: End-to-end (full stack + Playwright)
     needs: [backend, frontend]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
 
@@ -124,7 +124,19 @@ jobs:
         working-directory: frontend
         env:
           E2E_BASE_URL: http://localhost:3000
+          # Keep the videos watchable but the run reasonably quick.
+          E2E_SLOWMO: '100'
+          E2E_STEP_PAUSE: '400'
         run: pnpm e2e
+
+      - name: Upload scenario videos
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-videos
+          path: frontend/e2e-videos/
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Upload Playwright report
         if: always()

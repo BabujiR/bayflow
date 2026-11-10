@@ -34,6 +34,8 @@ export function MyJobsPage() {
 }
 
 function JobSection({ title, description, statuses }: { title: string; description: string; statuses: JobCardStatus[] }) {
+  // aria-labelledby takes a space-separated list of ids, so the id must not contain spaces.
+  const headingId = `section-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   const results = useQueries({
     queries: statuses.map((status) => ({
       queryKey: ['job-cards', { status, size: 50 }],
@@ -44,9 +46,9 @@ function JobSection({ title, description, statuses }: { title: string; descripti
   const cards: JobCardSummary[] = results.flatMap((r) => r.data?.content ?? []);
 
   return (
-    <section aria-labelledby={`section-${title}`} className="grid gap-3">
+    <section aria-labelledby={headingId} className="grid gap-3">
       <div>
-        <h2 id={`section-${title}`} className="text-lg font-semibold">
+        <h2 id={headingId} className="text-lg font-semibold">
           {title} <span className="text-muted-foreground">({loading ? '…' : cards.length})</span>
         </h2>
         <p className="text-sm text-muted-foreground">{description}</p>

@@ -12,7 +12,7 @@ import { formatMileage } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
 import { ServiceHistoryList } from './ServiceHistoryList';
-import { VehicleForm } from './VehicleForm';
+import { isVehicleFieldError, VehicleForm } from './VehicleForm';
 
 export function VehicleDetailPage() {
   const { id = '' } = useParams();
@@ -24,7 +24,12 @@ export function VehicleDetailPage() {
   const update = useAction(
     ({ registration, make, model, year, mileage }: { registration: string; make: string; model: string; year: number; mileage: number }) =>
       vehiclesApi.update(id, { registration, make, model, year, mileage }),
-    { success: 'Vehicle updated', invalidate: [['vehicle', id], ['vehicles']], onSuccess: () => setEditing(false) },
+    {
+      success: 'Vehicle updated',
+      invalidate: [['vehicle', id], ['vehicles']],
+      onSuccess: () => setEditing(false),
+      onError: isVehicleFieldError,
+    },
   );
 
   return (

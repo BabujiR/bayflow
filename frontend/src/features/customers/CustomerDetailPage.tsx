@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDateTime, formatMileage, SERVICE_TYPE_LABELS } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
-import { VehicleForm } from '../vehicles/VehicleForm';
+import { isVehicleFieldError, VehicleForm } from '../vehicles/VehicleForm';
 
 export function CustomerDetailPage() {
   const { id = '' } = useParams();
@@ -36,6 +36,7 @@ export function CustomerDetailPage() {
       success: (v) => `${v.make} ${v.model} added`,
       invalidate: [['vehicles']],
       onSuccess: () => setAddingVehicle(false),
+      onError: isVehicleFieldError,
     },
   );
 

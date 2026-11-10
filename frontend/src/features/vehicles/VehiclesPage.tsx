@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { formatMileage } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
-import { VehicleForm } from './VehicleForm';
+import { isVehicleFieldError, VehicleForm } from './VehicleForm';
 
 /** A customer's own vehicles, with a form to add one. */
 export function VehiclesPage() {
@@ -21,6 +21,7 @@ export function VehiclesPage() {
     success: (v) => `${v.make} ${v.model} added`,
     invalidate: [['vehicles']],
     onSuccess: () => setAdding(false),
+    onError: isVehicleFieldError,
   });
 
   return (
