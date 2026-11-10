@@ -7,7 +7,7 @@ service history: customers book appointments, service advisors check vehicles
 in and manage job cards, mechanics log the work, and every completed job is
 recorded in the vehicle's service history.
 
-> **Status:** Milestone 3 of 8 — appointment-service. See
+> **Status:** Milestone 4 of 8 — workshop-service (inspection and approval). See
 > [docs/PLAN.md](docs/PLAN.md) for the full design and the milestone list.
 
 ## Architecture (target)
@@ -48,7 +48,7 @@ cp .env.example .env                 # PowerShell: Copy-Item .env.example .env
 # 2. Build and test the backend (needs Docker running for Testcontainers)
 mvn -f backend/pom.xml verify
 
-# 3. Start PostgreSQL, auth-service and appointment-service
+# 3. Start PostgreSQL and the three services
 docker compose up -d --build
 docker compose ps                    # all should become "healthy"
 ```
@@ -57,6 +57,7 @@ docker compose ps                    # all should become "healthy"
 |---|---|
 | Auth API docs (Swagger UI) | http://localhost:8083/swagger-ui.html |
 | Appointment API docs (Swagger UI) | http://localhost:8081/swagger-ui.html |
+| Workshop API docs (Swagger UI) | http://localhost:8082/swagger-ui.html |
 | Public signing key (JWKS) | http://localhost:8083/.well-known/jwks.json |
 | Health | http://localhost:8083/actuator/health |
 
@@ -90,6 +91,22 @@ Appointment statuses: BOOKED → CONFIRMED → ARRIVED → CHECKED_IN, or
 CANCELLED / NO_SHOW; see the diagram in [docs/PLAN.md](docs/PLAN.md#4-state-machines).
 Out-of-order steps return **409**, and a vehicle can't have two bookings that
 overlap in time.
+
+### Try the workshop (inspection and approval)
+
+Until milestone 5 connects check-in to the workshop automatically, open the
+job card yourself in the workshop Swagger UI:
+
+1. As `advisor1`: `POST /job-cards` with the checked-in appointment's
+   `appointmentId`, `vehicleId`, `vin`, `registration`, `customerName`,
+   `mileage`, and `customerUserId` = customer1's user id (from `GET /api/v1/auth/me`
+   as customer1).
+2. As `mechanic1` or `advisor1`: `POST /job-cards/{id}/findings`.
+3. As `advisor1`: `POST /job-cards/{id}/recommendations` (parts cost + labour
+   hours; labour is priced at `BAYFLOW_LABOUR_RATE`), then `submit-for-approval`.
+4. As `customer1`: `GET /job-cards/{id}` to see the estimates, then
+   `approve` or `decline` each recommendation. The card ends APPROVED,
+   PARTIALLY_APPROVED or DECLINED.
 
 ## How authentication works
 
@@ -135,8 +152,8 @@ overlap in time.
 | 1 | Monorepo skeleton, compose (Postgres), CI skeleton | ✅ done |
 | 2 | common-security + auth-service | ✅ done |
 | 3 | appointment-service | ✅ done |
-| 4 | workshop-service: job card, inspection, approval | ⏳ next |
-| 5 | Work logging, completion, history + check-in integration | |
+| 4 | workshop-service: job card, inspection, approval | ✅ done |
+| 5 | Work logging, completion, history + check-in integration | ⏳ next |
 | 6 | Frontend foundation | |
 | 7 | Frontend screens per role | |
 | 8 | nginx, full compose, Playwright e2e, CD | |

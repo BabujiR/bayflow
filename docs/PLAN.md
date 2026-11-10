@@ -104,12 +104,13 @@ optimistic locking.
 
 **workshop-service**
 - `ws_job_cards` (id, appointment_id unique, vehicle_id, vin, registration,
-  customer_user_id, mileage, status, parts_total, labour_total, grand_total,
-  created_at, updated_at, completed_at, version)
-- `ws_inspection_findings` (id, job_card_id, description, severity,
-  recorded_by, created_at)
-- `ws_recommended_items` (id, job_card_id, description, est_parts_cost,
-  est_labour_hours, approval_status, decided_by, decided_at)
+  customer_user_id, customer_name, mileage, status, submitted_at, decided_at,
+  created_at, updated_at, version; milestone 5 adds parts_total,
+  labour_total, grand_total, completed_at)
+- `ws_inspection_findings` (id, job_card_id, description, severity
+  LOW/MEDIUM/HIGH/CRITICAL, recorded_by, created_at)
+- `ws_recommended_items` (id, job_card_id, description, estimated_parts_cost,
+  estimated_labour_hours, approval_status, decided_by, decided_at, created_at)
 - `ws_work_logs` (id, job_card_id, item_id, mechanic, description, completed_at)
 - `ws_part_usages` (id, job_card_id, item_id, part_number, name, quantity,
   unit_price)
@@ -179,6 +180,7 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 |---|---|---|
 | POST | /job-cards | SYSTEM, SERVICE_ADVISOR (idempotent on appointmentId) |
 | GET | /job-cards?status= , /job-cards/{id} | CUSTOMER (own), SERVICE_ADVISOR, MECHANIC, ADMIN |
+| GET | /job-cards/by-appointment/{appointmentId} | as above, plus SYSTEM |
 | POST | /job-cards/{id}/findings | SERVICE_ADVISOR, MECHANIC |
 | POST | /job-cards/{id}/recommendations | SERVICE_ADVISOR |
 | POST | /job-cards/{id}/submit-for-approval | SERVICE_ADVISOR |
@@ -271,7 +273,10 @@ in the page `<meta name="description">`.
    with zero items and the card goes straight to DECLINED, then COMPLETED,
    still producing a history entry with zero cost.
 7. **Approval window**: items can only be approved/declined while the card is
-   AWAITING_APPROVAL; a decision cannot be changed once made.
+   AWAITING_APPROVAL; a decision cannot be changed once made. When an advisor
+   records a decision, `decidedBy` says "advisor1 (on behalf of the customer)".
+   Estimates are parts cost + labour hours × `BAYFLOW_LABOUR_RATE`, rounded to
+   cents; findings and recommendations are added only before submitting.
 8. **Mechanic identity** on work, parts and labour comes from the JWT
    (`username`), not from the request body.
 9. **Hourly rate** defaults from configuration (`BAYFLOW_LABOUR_RATE`) and can
