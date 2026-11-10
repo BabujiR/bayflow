@@ -24,6 +24,7 @@ class CurrentUserTest {
         assertThat(user.isServiceAdvisor()).isFalse();
         assertThat(user.isMechanic()).isFalse();
         assertThat(user.isSystem()).isFalse();
+        assertThat(user.isAdmin()).isFalse();
     }
 
     @Test

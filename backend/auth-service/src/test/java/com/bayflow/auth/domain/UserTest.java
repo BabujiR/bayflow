@@ -89,6 +89,7 @@ class UserTest {
     void staffRoles() {
         assertThat(Role.SERVICE_ADVISOR.isStaff()).isTrue();
         assertThat(Role.MECHANIC.isStaff()).isTrue();
+        assertThat(Role.ADMIN.isStaff()).isTrue();
         assertThat(Role.CUSTOMER.isStaff()).isFalse();
     }
 }

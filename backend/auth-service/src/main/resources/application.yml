@@ -55,6 +55,10 @@ bayflow:
       max-failed-attempts: 5
       lock-duration: 15m
       max-attempts-per-minute: 10
+    bootstrap-admin:
+      username: ${BAYFLOW_BOOTSTRAP_ADMIN_USERNAME:admin}
+      email: ${BAYFLOW_BOOTSTRAP_ADMIN_EMAIL:admin@bayflow.local}
+      password: ${BAYFLOW_BOOTSTRAP_ADMIN_PASSWORD:}
     clients:
       appointment-service:
         secret: ${BAYFLOW_SYSTEM_CLIENT_SECRET:dev-system-secret}

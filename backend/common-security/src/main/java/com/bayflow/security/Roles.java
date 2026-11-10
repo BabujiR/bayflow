@@ -9,6 +9,8 @@ public final class Roles {
     public static final String CUSTOMER = "CUSTOMER";
     public static final String SERVICE_ADVISOR = "SERVICE_ADVISOR";
     public static final String MECHANIC = "MECHANIC";
+    /** Manages accounts; read-only access to workshop data. */
+    public static final String ADMIN = "ADMIN";
     /** Service-to-service calls (client credentials). */
     public static final String SYSTEM = "SYSTEM";
 

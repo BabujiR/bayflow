@@ -14,7 +14,7 @@ import com.bayflow.auth.domain.User;
 import com.bayflow.auth.infrastructure.RefreshTokenRepository;
 import com.bayflow.auth.infrastructure.UserRepository;
 
-/** Staff account management, used by service advisors. */
+/** Account management, used by admins. */
 @Service
 public class UserAdminService {
 
@@ -35,7 +35,7 @@ public class UserAdminService {
     public User createStaff(String username, String email, String password, Role role) {
         if (role == null || !role.isStaff()) {
             throw ApiException.badRequest("invalid-role",
-                    "Staff accounts must have role SERVICE_ADVISOR or MECHANIC.");
+                    "Staff accounts must have role SERVICE_ADVISOR, MECHANIC or ADMIN.");
         }
         return authService.createUser(username, email, password, Set.of(role));
     }
@@ -58,6 +58,20 @@ public class UserAdminService {
             refreshTokens.revokeAllForUser(userId);
         }
         return user;
+    }
+
+    /**
+     * Creates the first admin from configuration when the system has no admin yet.
+     *
+     * @return true if an admin was created
+     */
+    @Transactional
+    public boolean bootstrapAdmin(String username, String email, String password) {
+        if (users.existsWithRole(Role.ADMIN)) {
+            return false;
+        }
+        authService.createUser(username, email, password, Set.of(Role.ADMIN));
+        return true;
     }
 
     /** Creates the user unless the username already exists (development seed data). */

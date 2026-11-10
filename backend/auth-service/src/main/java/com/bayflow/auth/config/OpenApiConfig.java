@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 @OpenAPIDefinition(info = @Info(
         title = "Bayflow Auth API",
         version = "v1",
-        description = "Registration, login, token refresh, service-to-service tokens and staff accounts."))
+        description = "Registration, login, token refresh, service-to-service tokens and user accounts."))
 @SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
 public class OpenApiConfig {
 }

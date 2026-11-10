@@ -47,6 +47,10 @@ public record CurrentUser(String subject, String username, Set<String> roles) {
         return hasRole(Roles.MECHANIC);
     }
 
+    public boolean isAdmin() {
+        return hasRole(Roles.ADMIN);
+    }
+
     public boolean isSystem() {
         return hasRole(Roles.SYSTEM);
     }

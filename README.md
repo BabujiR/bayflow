@@ -66,6 +66,7 @@ docker compose ps                    # both should become "healthy"
 | `customer1` | `Bayflow!2026` | CUSTOMER |
 | `advisor1` | `Bayflow!2026` | SERVICE_ADVISOR |
 | `mechanic1` | `Bayflow!2026` | MECHANIC |
+| `admin1` | `Bayflow!2026` | ADMIN |
 
 Try it:
 
@@ -88,6 +89,10 @@ curl -i -X POST http://localhost:8083/api/v1/auth/login \
   `/.well-known/jwks.json` (shared setup in `backend/common-security`).
 - **appointment-service** gets a short-lived `SYSTEM` token from
   `POST /api/v1/auth/token` (client credentials) to call workshop-service.
+- **Roles:** CUSTOMER (self-registered), SERVICE_ADVISOR, MECHANIC and ADMIN.
+  Only an ADMIN creates or disables staff accounts (`/api/v1/auth/users`).
+  The first admin outside dev is created from `BAYFLOW_BOOTSTRAP_ADMIN_*` in
+  `.env` when no admin exists yet.
 - Login is protected by a rate limit (10 attempts/minute per username + IP)
   and a 15-minute lock after 5 wrong passwords.
 - Signing key: without configuration, auth-service generates a throwaway key at
@@ -125,5 +130,5 @@ curl -i -X POST http://localhost:8083/api/v1/auth/login \
 
 Documented in [docs/PLAN.md § 9](docs/PLAN.md#9-assumptions). The main ones:
 one workshop time zone (default `America/New_York`), 60-minute default slots,
-mileage in miles, a single currency (USD), and SERVICE_ADVISOR also manages
-staff accounts.
+mileage in miles, a single currency (USD), and a separate ADMIN role that
+manages user accounts.

@@ -154,18 +154,18 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 | POST | /auth/logout | refresh cookie |
 | GET | /auth/me | any authenticated |
 | POST | /auth/token | client credentials (SYSTEM) |
-| POST/GET | /auth/users | SERVICE_ADVISOR |
-| PATCH | /auth/users/{id} | SERVICE_ADVISOR (enable/disable) |
+| POST/GET | /auth/users | ADMIN |
+| PATCH | /auth/users/{id} | ADMIN (enable/disable) |
 | GET | /.well-known/jwks.json | public |
 
 ### appointment-service (:8081)
 | Method | Path | Who |
 |---|---|---|
 | POST/GET | /customers/me | CUSTOMER |
-| POST/GET | /customers, GET /customers/{id} | SERVICE_ADVISOR |
-| POST/GET | /vehicles, GET/PUT /vehicles/{id} | CUSTOMER (own), SERVICE_ADVISOR |
+| POST/GET | /customers, GET /customers/{id} | SERVICE_ADVISOR (ADMIN: GET only) |
+| POST/GET | /vehicles, GET/PUT /vehicles/{id} | CUSTOMER (own), SERVICE_ADVISOR (ADMIN: GET only) |
 | POST | /appointments | CUSTOMER (own vehicle), SERVICE_ADVISOR |
-| GET | /appointments?date=&status=&vehicleId= | CUSTOMER (own), SERVICE_ADVISOR (all), MECHANIC (today's CHECKED_IN) |
+| GET | /appointments?date=&status=&vehicleId= | CUSTOMER (own), SERVICE_ADVISOR (all), MECHANIC (today's CHECKED_IN), ADMIN (all, read-only) |
 | GET | /appointments/{id} | as above |
 | POST | /appointments/{id}/confirm, /arrive, /check-in, /no-show | SERVICE_ADVISOR |
 | POST | /appointments/{id}/cancel | CUSTOMER (own), SERVICE_ADVISOR |
@@ -175,7 +175,7 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 | Method | Path | Who |
 |---|---|---|
 | POST | /job-cards | SYSTEM, SERVICE_ADVISOR (idempotent on appointmentId) |
-| GET | /job-cards?status= , /job-cards/{id} | CUSTOMER (own), SERVICE_ADVISOR, MECHANIC |
+| GET | /job-cards?status= , /job-cards/{id} | CUSTOMER (own), SERVICE_ADVISOR, MECHANIC, ADMIN |
 | POST | /job-cards/{id}/findings | SERVICE_ADVISOR, MECHANIC |
 | POST | /job-cards/{id}/recommendations | SERVICE_ADVISOR |
 | POST | /job-cards/{id}/submit-for-approval | SERVICE_ADVISOR |
@@ -183,7 +183,7 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 | POST | /job-cards/{id}/start | MECHANIC |
 | POST | /job-cards/{id}/work-logs, /parts, /labour | MECHANIC |
 | POST | /job-cards/{id}/complete | SERVICE_ADVISOR, MECHANIC |
-| GET | /service-history/vehicles/{vehicleId} | CUSTOMER (own), SERVICE_ADVISOR, MECHANIC |
+| GET | /service-history/vehicles/{vehicleId} | CUSTOMER (own), SERVICE_ADVISOR, MECHANIC, ADMIN |
 
 ---
 
@@ -234,8 +234,9 @@ in-memory access token with silent refresh. Served by nginx, which proxies
 |---|---|
 | Public | Login, Register |
 | CUSTOMER | Complete profile, My vehicles, Book appointment, My appointments, Approve work, Service history |
-| SERVICE_ADVISOR | Today board (by status), Check-in dialog, Job cards list/detail, Customers, Service history, Staff users |
+| SERVICE_ADVISOR | Today board (by status), Check-in dialog, Job cards list/detail, Customers, Service history |
 | MECHANIC | My jobs queue, Job card detail (start, log work/parts/labour, complete) |
+| ADMIN | User accounts (create, enable/disable), read-only views of appointments, job cards and history |
 
 Shared job card detail page with a status timeline; actions shown per role.
 
@@ -255,8 +256,12 @@ in the page `<meta name="description">`.
    same vehicle among BOOKED/CONFIRMED/ARRIVED appointments.
 3. **Mileage** is stored as an integer in miles; currency is a single
    configurable currency (default USD).
-4. **No separate admin role**: SERVICE_ADVISOR manages staff accounts.
-   Registration always creates CUSTOMER accounts.
+4. **ADMIN role**: ADMIN manages user accounts (create SERVICE_ADVISOR,
+   MECHANIC or ADMIN accounts; enable/disable) and has read-only access to
+   customers, appointments, job cards and history; it does not run workshop
+   operations. Registration always creates CUSTOMER accounts. The first admin
+   comes from `BAYFLOW_BOOTSTRAP_ADMIN_*` settings (created only while no admin
+   exists); in dev the demo user `admin1` is seeded.
 5. **Profile**: after registering, a customer creates their profile with
    `POST /customers/me`; the UI prompts for it on first login.
 6. **Inspection-only jobs**: if no work is recommended, the advisor submits

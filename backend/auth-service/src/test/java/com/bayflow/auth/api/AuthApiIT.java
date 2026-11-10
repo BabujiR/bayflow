@@ -285,24 +285,35 @@ class AuthApiIT extends IntegrationTestBase {
         assertThat(jwt.getAudience()).containsExactly("bayflow");
     }
 
-    // ---- staff administration -----------------------------------------------
+    // ---- account administration (ADMIN) ----------------------------------------
 
     @Test
-    void customersCannotManageStaff() throws Exception {
-        String username = unique("cust");
-        register(username);
-        String token = accessToken(login(username, PASSWORD).andReturn());
-
-        mvc.perform(get("/api/v1/auth/users").header("Authorization", "Bearer " + token))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.type").value("urn:bayflow:problem:forbidden"));
+    void bootstrapAdminIsCreatedAtStartup() throws Exception {
+        login("bootstrap-admin", "Bootstrap-Admin-1")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.roles[0]").value("ADMIN"));
     }
 
     @Test
-    void advisorCreatesListsAndDisablesStaff() throws Exception {
+    void customersAndAdvisorsCannotManageAccounts() throws Exception {
+        String customer = unique("cust");
+        register(customer);
         String advisor = unique("adv");
         authService.createUser(advisor, advisor + "@example.com", PASSWORD, Set.of(Role.SERVICE_ADVISOR));
-        String token = accessToken(login(advisor, PASSWORD).andReturn());
+
+        for (String username : new String[] { customer, advisor }) {
+            String token = accessToken(login(username, PASSWORD).andReturn());
+            mvc.perform(get("/api/v1/auth/users").header("Authorization", "Bearer " + token))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.type").value("urn:bayflow:problem:forbidden"));
+        }
+    }
+
+    @Test
+    void adminCreatesListsAndDisablesAccounts() throws Exception {
+        String admin = unique("admin");
+        authService.createUser(admin, admin + "@example.com", PASSWORD, Set.of(Role.ADMIN));
+        String token = accessToken(login(admin, PASSWORD).andReturn());
         String mechanic = unique("mech");
 
         MvcResult created = mvc.perform(post("/api/v1/auth/users").header("Authorization", "Bearer " + token)
@@ -315,11 +326,21 @@ class AuthApiIT extends IntegrationTestBase {
                 .andReturn();
         String mechanicId = JsonPath.read(created.getResponse().getContentAsString(), "$.id");
 
+        String secondAdmin = unique("admin2");
+        mvc.perform(post("/api/v1/auth/users").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username":"%s","email":"%s@example.com","password":"%s","role":"ADMIN"}
+                                """.formatted(secondAdmin, secondAdmin, PASSWORD)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.roles[0]").value("ADMIN"));
+
+        String customer = unique("c");
         mvc.perform(post("/api/v1/auth/users").header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"username":"%s","email":"%s@example.com","password":"%s","role":"CUSTOMER"}
-                                """.formatted(unique("c"), unique("c"), PASSWORD)))
+                                """.formatted(customer, customer, PASSWORD)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value("urn:bayflow:problem:invalid-role"));
 
@@ -327,6 +348,12 @@ class AuthApiIT extends IntegrationTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[*].username", hasItem(mechanic)))
                 .andExpect(jsonPath("$.size").value(100));
+
+        mvc.perform(get("/api/v1/auth/users?sort=username,asc").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/auth/users?sort=string").header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("urn:bayflow:problem:invalid-sort"));
 
         String mechanicCookie = refreshCookie(login(mechanic, PASSWORD).andReturn());
 
@@ -344,11 +371,11 @@ class AuthApiIT extends IntegrationTestBase {
     }
 
     @Test
-    void advisorCannotDisableThemselves() throws Exception {
-        String advisor = unique("self");
-        String id = authService.createUser(advisor, advisor + "@example.com", PASSWORD,
-                Set.of(Role.SERVICE_ADVISOR)).getId().toString();
-        String token = accessToken(login(advisor, PASSWORD).andReturn());
+    void adminCannotDisableThemselves() throws Exception {
+        String admin = unique("self");
+        String id = authService.createUser(admin, admin + "@example.com", PASSWORD,
+                Set.of(Role.ADMIN)).getId().toString();
+        String token = accessToken(login(admin, PASSWORD).andReturn());
 
         mvc.perform(patch("/api/v1/auth/users/" + id).header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"enabled\":false}"))

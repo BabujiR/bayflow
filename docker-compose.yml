@@ -47,6 +47,9 @@ services:
       BAYFLOW_DB_USER: ${POSTGRES_USER:-bayflow}
       BAYFLOW_DB_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
       BAYFLOW_SYSTEM_CLIENT_SECRET: ${BAYFLOW_SYSTEM_CLIENT_SECRET:-dev-system-secret}
+      BAYFLOW_BOOTSTRAP_ADMIN_USERNAME: ${BAYFLOW_BOOTSTRAP_ADMIN_USERNAME:-admin}
+      BAYFLOW_BOOTSTRAP_ADMIN_EMAIL: ${BAYFLOW_BOOTSTRAP_ADMIN_EMAIL:-admin@bayflow.local}
+      BAYFLOW_BOOTSTRAP_ADMIN_PASSWORD: ${BAYFLOW_BOOTSTRAP_ADMIN_PASSWORD:-}
       # Empty = throwaway signing key per start. Run scripts/generate-dev-keys and set these in .env to keep tokens valid across restarts.
       BAYFLOW_JWT_PRIVATE_KEY_PATH: ${BAYFLOW_JWT_PRIVATE_KEY_PATH:-}
       BAYFLOW_JWT_PUBLIC_KEY_PATH: ${BAYFLOW_JWT_PUBLIC_KEY_PATH:-}

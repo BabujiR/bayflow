@@ -4,10 +4,12 @@ package com.bayflow.auth.domain;
 public enum Role {
     CUSTOMER,
     SERVICE_ADVISOR,
-    MECHANIC;
+    MECHANIC,
+    /** Manages user accounts. */
+    ADMIN;
 
-    /** Staff accounts are created by a service advisor, never by self-registration. */
+    /** Staff accounts are created by an ADMIN, never by self-registration. */
     public boolean isStaff() {
-        return this == SERVICE_ADVISOR || this == MECHANIC;
+        return this == SERVICE_ADVISOR || this == MECHANIC || this == ADMIN;
     }
 }

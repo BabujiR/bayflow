@@ -23,6 +23,7 @@ public class AuthProperties {
     private final Keys keys = new Keys();
     private final CookieSettings cookie = new CookieSettings();
     private final Login login = new Login();
+    private final BootstrapAdmin bootstrapAdmin = new BootstrapAdmin();
     /** Service-to-service clients, keyed by client id. */
     private Map<String, Client> clients = new LinkedHashMap<>();
 
@@ -39,6 +40,7 @@ public class AuthProperties {
     public Keys getKeys() { return keys; }
     public CookieSettings getCookie() { return cookie; }
     public Login getLogin() { return login; }
+    public BootstrapAdmin getBootstrapAdmin() { return bootstrapAdmin; }
     public Map<String, Client> getClients() { return clients; }
     public void setClients(Map<String, Client> clients) { this.clients = clients; }
 
@@ -94,6 +96,23 @@ public class AuthProperties {
         public void setLockDuration(Duration lockDuration) { this.lockDuration = lockDuration; }
         public int getMaxAttemptsPerMinute() { return maxAttemptsPerMinute; }
         public void setMaxAttemptsPerMinute(int maxAttemptsPerMinute) { this.maxAttemptsPerMinute = maxAttemptsPerMinute; }
+    }
+
+    /**
+     * First ADMIN account, created at startup only while no admin exists.
+     * Leave the password empty to skip.
+     */
+    public static class BootstrapAdmin {
+        private String username = "admin";
+        private String email = "admin@bayflow.local";
+        private String password;
+
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+        public String getPassword() { return password; }
+        public void setPassword(String password) { this.password = password; }
     }
 
     /** A service-to-service client. */

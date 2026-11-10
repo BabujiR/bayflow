@@ -20,7 +20,7 @@
 
   <!-- ============ Users / browser ============ -->
   <g filter="url(#shadow)">
-    <rect x="40" y="150" width="170" height="330" rx="14" fill="#e8f0fe" stroke="#4a6fd8" stroke-width="1.5"/>
+    <rect x="40" y="150" width="170" height="370" rx="14" fill="#e8f0fe" stroke="#4a6fd8" stroke-width="1.5"/>
   </g>
   <text x="125" y="180" font-size="15" font-weight="700" fill="#1f3c88" text-anchor="middle">Users</text>
   <rect x="58" y="198" width="134" height="34" rx="17" fill="#ffffff" stroke="#4a6fd8"/>
@@ -29,12 +29,14 @@
   <text x="125" y="264" font-size="13" fill="#1f3c88" text-anchor="middle">Service Advisor</text>
   <rect x="58" y="286" width="134" height="34" rx="17" fill="#ffffff" stroke="#4a6fd8"/>
   <text x="125" y="308" font-size="13" fill="#1f3c88" text-anchor="middle">Mechanic</text>
-  <rect x="58" y="348" width="134" height="112" rx="10" fill="#ffffff" stroke="#4a6fd8" stroke-dasharray="4 3"/>
-  <text x="125" y="374" font-size="13" font-weight="700" fill="#1f3c88" text-anchor="middle">bayflow-web</text>
-  <text x="125" y="394" font-size="12" fill="#3c4043" text-anchor="middle">React 19 SPA</text>
-  <text x="125" y="412" font-size="12" fill="#3c4043" text-anchor="middle">TypeScript · Vite</text>
-  <text x="125" y="430" font-size="12" fill="#3c4043" text-anchor="middle">TanStack Query</text>
-  <text x="125" y="448" font-size="12" fill="#3c4043" text-anchor="middle">Tailwind · shadcn/ui</text>
+  <rect x="58" y="330" width="134" height="34" rx="17" fill="#ffffff" stroke="#4a6fd8"/>
+  <text x="125" y="352" font-size="13" fill="#1f3c88" text-anchor="middle">Admin</text>
+  <rect x="58" y="388" width="134" height="112" rx="10" fill="#ffffff" stroke="#4a6fd8" stroke-dasharray="4 3"/>
+  <text x="125" y="414" font-size="13" font-weight="700" fill="#1f3c88" text-anchor="middle">bayflow-web</text>
+  <text x="125" y="434" font-size="12" fill="#3c4043" text-anchor="middle">React 19 SPA</text>
+  <text x="125" y="452" font-size="12" fill="#3c4043" text-anchor="middle">TypeScript · Vite</text>
+  <text x="125" y="470" font-size="12" fill="#3c4043" text-anchor="middle">TanStack Query</text>
+  <text x="125" y="488" font-size="12" fill="#3c4043" text-anchor="middle">Tailwind · shadcn/ui</text>
 
   <!-- ============ nginx ============ -->
   <g filter="url(#shadow)">
@@ -58,7 +60,7 @@
     <rect x="530" y="90" width="250" height="125" rx="14" fill="#fff4e5" stroke="#e08a00" stroke-width="1.5"/>
   </g>
   <text x="655" y="120" font-size="15" font-weight="700" fill="#8a4b00" text-anchor="middle">auth-service  :8083</text>
-  <text x="655" y="143" font-size="12" fill="#3c4043" text-anchor="middle">Register · Login · Refresh · Logout</text>
+  <text x="655" y="143" font-size="12" fill="#3c4043" text-anchor="middle">Login · Refresh · Accounts (ADMIN)</text>
   <text x="655" y="161" font-size="12" fill="#3c4043" text-anchor="middle">Issues RS256 JWTs (15 min)</text>
   <text x="655" y="179" font-size="12" fill="#3c4043" text-anchor="middle">Publishes JWKS public key</text>
   <text x="655" y="199" font-size="11" fill="#8a4b00" text-anchor="middle" font-family="Consolas, monospace">/auth  ·  /.well-known/jwks.json</text>
