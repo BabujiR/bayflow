@@ -6,7 +6,7 @@ COPY . .
 RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -ntp -pl appointment-service -am -Dmaven.test.skip=true package
 
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 RUN addgroup -S bayflow && adduser -S -G bayflow bayflow
 WORKDIR /app
 COPY --from=build /workspace/appointment-service/target/appointment-service.jar app.jar
