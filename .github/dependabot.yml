@@ -30,6 +30,11 @@ updates:
       - /backend/appointment-service
     schedule:
       interval: weekly
+    ignore:
+      # Bayflow stays on Java 21 (LTS). The build and runtime images must match the
+      # <java.version> in backend/pom.xml, so a Java upgrade is a deliberate, manual change.
+      - dependency-name: "eclipse-temurin"
+      - dependency-name: "maven"
 
   # Added in later milestones:
   #   npm    /frontend           (M6)
