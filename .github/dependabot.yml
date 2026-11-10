@@ -37,5 +37,20 @@ updates:
       - dependency-name: "eclipse-temurin"
       - dependency-name: "maven"
 
-  # Added in later milestones:
-  #   npm    /frontend           (M6)
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    groups:
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom", "react-router"]
+      tooling:
+        patterns: ["vite", "@vitejs/*", "vitest", "@tailwindcss/*", "tailwindcss"]
+      lint:
+        patterns: ["eslint", "@eslint/*", "typescript-eslint", "eslint-plugin-*", "prettier"]
+      testing:
+        patterns: ["@testing-library/*", "msw", "jsdom"]
+    ignore:
+      # typescript-eslint does not support TypeScript 7 yet; move up together later.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]

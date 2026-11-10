@@ -7,7 +7,7 @@ service history: customers book appointments, service advisors check vehicles
 in and manage job cards, mechanics log the work, and every completed job is
 recorded in the vehicle's service history.
 
-> **Status:** Milestone 5 of 8 — the backend workflow is complete. See
+> **Status:** Milestone 6 of 8 — frontend foundation (sign-in, layout, navigation). See
 > [docs/PLAN.md](docs/PLAN.md) for the full design and the milestone list.
 
 ## Architecture (target)
@@ -37,7 +37,8 @@ recorded in the vehicle's service history.
 - JDK 21 (Temurin recommended)
 - Maven 3.9+
 - Docker Desktop (for Postgres, Testcontainers and the full stack)
-- Node 22 LTS + pnpm (from milestone 6)
+- Node 22.12+ (24 LTS recommended) and pnpm 10: `npm install -g pnpm@10`
+  (Node 25+ no longer includes Corepack, so `corepack enable` does not work there)
 
 ## Quick start
 
@@ -60,6 +61,15 @@ docker compose ps                    # all should become "healthy"
 | Workshop API docs (Swagger UI) | http://localhost:8082/swagger-ui.html |
 | Public signing key (JWKS) | http://localhost:8083/.well-known/jwks.json |
 | Health | http://localhost:8083/actuator/health |
+| Web app (dev server) | http://localhost:5173 (run `pnpm dev` in `frontend/`) |
+
+### Web app
+
+```bash
+cd frontend
+pnpm install
+pnpm dev                             # http://localhost:5173, sign in with a demo user below
+```
 
 ### Demo users (`dev` profile only)
 
@@ -143,7 +153,7 @@ to every 5 minutes).
 | Path | Contents |
 |---|---|
 | `backend/` | Maven multi-module build (`bayflow-parent`) |
-| `frontend/` | bayflow-web React app (milestone 6) |
+| `frontend/` | bayflow-web React app ([frontend/README.md](frontend/README.md)) |
 | `infra/postgres/init/` | creates schema `bayflow` on first start |
 | `infra/nginx/` | reverse proxy config (milestone 8) |
 | `scripts/` | helper scripts (dev JWT key generation) |
@@ -159,8 +169,8 @@ to every 5 minutes).
 | 3 | appointment-service | ✅ done |
 | 4 | workshop-service: job card, inspection, approval | ✅ done |
 | 5 | Work logging, completion, history + check-in integration | ✅ done |
-| 6 | Frontend foundation | ⏳ next |
-| 7 | Frontend screens per role | |
+| 6 | Frontend foundation | ✅ done |
+| 7 | Frontend screens per role | ⏳ next |
 | 8 | nginx, full compose, Playwright e2e, CD | |
 
 ## Assumptions

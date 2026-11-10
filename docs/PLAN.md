@@ -245,6 +245,15 @@ in-memory access token with silent refresh. Served by nginx, which proxies
 
 Shared job card detail page with a status timeline; actions shown per role.
 
+Frontend foundation (milestone 6):
+- Dev server on http://localhost:5173 proxies `/api/v1/*` to the services, like nginx does in Docker.
+- `src/api/http.ts`: in-memory token, one shared refresh on 401 then retry, Problem Details → `ApiError`.
+- `AuthProvider` restores the session from the refresh cookie on load and refreshes 60 s before expiry.
+- Route guards (`RequireAuth`, `RequireRole`) mirror the API's role rules; navigation shows only the
+  current role's screens.
+- API types: auth types are written by hand in milestone 6; `pnpm api:update` (services running)
+  downloads the OpenAPI documents and generates `src/api/schema/*.ts`, which milestone 7 uses.
+
 Branding: name "Bayflow", tagline "The smarter way to run your auto workshop."
 shown on the login and register pages, in the app header on wide screens, and
 in the page `<meta name="description">`.
