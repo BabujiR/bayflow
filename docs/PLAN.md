@@ -245,11 +245,51 @@ in-memory access token with silent refresh. Served by nginx, which proxies
 
 Shared job card detail page with a status timeline; actions shown per role.
 
+Frontend foundation (milestone 6):
+- Dev server on http://localhost:5173 proxies `/api/v1/*` to the services, like nginx does in Docker.
+- `src/api/http.ts`: in-memory token, one shared refresh on 401 then retry, Problem Details → `ApiError`.
+- `AuthProvider` restores the session from the refresh cookie on load and refreshes 60 s before expiry.
+- Route guards (`RequireAuth`, `RequireRole`) mirror the API's role rules; navigation shows only the
+  current role's screens.
+- API types: `pnpm api:update` (services running) downloads the OpenAPI documents and generates
+  `src/api/schema/*.ts`; `src/api/types.ts` builds on them and marks the fields the backend always
+  sends as required.
+
+Screens (milestone 7), under `src/features/`:
+- Customers: profile setup on first sign-in, My vehicles (add, edit, service history), Book a
+  service, Appointments (reschedule, cancel), Job cards with approve/decline per item.
+- Service advisor: Today's board (columns by status; confirm, arrive, check-in dialog, no-show),
+  Appointments with day/status filters, Customers (search, create, vehicles, bookings), job card
+  findings, recommendations, submit, decisions on the customer's behalf, complete.
+- Mechanic: My jobs (needs inspection / ready to start / in progress), findings, start, work logs,
+  parts, labour, complete.
+- Admin: User accounts (create staff, enable/disable); read-only appointments, customers and job
+  cards.
+
 Branding: name "Bayflow", tagline "The smarter way to run your auto workshop."
 shown on the login and register pages, in the app header on wide screens, and
 in the page `<meta name="description">`.
 
 ---
+
+## 8b. Delivery (milestone 8)
+
+- **bayflow-web image** (`frontend/Dockerfile`): the Vite build served by unprivileged nginx on
+  port 8080 (compose maps it to http://localhost:3000). `infra/nginx/` holds the config:
+  - routes `/api/v1/auth` and `/.well-known/jwks.json` → auth-service,
+    `/api/v1/{customers,vehicles,appointments}` → appointment-service,
+    `/api/v1/{job-cards,service-history}` → workshop-service (upstreams set by environment)
+  - passes the real client IP and scheme (`X-Forwarded-*`), API responses `no-store`
+  - SPA fallback to `index.html` (never cached); hashed `/assets/*` cached for a year; gzip
+  - security headers on every response: CSP without inline scripts (the theme script is a file),
+    `X-Frame-Options: DENY`, `nosniff`, referrer and permissions policies
+  - `/healthz` for the container health check
+- **Compose** starts PostgreSQL → auth-service → appointment- and workshop-service → web, each
+  waiting for the previous to be healthy.
+- **Playwright** (`frontend/e2e/`) runs the full workflow through the UI against the compose stack,
+  with the customer, advisor and mechanic in separate browser sessions.
+- **CI** adds an e2e job after the backend and frontend jobs; **CD** pushes the four images to
+  GHCR after CI passes on `main`.
 
 ## 9. Assumptions
 

@@ -29,6 +29,7 @@ updates:
       - /backend/auth-service
       - /backend/appointment-service
       - /backend/workshop-service
+      - /frontend
     schedule:
       interval: weekly
     ignore:
@@ -36,6 +37,24 @@ updates:
       # <java.version> in backend/pom.xml, so a Java upgrade is a deliberate, manual change.
       - dependency-name: "eclipse-temurin"
       - dependency-name: "maven"
+      # The web image builds with Node 22 LTS; move to the next LTS deliberately.
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
-  # Added in later milestones:
-  #   npm    /frontend           (M6)
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    groups:
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom", "react-router"]
+      tooling:
+        patterns: ["vite", "@vitejs/*", "vitest", "@tailwindcss/*", "tailwindcss"]
+      lint:
+        patterns: ["eslint", "@eslint/*", "typescript-eslint", "eslint-plugin-*", "prettier"]
+      testing:
+        patterns: ["@testing-library/*", "msw", "jsdom"]
+    ignore:
+      # typescript-eslint does not support TypeScript 7 yet; move up together later.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]

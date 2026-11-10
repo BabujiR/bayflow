@@ -7,10 +7,10 @@ service history: customers book appointments, service advisors check vehicles
 in and manage job cards, mechanics log the work, and every completed job is
 recorded in the vehicle's service history.
 
-> **Status:** Milestone 5 of 8 — the backend workflow is complete. See
-> [docs/PLAN.md](docs/PLAN.md) for the full design and the milestone list.
+> **Status:** all 8 milestones complete. See [docs/PLAN.md](docs/PLAN.md) for the
+> design, the workflows and the assumptions.
 
-## Architecture (target)
+## Architecture
 
 ![Bayflow architecture](docs/architecture.svg)
 
@@ -37,29 +37,38 @@ recorded in the vehicle's service history.
 - JDK 21 (Temurin recommended)
 - Maven 3.9+
 - Docker Desktop (for Postgres, Testcontainers and the full stack)
-- Node 22 LTS + pnpm (from milestone 6)
+- Node 22.12+ (24 LTS recommended) and pnpm 10: `npm install -g pnpm@10`
+  (Node 25+ no longer includes Corepack, so `corepack enable` does not work there)
 
 ## Quick start
 
 ```bash
-# 1. Optional: copy the environment template and adjust ports or secrets
+# Optional: copy the environment template and adjust ports or secrets
 cp .env.example .env                 # PowerShell: Copy-Item .env.example .env
 
-# 2. Build and test the backend (needs Docker running for Testcontainers)
-mvn -f backend/pom.xml verify
-
-# 3. Start PostgreSQL and the three services
+# Build and start everything: PostgreSQL, the three services and the web app
 docker compose up -d --build
-docker compose ps                    # all should become "healthy"
+docker compose ps                    # all five should become "healthy"
 ```
+
+Open **http://localhost:3000** and sign in with a demo user below.
 
 | What | URL |
 |---|---|
+| **Web app** (nginx, the whole stack on one origin) | http://localhost:3000 |
 | Auth API docs (Swagger UI) | http://localhost:8083/swagger-ui.html |
 | Appointment API docs (Swagger UI) | http://localhost:8081/swagger-ui.html |
 | Workshop API docs (Swagger UI) | http://localhost:8082/swagger-ui.html |
 | Public signing key (JWKS) | http://localhost:8083/.well-known/jwks.json |
-| Health | http://localhost:8083/actuator/health |
+
+For frontend development with hot reload, keep the stack running and start the
+Vite dev server instead (http://localhost:5173):
+
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
 
 ### Demo users (`dev` profile only)
 
@@ -78,40 +87,29 @@ curl -i -X POST http://localhost:8083/api/v1/auth/login \
   -d '{"username":"advisor1","password":"Bayflow!2026"}'
 ```
 
-### Try the appointment workflow
+### Try the whole workflow in the web app
 
-1. In the auth Swagger UI, log in as `customer1` and copy the `accessToken`.
-2. In the appointment Swagger UI, click **Authorize** and paste it, then:
-   `POST /customers/me` (your profile) → `POST /vehicles` → `POST /appointments`
-   (a future `scheduledAt`, e.g. `2026-12-01T15:00:00Z`).
-3. Log in as `advisor1`, authorize, and move the booking along:
-   `confirm` → `arrive` → `check-in` (with the odometer reading).
+At http://localhost:3000 (or the dev server on :5173):
 
-Appointment statuses: BOOKED → CONFIRMED → ARRIVED → CHECKED_IN, or
-CANCELLED / NO_SHOW; see the diagram in [docs/PLAN.md](docs/PLAN.md#4-state-machines).
-Out-of-order steps return **409**, and a vehicle can't have two bookings that
-overlap in time.
+1. **customer1** — complete the profile on first sign-in, add a vehicle under
+   *My vehicles*, then *Book a service*.
+2. **advisor1** — on *Today's board* (pick the booking's day): *Confirm* →
+   *Mark arrived* → *Check in* with the odometer reading. The job card opens
+   automatically.
+3. **mechanic1** — *My jobs* → the card under *Needs inspection* → add findings.
+4. **advisor1** — on the job card: add recommended work with estimates, then
+   *Send to customer for approval*.
+5. **customer1** — *Job cards* → approve or decline each item.
+6. **mechanic1** — *Start work*, log work (plus parts and labour) for each
+   approved item, then *Complete job*.
+7. **customer1** — *My vehicles* → the vehicle → its service history.
+8. **admin1** — *User accounts* to create staff; read-only views elsewhere.
 
-### Try the workshop: from check-in to service history
+### Using the APIs directly
 
-Checking a vehicle in (step 3 above) now opens its job card in workshop-service
-automatically; the appointment shows the `jobCardId`. Then, in the workshop
-Swagger UI:
-
-1. As `mechanic1` or `advisor1`: `POST /job-cards/{id}/findings`.
-2. As `advisor1`: `POST /job-cards/{id}/recommendations` (parts cost + labour
-   hours; labour is priced at `BAYFLOW_LABOUR_RATE`), then `submit-for-approval`.
-3. As `customer1`: `GET /job-cards/{id}` to see the estimates, then `approve` or
-   `decline` each recommendation.
-4. As `mechanic1`: `start`, then for each approved item log `work-logs`,
-   `parts` and `labour`.
-5. As `mechanic1` or `advisor1`: `complete`. Totals are calculated and the job
-   is written to the vehicle's history: `GET /service-history/vehicles/{vehicleId}`
-   (customers see their own vehicles' history).
-
-If workshop-service is down at check-in, the check-in still succeeds; the job
-card is created automatically when it is back (retried after 10 s, backing off
-to every 5 minutes).
+Each service has Swagger UI (links above). Get a token from
+`POST /api/v1/auth/login` in the auth Swagger UI, click **Authorize** in the other
+service's Swagger UI and paste it.
 
 ## How authentication works
 
@@ -138,14 +136,47 @@ to every 5 minutes).
   `BAYFLOW_JWT_*_KEY_PATH` lines in `.env`. In production set
   `BAYFLOW_JWT_ALLOW_EPHEMERAL=false` and mount real keys.
 
+## Tests
+
+| Command | What it covers |
+|---|---|
+| `mvn -f backend/pom.xml verify` | Unit tests (state machines, rules), Testcontainers integration tests for every service against PostgreSQL 16, WireMock tests of the check-in → job card integration, the shared-schema migration test, JaCoCo ≥ 80% on domain and application code. Needs Docker running. |
+| `pnpm test` (in `frontend/`) | Vitest + Testing Library + MSW: sign-in flow, forms, role-based screens. |
+| `pnpm e2e` (in `frontend/`) | Playwright against the running stack (`docker compose up -d --build`): a new customer registers and books, the advisor checks the car in and recommends work, the customer approves, the mechanic does the work, and the customer sees the service history. First time: `pnpm e2e:install`. |
+
+## CI/CD
+
+- **CI** (`.github/workflows/ci.yml`, every push and pull request):
+  - *backend*: `mvn verify`, uploads test and coverage reports
+  - *frontend*: lint, type-check, unit tests, build
+  - *compose*: validates `docker-compose.yml`
+  - *e2e* (after backend and frontend pass): `docker compose up --build --wait`, runs
+    Playwright, uploads the report, prints service logs on failure
+- **CD** (`.github/workflows/cd.yml`, after CI succeeds on `main`): builds and pushes
+  `ghcr.io/<owner>/bayflow-auth`, `bayflow-appointment`, `bayflow-workshop` and
+  `bayflow-web`, tagged with the commit SHA and `latest`.
+- **Dependabot** keeps Maven, npm, Docker and GitHub Actions dependencies current.
+  PostgreSQL, Java and Node major versions are upgraded deliberately, not by bot.
+
+## Running outside local development
+
+- Set `SPRING_PROFILES_ACTIVE` to something other than `dev` (no demo users), set
+  `BAYFLOW_BOOTSTRAP_ADMIN_PASSWORD` for the first admin, and change
+  `BAYFLOW_SYSTEM_CLIENT_SECRET` and the database password.
+- Generate a real signing key (`scripts/generate-dev-keys.*` shows how), mount it,
+  and set `BAYFLOW_JWT_ALLOW_EPHEMERAL=false`.
+- Serve the web app over HTTPS (e.g. a load balancer in front of `bayflow-web`) and set
+  `BAYFLOW_COOKIE_SECURE=true` so the refresh cookie is only sent over HTTPS.
+- Turn Swagger UI off if the APIs should not be browsable (`SPRINGDOC_SWAGGER_UI_ENABLED=false`).
+
 ## Repository layout
 
 | Path | Contents |
 |---|---|
 | `backend/` | Maven multi-module build (`bayflow-parent`) |
-| `frontend/` | bayflow-web React app (milestone 6) |
+| `frontend/` | bayflow-web React app ([frontend/README.md](frontend/README.md)) |
 | `infra/postgres/init/` | creates schema `bayflow` on first start |
-| `infra/nginx/` | reverse proxy config (milestone 8) |
+| `infra/nginx/` | nginx config for the web image: routing, caching, security headers |
 | `scripts/` | helper scripts (dev JWT key generation) |
 | `docs/` | build plan and design notes |
 | `.github/` | CI/CD workflows and Dependabot |
@@ -159,9 +190,9 @@ to every 5 minutes).
 | 3 | appointment-service | ✅ done |
 | 4 | workshop-service: job card, inspection, approval | ✅ done |
 | 5 | Work logging, completion, history + check-in integration | ✅ done |
-| 6 | Frontend foundation | ⏳ next |
-| 7 | Frontend screens per role | |
-| 8 | nginx, full compose, Playwright e2e, CD | |
+| 6 | Frontend foundation | ✅ done |
+| 7 | Frontend screens per role | ✅ done |
+| 8 | nginx, full compose, Playwright e2e, CD | ✅ done |
 
 ## Assumptions
 

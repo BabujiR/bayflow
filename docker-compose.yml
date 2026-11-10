@@ -1,5 +1,5 @@
 # Bayflow local development stack.
-# Milestone 5: PostgreSQL and the three services; check-in opens the job card automatically. nginx and the UI follow.
+# The full Bayflow stack: PostgreSQL, the three services and the web app (nginx) on http://localhost:3000.
 #
 #   docker compose up -d          start
 #   docker compose ps             check health
@@ -107,6 +107,27 @@ services:
       BAYFLOW_CURRENCY: ${BAYFLOW_CURRENCY:-USD}
     ports:
       - "${WORKSHOP_PORT:-8082}:8082"
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: bayflow-web:local
+    container_name: bayflow-web
+    restart: unless-stopped
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      appointment-service:
+        condition: service_healthy
+      workshop-service:
+        condition: service_healthy
+    environment:
+      AUTH_UPSTREAM: auth-service:8083
+      APPOINTMENT_UPSTREAM: appointment-service:8081
+      WORKSHOP_UPSTREAM: workshop-service:8082
+    ports:
+      - "${WEB_PORT:-3000}:8080"
 
 volumes:
   bayflow-pgdata:
