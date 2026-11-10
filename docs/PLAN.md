@@ -194,7 +194,13 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 - Claims: `sub`, `username`, `roles`, `iss=bayflow-auth`, `aud=bayflow`,
   `iat`, `exp`, `jti`.
 - Refresh tokens: opaque, 7 days, stored as SHA-256 hash, rotated on every use,
-  reuse revokes the whole family. Sent only as cookie `bayflow_rt`
+  reuse revokes the whole family.
+- Public auth endpoints (register, login, refresh, logout, token) ignore any
+  `Authorization` header, so a stale access token in the browser never blocks
+  a refresh.
+- Signing key from PEM files (`BAYFLOW_JWT_PRIVATE_KEY_PATH` /
+  `BAYFLOW_JWT_PUBLIC_KEY_PATH`); in dev a throwaway key is generated when none
+  is configured (`BAYFLOW_JWT_ALLOW_EPHEMERAL=false` disables that). Sent only as cookie `bayflow_rt`
   (`HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth`).
 - Passwords: BCrypt. Login: rate limited per username + IP (Bucket4j, in
   memory); account locked for 15 minutes after 5 failures.
@@ -264,6 +270,11 @@ in the page `<meta name="description">`.
    be overridden per labour entry.
 10. **Dev seed users** (`customer1`, `advisor1`, `mechanic1`) load only under
     the `dev` profile and are documented in the README.
+11. **Rate limiting** is in memory (one auth-service instance). Running several
+    instances would need a shared store such as Redis.
+12. **Concurrent refreshes**: two tabs refreshing with the same cookie at the
+    same moment look like token reuse and end the session; the frontend
+    (milestone 6) de-duplicates refresh calls to avoid this.
 
 ---
 

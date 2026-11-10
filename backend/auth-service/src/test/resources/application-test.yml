@@ -1,0 +1,14 @@
+bayflow:
+  auth:
+    login:
+      # Integration tests log in many times from the same IP; the limiter has its own unit test.
+      max-attempts-per-minute: 1000
+    clients:
+      appointment-service:
+        secret: test-client-secret
+        roles: [SYSTEM]
+
+logging:
+  level:
+    com.bayflow: INFO
+    org.testcontainers: WARN

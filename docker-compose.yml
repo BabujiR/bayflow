@@ -1,5 +1,5 @@
 # Bayflow local development stack.
-# Milestone 1: PostgreSQL only. Services, nginx and the UI are added in later milestones.
+# Milestone 2: PostgreSQL + auth-service. Other services, nginx and the UI follow in later milestones.
 #
 #   docker compose up -d          start
 #   docker compose ps             check health
@@ -29,6 +29,31 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+
+  auth-service:
+    build:
+      context: ./backend
+      dockerfile: auth-service/Dockerfile
+    image: bayflow-auth:local
+    container_name: bayflow-auth
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # "dev" seeds the demo users customer1 / advisor1 / mechanic1 (see README)
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      BAYFLOW_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-bayflow}
+      BAYFLOW_DB_USER: ${POSTGRES_USER:-bayflow}
+      BAYFLOW_DB_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
+      BAYFLOW_SYSTEM_CLIENT_SECRET: ${BAYFLOW_SYSTEM_CLIENT_SECRET:-dev-system-secret}
+      # Empty = throwaway signing key per start. Run scripts/generate-dev-keys and set these in .env to keep tokens valid across restarts.
+      BAYFLOW_JWT_PRIVATE_KEY_PATH: ${BAYFLOW_JWT_PRIVATE_KEY_PATH:-}
+      BAYFLOW_JWT_PUBLIC_KEY_PATH: ${BAYFLOW_JWT_PUBLIC_KEY_PATH:-}
+    volumes:
+      - ./keys:/run/keys:ro
+    ports:
+      - "${AUTH_PORT:-8083}:8083"
 
 volumes:
   bayflow-pgdata:

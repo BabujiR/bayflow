@@ -20,10 +20,9 @@
     <description>Bayflow vehicle maintenance platform - backend parent build</description>
 
     <modules>
-        <!-- Added milestone by milestone:
-             M2: common-security, auth-service
-             M3: appointment-service
-             M4: workshop-service -->
+        <module>common-security</module>
+        <module>auth-service</module>
+        <!-- M3: appointment-service, M4: workshop-service -->
     </modules>
 
     <properties>

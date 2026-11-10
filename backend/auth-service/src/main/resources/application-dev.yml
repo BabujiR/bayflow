@@ -1,0 +1,10 @@
+# Local development: demo users are seeded (see StartupData) and the refresh
+# cookie works over plain http://localhost.
+bayflow:
+  auth:
+    cookie:
+      secure: ${BAYFLOW_COOKIE_SECURE:false}
+
+logging:
+  level:
+    com.bayflow: DEBUG

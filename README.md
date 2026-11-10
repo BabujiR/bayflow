@@ -7,8 +7,8 @@ service history: customers book appointments, service advisors check vehicles
 in and manage job cards, mechanics log the work, and every completed job is
 recorded in the vehicle's service history.
 
-> **Status:** Milestone 1 of 8 — monorepo skeleton. See [docs/PLAN.md](docs/PLAN.md)
-> for the full design and the milestone list.
+> **Status:** Milestone 2 of 8 — auth-service and shared security. See
+> [docs/PLAN.md](docs/PLAN.md) for the full design and the milestone list.
 
 ## Architecture (target)
 
@@ -39,24 +39,62 @@ recorded in the vehicle's service history.
 - Docker Desktop (for Postgres, Testcontainers and the full stack)
 - Node 22 LTS + pnpm (from milestone 6)
 
-## Quick start (milestone 1)
+## Quick start
 
 ```bash
-# 1. Optional: copy the environment template and adjust ports or passwords
-cp .env.example .env
+# 1. Optional: copy the environment template and adjust ports or secrets
+cp .env.example .env                 # PowerShell: Copy-Item .env.example .env
 
-# 2. Start PostgreSQL
-docker compose up -d
-docker compose ps          # postgres should be "healthy"
-
-# 3. Check the schema exists
-docker compose exec postgres psql -U bayflow -d bayflow -c "\dn"
-
-# 4. Build the backend (no modules yet; validates the parent build)
+# 2. Build and test the backend (needs Docker running for Testcontainers)
 mvn -f backend/pom.xml verify
+
+# 3. Start PostgreSQL + auth-service
+docker compose up -d --build
+docker compose ps                    # both should become "healthy"
 ```
 
-On Windows PowerShell use `Copy-Item .env.example .env` for step 1.
+| What | URL |
+|---|---|
+| Auth API docs (Swagger UI) | http://localhost:8083/swagger-ui.html |
+| Public signing key (JWKS) | http://localhost:8083/.well-known/jwks.json |
+| Health | http://localhost:8083/actuator/health |
+
+### Demo users (`dev` profile only)
+
+| Username | Password | Role |
+|---|---|---|
+| `customer1` | `Bayflow!2026` | CUSTOMER |
+| `advisor1` | `Bayflow!2026` | SERVICE_ADVISOR |
+| `mechanic1` | `Bayflow!2026` | MECHANIC |
+
+Try it:
+
+```bash
+curl -i -X POST http://localhost:8083/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"advisor1","password":"Bayflow!2026"}'
+```
+
+## How authentication works
+
+- **auth-service** stores users (BCrypt passwords) and signs **access tokens**:
+  RS256 JWTs valid for 15 minutes with claims `sub` (user id), `username`,
+  `roles`, `iss=bayflow-auth`, `aud=bayflow`.
+- The **refresh token** is a random value sent only as the `bayflow_rt` cookie
+  (`HttpOnly`, `SameSite=Strict`, path `/api/v1/auth`), valid 7 days. Only its
+  hash is stored. Every `/auth/refresh` rotates it; replaying an old one ends
+  the whole session.
+- Other services verify tokens with the public key from
+  `/.well-known/jwks.json` (shared setup in `backend/common-security`).
+- **appointment-service** gets a short-lived `SYSTEM` token from
+  `POST /api/v1/auth/token` (client credentials) to call workshop-service.
+- Login is protected by a rate limit (10 attempts/minute per username + IP)
+  and a 15-minute lock after 5 wrong passwords.
+- Signing key: without configuration, auth-service generates a throwaway key at
+  startup (tokens stop working after a restart). For a stable key run
+  `scripts/generate-dev-keys.sh` (or `.ps1`) and set the two
+  `BAYFLOW_JWT_*_KEY_PATH` lines in `.env`. In production set
+  `BAYFLOW_JWT_ALLOW_EPHEMERAL=false` and mount real keys.
 
 ## Repository layout
 
@@ -66,7 +104,7 @@ On Windows PowerShell use `Copy-Item .env.example .env` for step 1.
 | `frontend/` | bayflow-web React app (milestone 6) |
 | `infra/postgres/init/` | creates schema `bayflow` on first start |
 | `infra/nginx/` | reverse proxy config (milestone 8) |
-| `scripts/` | helper scripts (dev JWT keys from milestone 2) |
+| `scripts/` | helper scripts (dev JWT key generation) |
 | `docs/` | build plan and design notes |
 | `.github/` | CI/CD workflows and Dependabot |
 
@@ -75,8 +113,8 @@ On Windows PowerShell use `Copy-Item .env.example .env` for step 1.
 | # | Scope | Status |
 |---|---|---|
 | 1 | Monorepo skeleton, compose (Postgres), CI skeleton | ✅ done |
-| 2 | common-security + auth-service | ⏳ next |
-| 3 | appointment-service | |
+| 2 | common-security + auth-service | ✅ done |
+| 3 | appointment-service | ⏳ next |
 | 4 | workshop-service: job card, inspection, approval | |
 | 5 | Work logging, completion, history + check-in integration | |
 | 6 | Frontend foundation | |
