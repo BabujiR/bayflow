@@ -19,7 +19,9 @@
     "test:watch": "vitest",
     "api:pull": "node scripts/pull-openapi.mjs",
     "api:gen": "openapi-typescript openapi/auth.json -o src/api/schema/auth.ts && openapi-typescript openapi/appointment.json -o src/api/schema/appointment.ts && openapi-typescript openapi/workshop.json -o src/api/schema/workshop.ts",
-    "api:update": "pnpm api:pull && pnpm api:gen"
+    "api:update": "pnpm api:pull && pnpm api:gen",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.0",
@@ -39,6 +41,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",
+    "@playwright/test": "^1.56.0",
     "@tailwindcss/vite": "^4.1.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "~6.9.1",

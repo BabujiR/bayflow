@@ -90,5 +90,57 @@ jobs:
       - name: Build
         run: pnpm build
 
-  # Added in milestone 8:
-  #   e2e - docker compose up --build + Playwright
+  e2e:
+    name: End-to-end (full stack + Playwright)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Start the stack
+        # Builds every image and waits until all containers report healthy.
+        run: docker compose up -d --build --wait --wait-timeout 300
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install Playwright
+        working-directory: frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm e2e:install
+
+      - name: Run end-to-end tests
+        working-directory: frontend
+        env:
+          E2E_BASE_URL: http://localhost:3000
+        run: pnpm e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Service logs
+        if: failure()
+        run: docker compose logs --no-color --tail 300
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v

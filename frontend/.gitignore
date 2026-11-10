@@ -3,3 +3,6 @@ dist
 coverage
 *.local
 .vite
+playwright-report
+test-results
+blob-report

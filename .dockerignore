@@ -1,0 +1,14 @@
+# Context for the web image (frontend/Dockerfile). The backend images use ./backend as context.
+.git
+.idea
+.github
+backend
+docs
+keys
+scripts
+**/node_modules
+**/*.log
+frontend/dist
+frontend/coverage
+frontend/playwright-report
+frontend/test-results

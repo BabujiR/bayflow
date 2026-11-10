@@ -28,6 +28,8 @@ export default defineConfig({
     },
   },
   test: {
+    // Unit and component tests only; e2e/ is run by Playwright against the real stack.
+    include: ['src/**/*.test.{ts,tsx}'],
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,

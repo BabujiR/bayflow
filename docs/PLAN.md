@@ -272,6 +272,25 @@ in the page `<meta name="description">`.
 
 ---
 
+## 8b. Delivery (milestone 8)
+
+- **bayflow-web image** (`frontend/Dockerfile`): the Vite build served by unprivileged nginx on
+  port 8080 (compose maps it to http://localhost:3000). `infra/nginx/` holds the config:
+  - routes `/api/v1/auth` and `/.well-known/jwks.json` → auth-service,
+    `/api/v1/{customers,vehicles,appointments}` → appointment-service,
+    `/api/v1/{job-cards,service-history}` → workshop-service (upstreams set by environment)
+  - passes the real client IP and scheme (`X-Forwarded-*`), API responses `no-store`
+  - SPA fallback to `index.html` (never cached); hashed `/assets/*` cached for a year; gzip
+  - security headers on every response: CSP without inline scripts (the theme script is a file),
+    `X-Frame-Options: DENY`, `nosniff`, referrer and permissions policies
+  - `/healthz` for the container health check
+- **Compose** starts PostgreSQL → auth-service → appointment- and workshop-service → web, each
+  waiting for the previous to be healthy.
+- **Playwright** (`frontend/e2e/`) runs the full workflow through the UI against the compose stack,
+  with the customer, advisor and mechanic in separate browser sessions.
+- **CI** adds an e2e job after the backend and frontend jobs; **CD** pushes the four images to
+  GHCR after CI passes on `main`.
+
 ## 9. Assumptions
 
 1. **Time zone**: the workshop runs in one time zone, `BAYFLOW_WORKSHOP_ZONE`
