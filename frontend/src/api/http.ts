@@ -79,7 +79,9 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
       url.searchParams.set(key, String(value));
     }
   }
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  // X-Bayflow-Client: auth-service's CSRF check for the cookie endpoints (/refresh, /logout).
+  // A cross-site page cannot add custom headers without a CORS preflight, which Bayflow refuses.
+  const headers: Record<string, string> = { Accept: 'application/json', 'X-Bayflow-Client': 'web' };
   if (options.body !== undefined) {
     headers['Content-Type'] = 'application/json';
   }

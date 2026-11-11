@@ -68,12 +68,14 @@ public class AuthController {
     @PostMapping("/refresh")
     @Operation(summary = "Rotate the refresh-token cookie and return a new access token")
     public ResponseEntity<TokenResponse> refresh(HttpServletRequest httpRequest) {
+        CookieRequestGuard.check(httpRequest);
         return sessionResponse(authService.refresh(cookies.read(httpRequest)));
     }
 
     @PostMapping("/logout")
     @Operation(summary = "End the session and clear the refresh-token cookie")
     public ResponseEntity<Void> logout(HttpServletRequest httpRequest) {
+        CookieRequestGuard.check(httpRequest);
         authService.logout(cookies.read(httpRequest));
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, cookies.clear().toString())
