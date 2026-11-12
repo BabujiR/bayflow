@@ -154,8 +154,8 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 |---|---|---|
 | POST | /auth/register | public (creates CUSTOMER) |
 | POST | /auth/login | public |
-| POST | /auth/refresh | refresh cookie |
-| POST | /auth/logout | refresh cookie |
+| POST | /auth/refresh | refresh cookie + `X-Bayflow-Client` header (CSRF) |
+| POST | /auth/logout | refresh cookie + `X-Bayflow-Client` header (CSRF) |
 | GET | /auth/me | any authenticated |
 | POST | /auth/token | client credentials (SYSTEM) |
 | POST/GET | /auth/users | ADMIN |

@@ -21,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import com.bayflow.auth.IntegrationTestBase;
 import com.bayflow.auth.application.AuthService;
@@ -172,7 +173,7 @@ class AuthApiIT extends IntegrationTestBase {
         register(username);
         String first = refreshCookie(login(username, PASSWORD).andReturn());
 
-        MvcResult refreshed = mvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, first)))
+        MvcResult refreshed = mvc.perform(cookiePost("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, first)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").isNotEmpty())
                 .andExpect(jsonPath("$.user.username").value(username))
@@ -180,7 +181,7 @@ class AuthApiIT extends IntegrationTestBase {
         String second = refreshCookie(refreshed);
 
         assertThat(second).isNotEqualTo(first);
-        mvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, second)))
+        mvc.perform(cookiePost("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, second)))
                 .andExpect(status().isOk());
     }
 
@@ -190,28 +191,28 @@ class AuthApiIT extends IntegrationTestBase {
         register(username);
         String first = refreshCookie(login(username, PASSWORD).andReturn());
         String second = refreshCookie(
-                mvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, first))).andReturn());
+                mvc.perform(cookiePost("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, first))).andReturn());
 
         // The old token is replayed (e.g. stolen) ...
-        mvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, first)))
+        mvc.perform(cookiePost("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, first)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.type").value("urn:bayflow:problem:invalid-refresh-token"));
 
         // ... so the legitimate newer token stops working too.
-        mvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, second)))
+        mvc.perform(cookiePost("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, second)))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void refreshWithoutCookieIs401() throws Exception {
-        mvc.perform(post("/api/v1/auth/refresh"))
+        mvc.perform(cookiePost("/api/v1/auth/refresh"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.type").value("urn:bayflow:problem:invalid-refresh-token"));
     }
 
     @Test
     void publicEndpointsIgnoreAStaleBearerToken() throws Exception {
-        mvc.perform(post("/api/v1/auth/refresh").header("Authorization", "Bearer expired.or.invalid"))
+        mvc.perform(cookiePost("/api/v1/auth/refresh").header("Authorization", "Bearer expired.or.invalid"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.type").value("urn:bayflow:problem:invalid-refresh-token"));
     }
@@ -222,13 +223,50 @@ class AuthApiIT extends IntegrationTestBase {
         register(username);
         String cookie = refreshCookie(login(username, PASSWORD).andReturn());
 
-        MvcResult result = mvc.perform(post("/api/v1/auth/logout").cookie(new Cookie(COOKIE, cookie)))
+        MvcResult result = mvc.perform(cookiePost("/api/v1/auth/logout").cookie(new Cookie(COOKIE, cookie)))
                 .andExpect(status().isNoContent())
                 .andReturn();
         assertThat(result.getResponse().getCookie(COOKIE).getMaxAge()).isZero();
 
-        mvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, cookie)))
+        mvc.perform(cookiePost("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, cookie)))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void refreshAndLogoutRefuseRequestsWithoutTheAppHeader() throws Exception {
+        String username = unique("csrf");
+        register(username);
+        String cookie = refreshCookie(login(username, PASSWORD).andReturn());
+
+        // A forged cross-site form post carries the cookie (in browsers without SameSite) but
+        // cannot add a custom header.
+        mvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, cookie)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.type").value("urn:bayflow:problem:csrf-check-failed"));
+        mvc.perform(post("/api/v1/auth/logout").cookie(new Cookie(COOKIE, cookie)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.type").value("urn:bayflow:problem:csrf-check-failed"));
+
+        // The session was not touched: the real app can still refresh with the same cookie.
+        mvc.perform(cookiePost("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, cookie)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void refreshRefusesRequestsTheBrowserMarksCrossSite() throws Exception {
+        String username = unique("xsite");
+        register(username);
+        String cookie = refreshCookie(login(username, PASSWORD).andReturn());
+
+        mvc.perform(cookiePost("/api/v1/auth/refresh").header("Sec-Fetch-Site", "cross-site")
+                        .cookie(new Cookie(COOKIE, cookie)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.type").value("urn:bayflow:problem:csrf-check-failed"));
+    }
+
+    /** A request as the Bayflow web app sends it, with the CSRF header. */
+    private static MockHttpServletRequestBuilder cookiePost(String path) {
+        return post(path).header(CookieRequestGuard.HEADER, "web");
     }
 
     // ---- client credentials and JWKS -----------------------------------------
@@ -363,7 +401,7 @@ class AuthApiIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.enabled").value(false));
 
         // Disabled: existing session ends and new logins are refused.
-        mvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, mechanicCookie)))
+        mvc.perform(cookiePost("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, mechanicCookie)))
                 .andExpect(status().isUnauthorized());
         login(mechanic, PASSWORD)
                 .andExpect(status().isUnauthorized())

@@ -120,6 +120,11 @@ service's Swagger UI and paste it.
   (`HttpOnly`, `SameSite=Strict`, path `/api/v1/auth`), valid 7 days. Only its
   hash is stored. Every `/auth/refresh` rotates it; replaying an old one ends
   the whole session.
+- **CSRF:** the services are bearer-token APIs (no sessions, no auth cookies), so
+  Spring's CSRF filter is off. The two cookie endpoints, `/auth/refresh` and
+  `/auth/logout`, instead require the `X-Bayflow-Client` header (which a cross-site
+  page cannot send without a CORS preflight, and Bayflow allows none) and refuse
+  `Sec-Fetch-Site: cross-site`. The web app sends the header on every call.
 - Other services verify tokens with the public key from
   `/.well-known/jwks.json` (shared setup in `backend/common-security`).
 - **appointment-service** gets a short-lived `SYSTEM` token from

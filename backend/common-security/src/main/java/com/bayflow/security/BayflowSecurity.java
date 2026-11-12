@@ -18,6 +18,12 @@ public final class BayflowSecurity {
             RolesClaimAuthenticationConverter converter,
             ProblemDetailsSecurityHandlers handlers) throws Exception {
         return http
+                // CSRF protection is off on purpose: every request is authenticated by a bearer
+                // token in the Authorization header, which a browser never attaches by itself,
+                // and there are no sessions or authentication cookies to ride on. (Spring
+                // Security's guidance for stateless, non-browser-session APIs.) The one place a
+                // cookie authenticates a request, auth-service's /refresh and /logout, has its own
+                // CSRF defence: see CookieRequestGuard in auth-service.
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
