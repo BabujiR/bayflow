@@ -9,6 +9,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import org.hibernate.annotations.TenantId;
+
 import org.hibernate.annotations.Immutable;
 
 /**
@@ -22,6 +24,11 @@ public class ServiceHistoryEntry {
 
     @Id
     private UUID id;
+
+    /** The workshop this entry belongs to. Hibernate fills it and filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
 
     @Column(name = "vehicle_id", nullable = false)
     private UUID vehicleId;
@@ -95,6 +102,7 @@ public class ServiceHistoryEntry {
     }
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
     public UUID getVehicleId() { return vehicleId; }
     public UUID getJobCardId() { return jobCardId; }
     public UUID getAppointmentId() { return appointmentId; }

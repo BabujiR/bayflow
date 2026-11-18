@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import com.bayflow.appointment.application.OutboxService;
 import com.bayflow.appointment.domain.OutboxMessage;
+import com.bayflow.security.TenantContext;
 
 /**
  * Delivers job-card requests from the outbox to workshop-service. Delivery is attempted
@@ -34,10 +35,14 @@ public class JobCardDispatcher {
         outbox.pendingFor(appointmentId).forEach(this::deliver);
     }
 
-    /** Retries every message whose next attempt is due. Returns how many were tried. */
+    /**
+     * Retries every message whose next attempt is due, in all workshops. Finding them is the one
+     * cross-workshop read; each message is then handled inside its own workshop.
+     * Returns how many were tried.
+     */
     public int dispatchDue() {
-        List<OutboxMessage> due = outbox.due();
-        due.forEach(this::deliver);
+        List<OutboxMessage> due = TenantContext.callAcrossTenants(outbox::due);
+        due.forEach(message -> TenantContext.run(message.getTenantId(), () -> deliver(message)));
         return due.size();
     }
 

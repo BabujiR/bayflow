@@ -20,6 +20,8 @@ spring:
     properties:
       hibernate:
         default_schema: bayflow
+        # Multi-tenancy: fills and filters tenant_id on every @TenantId entity (fails closed).
+        tenant_identifier_resolver: com.bayflow.security.BayflowTenantResolver
   flyway:
     # All services share schema "bayflow"; each keeps its own history table.
     schemas: bayflow
@@ -29,6 +31,9 @@ spring:
     baseline-on-migrate: true
     baseline-version: "0"
     locations: classpath:db/migration
+    placeholders:
+      # Same fixed value in every service: the workshop pre-multi-tenancy data belongs to.
+      default_tenant_id: 00000000-0000-0000-0000-000000000001
   data:
     web:
       pageable:

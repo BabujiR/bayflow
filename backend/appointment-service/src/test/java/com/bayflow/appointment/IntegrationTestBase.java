@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
+import com.bayflow.security.Tenants;
 
 /**
  * One PostgreSQL 16 container for the whole run (singleton pattern), the real Flyway
@@ -70,13 +71,19 @@ public abstract class IntegrationTestBase {
         clock.set(BASE);
     }
 
-    /** Signs the request as a user with the given role, like a real Bayflow access token would. */
+    /** Signs the request as a user with the given role in the default workshop, like a real access token. */
     protected static RequestPostProcessor as(String role, UUID userId) {
+        return as(role, userId, Tenants.DEFAULT_TENANT_ID);
+    }
+
+    /** Signs the request as a user with the given role in the given workshop ({@code tid} claim). */
+    protected static RequestPostProcessor as(String role, UUID userId, UUID tenantId) {
         return jwt()
                 .jwt(token -> token
                         .subject(userId.toString())
                         .claim("username", role.toLowerCase() + "-" + userId.toString().substring(0, 6))
-                        .claim("roles", List.of(role)))
+                        .claim("roles", List.of(role))
+                        .claim(Tenants.CLAIM, tenantId.toString()))
                 .authorities(new SimpleGrantedAuthority("ROLE_" + role));
     }
 }

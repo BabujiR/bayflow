@@ -26,6 +26,9 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import com.bayflow.auth.IntegrationTestBase;
 import com.bayflow.auth.application.AuthService;
 import com.bayflow.auth.domain.Role;
+import com.bayflow.auth.domain.User;
+import com.bayflow.security.TenantContext;
+import com.bayflow.security.Tenants;
 import com.jayway.jsonpath.JsonPath;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -37,6 +40,12 @@ class AuthApiIT extends IntegrationTestBase {
 
     @Autowired
     private AuthService authService;
+
+    /** Creates a user directly in the default workshop (registration only makes customers). */
+    private User createUser(String username, String email, String password, Set<Role> roles) {
+        return TenantContext.call(Tenants.DEFAULT_TENANT_ID,
+                () -> authService.createUser(username, email, password, roles));
+    }
 
     // ---- registration ------------------------------------------------------
 
@@ -286,6 +295,7 @@ class AuthApiIT extends IntegrationTestBase {
         Jwt jwt = decodeWithJwks(accessToken(result));
         assertThat(jwt.getSubject()).isEqualTo("appointment-service");
         assertThat(jwt.getClaimAsStringList("roles")).containsExactly("SYSTEM");
+        assertThat(jwt.getClaims()).doesNotContainKey("tid");
 
         mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + accessToken(result)))
                 .andExpect(status().isNotFound());
@@ -321,6 +331,7 @@ class AuthApiIT extends IntegrationTestBase {
 
         assertThat(jwt.getClaimAsString("username")).isEqualTo(username);
         assertThat(jwt.getAudience()).containsExactly("bayflow");
+        assertThat(jwt.getClaimAsString("tid")).isEqualTo(Tenants.DEFAULT_TENANT_ID.toString());
     }
 
     // ---- account administration (ADMIN) ----------------------------------------
@@ -337,7 +348,7 @@ class AuthApiIT extends IntegrationTestBase {
         String customer = unique("cust");
         register(customer);
         String advisor = unique("adv");
-        authService.createUser(advisor, advisor + "@example.com", PASSWORD, Set.of(Role.SERVICE_ADVISOR));
+        createUser(advisor, advisor + "@example.com", PASSWORD, Set.of(Role.SERVICE_ADVISOR));
 
         for (String username : new String[] { customer, advisor }) {
             String token = accessToken(login(username, PASSWORD).andReturn());
@@ -350,7 +361,7 @@ class AuthApiIT extends IntegrationTestBase {
     @Test
     void adminCreatesListsAndDisablesAccounts() throws Exception {
         String admin = unique("admin");
-        authService.createUser(admin, admin + "@example.com", PASSWORD, Set.of(Role.ADMIN));
+        createUser(admin, admin + "@example.com", PASSWORD, Set.of(Role.ADMIN));
         String token = accessToken(login(admin, PASSWORD).andReturn());
         String mechanic = unique("mech");
 
@@ -411,7 +422,7 @@ class AuthApiIT extends IntegrationTestBase {
     @Test
     void adminCannotDisableThemselves() throws Exception {
         String admin = unique("self");
-        String id = authService.createUser(admin, admin + "@example.com", PASSWORD,
+        String id = createUser(admin, admin + "@example.com", PASSWORD,
                 Set.of(Role.ADMIN)).getId().toString();
         String token = accessToken(login(admin, PASSWORD).andReturn());
 

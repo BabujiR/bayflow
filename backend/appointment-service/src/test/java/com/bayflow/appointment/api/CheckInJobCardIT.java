@@ -37,6 +37,8 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import com.jayway.jsonpath.JsonPath;
+import com.bayflow.security.TenantContext;
+import com.bayflow.security.Tenants;
 
 /**
  * Check-in opens the job card in workshop-service. WireMock stands in for workshop-service
@@ -75,7 +77,7 @@ class CheckInJobCardIT extends IntegrationTestBase {
     void resetRemoteServices() {
         // The database is shared with other test classes, whose check-ins leave undelivered
         // messages behind (they have no workshop-service). Start each test with an empty outbox.
-        outbox.deleteAll();
+        TenantContext.runAcrossTenants(outbox::deleteAllInBatch);
         WIREMOCK.resetAll();
         tokens.invalidate();
         WIREMOCK.stubFor(WireMock.post(urlEqualTo(TOKEN))
@@ -100,10 +102,11 @@ class CheckInJobCardIT extends IntegrationTestBase {
                 .withRequestBody(matchingJsonPath("$.appointmentId", equalTo(id)))
                 .withRequestBody(matchingJsonPath("$.mileage", equalTo("15000")))
                 .withRequestBody(matchingJsonPath("$.customerName", equalTo("Jane Doe")))
+                .withRequestBody(matchingJsonPath("$.tenantId", equalTo(Tenants.DEFAULT_TENANT_ID.toString())))
                 .withRequestBody(matchingJsonPath("$.vin")));
         WIREMOCK.verify(1, postRequestedFor(urlEqualTo(TOKEN)).withRequestBody(equalToJson(
                 "{\"clientId\":\"appointment-service\",\"clientSecret\":\"test-client-secret\"}")));
-        assertThat(outbox.findByAppointmentId(UUID.fromString(id)))
+        assertThat(messagesFor(id))
                 .singleElement()
                 .satisfies(m -> assertThat(m.isProcessed()).isTrue());
 
@@ -205,8 +208,13 @@ class CheckInJobCardIT extends IntegrationTestBase {
         return aResponse().withStatus(status).withHeader("Content-Type", "application/json").withBody(body);
     }
 
+    private List<OutboxMessage> messagesFor(String appointmentId) {
+        return TenantContext.call(Tenants.DEFAULT_TENANT_ID,
+                () -> outbox.findByAppointmentId(UUID.fromString(appointmentId)));
+    }
+
     private OutboxMessage single(String appointmentId) {
-        List<OutboxMessage> messages = outbox.findByAppointmentId(UUID.fromString(appointmentId));
+        List<OutboxMessage> messages = messagesFor(appointmentId);
         assertThat(messages).hasSize(1);
         return messages.get(0);
     }

@@ -14,6 +14,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import org.hibernate.annotations.TenantId;
+
 /**
  * A service booking for one vehicle. Status changes go through the methods below, which
  * enforce the state machine in {@link AppointmentAction}.
@@ -28,6 +30,11 @@ public class Appointment {
 
     @Id
     private UUID id;
+
+    /** The workshop this appointment belongs to. Hibernate fills it and filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "customer_id", nullable = false)
@@ -189,6 +196,7 @@ public class Appointment {
     // ---- getters ----------------------------------------------------------------
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
     public Customer getCustomer() { return customer; }
     public Vehicle getVehicle() { return vehicle; }
     public Instant getScheduledAt() { return scheduledAt; }

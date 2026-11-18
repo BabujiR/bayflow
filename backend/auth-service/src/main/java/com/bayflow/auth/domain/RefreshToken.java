@@ -9,6 +9,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import org.hibernate.annotations.TenantId;
+
 /**
  * A refresh token. Only the SHA-256 hash of the token value is stored. Every refresh
  * rotates the token within the same family; presenting a rotated (revoked) token again
@@ -20,6 +22,11 @@ public class RefreshToken {
 
     @Id
     private UUID id;
+
+    /** Same workshop as the user. Hibernate filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
@@ -49,8 +56,10 @@ public class RefreshToken {
         // for JPA
     }
 
-    private RefreshToken(UUID userId, UUID familyId, String tokenHash, Instant expiresAt, Instant now) {
+    private RefreshToken(UUID tenantId, UUID userId, UUID familyId, String tokenHash, Instant expiresAt,
+            Instant now) {
         this.id = UUID.randomUUID();
+        this.tenantId = tenantId;
         this.userId = userId;
         this.familyId = familyId;
         this.tokenHash = tokenHash;
@@ -59,8 +68,9 @@ public class RefreshToken {
     }
 
     /** First token of a new login session. */
-    public static RefreshToken newFamily(UUID userId, String tokenHash, Instant expiresAt, Instant now) {
-        return new RefreshToken(userId, UUID.randomUUID(), tokenHash, expiresAt, now);
+    public static RefreshToken newFamily(UUID tenantId, UUID userId, String tokenHash, Instant expiresAt,
+            Instant now) {
+        return new RefreshToken(tenantId, userId, UUID.randomUUID(), tokenHash, expiresAt, now);
     }
 
     /** Revokes this token and returns its successor in the same family. */
@@ -68,7 +78,7 @@ public class RefreshToken {
         if (revoked) {
             throw new IllegalStateException("A revoked token cannot be rotated");
         }
-        RefreshToken next = new RefreshToken(userId, familyId, newTokenHash, newExpiresAt, now);
+        RefreshToken next = new RefreshToken(tenantId, userId, familyId, newTokenHash, newExpiresAt, now);
         this.revoked = true;
         this.replacedBy = next.id;
         return next;
@@ -83,6 +93,7 @@ public class RefreshToken {
     }
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
     public UUID getUserId() { return userId; }
     public UUID getFamilyId() { return familyId; }
     public String getTokenHash() { return tokenHash; }

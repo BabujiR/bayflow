@@ -27,6 +27,7 @@ import com.bayflow.auth.application.AuthService.Session;
 import com.bayflow.auth.application.ClientCredentialsService;
 import com.bayflow.auth.application.TokenService.IssuedToken;
 import com.bayflow.security.CurrentUser;
+import com.bayflow.security.TenantContext;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -42,26 +43,30 @@ public class AuthController {
     private final AuthService authService;
     private final ClientCredentialsService clientCredentials;
     private final RefreshCookies cookies;
+    private final RequestTenants tenants;
 
     public AuthController(AuthService authService, ClientCredentialsService clientCredentials,
-            RefreshCookies cookies) {
+            RefreshCookies cookies, RequestTenants tenants) {
         this.authService = authService;
         this.clientCredentials = clientCredentials;
         this.cookies = cookies;
+        this.tenants = tenants;
     }
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Register a customer account")
-    public UserResponse register(@Valid @RequestBody RegisterRequest request) {
-        return UserResponse.from(authService.register(request.username(), request.email(), request.password()));
+    @Operation(summary = "Register a customer account in this workshop")
+    public UserResponse register(@Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
+        return TenantContext.call(tenants.resolve(httpRequest), () -> UserResponse.from(
+                authService.register(request.username(), request.email(), request.password())));
     }
 
     @PostMapping("/login")
     @Operation(summary = "Sign in; returns an access token and sets the refresh-token cookie")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request,
             HttpServletRequest httpRequest) {
-        Session session = authService.login(request.username(), request.password(), httpRequest.getRemoteAddr());
+        Session session = TenantContext.call(tenants.resolve(httpRequest),
+                () -> authService.login(request.username(), request.password(), httpRequest.getRemoteAddr()));
         return sessionResponse(session);
     }
 
@@ -69,14 +74,17 @@ public class AuthController {
     @Operation(summary = "Rotate the refresh-token cookie and return a new access token")
     public ResponseEntity<TokenResponse> refresh(HttpServletRequest httpRequest) {
         CookieRequestGuard.check(httpRequest);
-        return sessionResponse(authService.refresh(cookies.read(httpRequest)));
+        String refreshToken = cookies.read(httpRequest);
+        return sessionResponse(TenantContext.call(tenants.resolve(httpRequest),
+                () -> authService.refresh(refreshToken)));
     }
 
     @PostMapping("/logout")
     @Operation(summary = "End the session and clear the refresh-token cookie")
     public ResponseEntity<Void> logout(HttpServletRequest httpRequest) {
         CookieRequestGuard.check(httpRequest);
-        authService.logout(cookies.read(httpRequest));
+        String refreshToken = cookies.read(httpRequest);
+        TenantContext.run(tenants.resolve(httpRequest), () -> authService.logout(refreshToken));
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, cookies.clear().toString())
                 .build();
@@ -100,7 +108,9 @@ public class AuthController {
     @PostMapping("/token")
     @Operation(summary = "Client-credentials grant for service-to-service calls (role SYSTEM)")
     public TokenResponse clientToken(@Valid @RequestBody ClientTokenRequest request) {
-        IssuedToken token = clientCredentials.issue(request.clientId(), request.clientSecret());
+        // Service clients are platform-level, not part of any workshop.
+        IssuedToken token = TenantContext.callAcrossTenants(
+                () -> clientCredentials.issue(request.clientId(), request.clientSecret()));
         return new TokenResponse(token.value(), BEARER, token.expiresInSeconds(), token.expiresAt(), null);
     }
 

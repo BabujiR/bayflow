@@ -10,12 +10,15 @@ import org.junit.jupiter.api.Test;
 
 class RefreshTokenTest {
 
+    private static final UUID TENANT = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
     private static final Instant NOW = Instant.parse("2026-11-09T10:00:00Z");
 
     @Test
     void rotateRevokesTheOldTokenAndKeepsTheFamily() {
         UUID userId = UUID.randomUUID();
-        RefreshToken first = RefreshToken.newFamily(userId, "hash-1", NOW.plusSeconds(60), NOW);
+        RefreshToken first = RefreshToken.newFamily(TENANT, userId, "hash-1", NOW.plusSeconds(60), NOW);
+        assertThat(first.getTenantId()).isEqualTo(TENANT);
 
         RefreshToken second = first.rotate("hash-2", NOW.plusSeconds(120), NOW.plusSeconds(10));
 
@@ -29,7 +32,7 @@ class RefreshTokenTest {
 
     @Test
     void revokedTokenCannotBeRotated() {
-        RefreshToken token = RefreshToken.newFamily(UUID.randomUUID(), "h", NOW.plusSeconds(60), NOW);
+        RefreshToken token = RefreshToken.newFamily(TENANT, UUID.randomUUID(), "h", NOW.plusSeconds(60), NOW);
         token.revoke();
 
         assertThatThrownBy(() -> token.rotate("h2", NOW.plusSeconds(60), NOW))
@@ -38,7 +41,7 @@ class RefreshTokenTest {
 
     @Test
     void expiresAtItsExpiryInstant() {
-        RefreshToken token = RefreshToken.newFamily(UUID.randomUUID(), "h", NOW.plusSeconds(60), NOW);
+        RefreshToken token = RefreshToken.newFamily(TENANT, UUID.randomUUID(), "h", NOW.plusSeconds(60), NOW);
 
         assertThat(token.isExpired(NOW.plusSeconds(59))).isFalse();
         assertThat(token.isExpired(NOW.plusSeconds(60))).isTrue();

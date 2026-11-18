@@ -23,6 +23,7 @@ import com.bayflow.auth.config.AuthProperties;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.User;
 import com.bayflow.security.BayflowTokenValidators;
+import com.bayflow.security.Tenants;
 
 class KeysAndTokensTest {
 
@@ -86,7 +87,8 @@ class KeysAndTokensTest {
         AuthProperties properties = new AuthProperties();
         RsaKeyProvider keys = new RsaKeyProvider(properties);
         TokenService tokens = new TokenService(keys, properties, Clock.systemUTC());
-        User user = User.create("advisor1", "a@b.c", "{noop}x", Set.of(Role.SERVICE_ADVISOR), Instant.now());
+        User user = User.create(Tenants.DEFAULT_TENANT_ID, "advisor1", "a@b.c", "{noop}x", Set.of(Role.SERVICE_ADVISOR),
+                Instant.now());
 
         TokenService.IssuedToken issued = tokens.forUser(user);
         Jwt jwt = decoder(keys, properties).decode(issued.value());
@@ -94,6 +96,7 @@ class KeysAndTokensTest {
         assertThat(jwt.getSubject()).isEqualTo(user.getId().toString());
         assertThat(jwt.getClaimAsString("username")).isEqualTo("advisor1");
         assertThat(jwt.getClaimAsStringList("roles")).containsExactly("SERVICE_ADVISOR");
+        assertThat(jwt.getClaimAsString("tid")).isEqualTo(Tenants.DEFAULT_TENANT_ID.toString());
         assertThat(jwt.getAudience()).containsExactly("bayflow");
         assertThat(jwt.getClaimAsString("iss")).isEqualTo("bayflow-auth");
         assertThat(jwt.getId()).isNotBlank();

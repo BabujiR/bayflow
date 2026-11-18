@@ -13,6 +13,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import org.hibernate.annotations.TenantId;
+
 @Entity
 @Table(name = "apt_vehicles")
 public class Vehicle {
@@ -22,6 +24,11 @@ public class Vehicle {
 
     @Id
     private UUID id;
+
+    /** The workshop this vehicle belongs to. Hibernate fills it and filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "customer_id", nullable = false)
@@ -100,6 +107,7 @@ public class Vehicle {
     }
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
     public Customer getOwner() { return owner; }
     public String getVin() { return vin; }
     public String getRegistration() { return registration; }

@@ -11,6 +11,8 @@ import org.springframework.util.StringUtils;
 import com.bayflow.auth.application.ClientCredentialsService;
 import com.bayflow.auth.application.UserAdminService;
 import com.bayflow.auth.domain.Role;
+import com.bayflow.security.TenantContext;
+import com.bayflow.security.Tenants;
 
 @Configuration
 public class StartupData {
@@ -23,31 +25,35 @@ public class StartupData {
     /** Keeps the service clients in the database in line with configuration. */
     @Bean
     ApplicationRunner syncServiceClients(ClientCredentialsService clientCredentials, AuthProperties properties) {
-        return args -> clientCredentials.syncConfiguredClients(properties.getClients());
+        return args -> TenantContext.runAcrossTenants(
+                () -> clientCredentials.syncConfiguredClients(properties.getClients()));
     }
 
-    /** Creates the first ADMIN from bayflow.auth.bootstrap-admin.* when no admin exists yet. */
+    /**
+     * Creates the first ADMIN of the default workshop from bayflow.auth.bootstrap-admin.*
+     * when it has no admin yet.
+     */
     @Bean
     ApplicationRunner bootstrapAdmin(UserAdminService userAdmin, AuthProperties properties) {
-        return args -> {
+        return args -> TenantContext.run(Tenants.DEFAULT_TENANT_ID, () -> {
             AuthProperties.BootstrapAdmin admin = properties.getBootstrapAdmin();
             if (StringUtils.hasText(admin.getPassword())
                     && userAdmin.bootstrapAdmin(admin.getUsername(), admin.getEmail(), admin.getPassword())) {
                 log.info("Created bootstrap admin account '{}'. Change its password after first login.",
                         admin.getUsername());
             }
-        };
+        });
     }
 
-    /** Demo users for local development. Never active outside the "dev" profile. */
+    /** Demo users in the default workshop, for local development. Never active outside "dev". */
     @Bean
     @Profile("dev")
     ApplicationRunner seedDevUsers(UserAdminService userAdmin) {
-        return args -> {
+        return args -> TenantContext.run(Tenants.DEFAULT_TENANT_ID, () -> {
             userAdmin.ensureUser("customer1", "customer1@bayflow.local", DEV_PASSWORD, Role.CUSTOMER);
             userAdmin.ensureUser("advisor1", "advisor1@bayflow.local", DEV_PASSWORD, Role.SERVICE_ADVISOR);
             userAdmin.ensureUser("mechanic1", "mechanic1@bayflow.local", DEV_PASSWORD, Role.MECHANIC);
             userAdmin.ensureUser("admin1", "admin1@bayflow.local", DEV_PASSWORD, Role.ADMIN);
-        };
+        });
     }
 }

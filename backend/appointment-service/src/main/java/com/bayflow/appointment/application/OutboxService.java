@@ -47,7 +47,7 @@ public class OutboxService {
         OpenJobCardPayload payload = new OpenJobCardPayload(appointment.getId(), appointment.getVehicle().getId(),
                 appointment.getVehicle().getVin(), appointment.getVehicle().getRegistration(),
                 appointment.getCustomer().getUserId(), appointment.getCustomer().getName(),
-                appointment.getArrivalMileage());
+                appointment.getArrivalMileage(), appointment.getTenantId());
         outbox.save(OutboxMessage.create(appointment.getId(), OutboxMessage.CREATE_JOB_CARD,
                 json.writeValueAsString(payload), clock.instant()));
     }
@@ -57,6 +57,10 @@ public class OutboxService {
         return outbox.findByAppointmentIdAndProcessedAtIsNull(appointmentId);
     }
 
+    /**
+     * Due messages of every workshop. The caller runs this across tenants
+     * ({@code TenantContext.callAcrossTenants}) and then handles each message in its own workshop.
+     */
     @Transactional(readOnly = true)
     public List<OutboxMessage> due() {
         return outbox.findByProcessedAtIsNullAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(clock.instant(),
@@ -64,7 +68,8 @@ public class OutboxService {
     }
 
     public OpenJobCardPayload payload(OutboxMessage message) {
-        return json.readValue(message.getPayload(), OpenJobCardPayload.class);
+        OpenJobCardPayload payload = json.readValue(message.getPayload(), OpenJobCardPayload.class);
+        return payload.tenantId() != null ? payload : payload.withTenantId(message.getTenantId());
     }
 
     /** Settles the message and stores the job card id on the appointment. Repeats are harmless. */

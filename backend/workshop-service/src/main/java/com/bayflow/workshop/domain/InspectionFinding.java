@@ -12,6 +12,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import org.hibernate.annotations.TenantId;
+
 /** Something the inspection found, e.g. "front brake pads at 2 mm". */
 @Entity
 @Table(name = "ws_inspection_findings")
@@ -19,6 +21,11 @@ public class InspectionFinding {
 
     @Id
     private UUID id;
+
+    /** The workshop this finding belongs to. Hibernate fills it and filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "job_card_id", nullable = false)
@@ -51,6 +58,7 @@ public class InspectionFinding {
     }
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
     public String getDescription() { return description; }
     public Severity getSeverity() { return severity; }
     public String getRecordedBy() { return recordedBy; }

@@ -115,7 +115,11 @@ service's Swagger UI and paste it.
 
 - **auth-service** stores users (BCrypt passwords) and signs **access tokens**:
   RS256 JWTs valid for 15 minutes with claims `sub` (user id), `username`,
-  `roles`, `iss=bayflow-auth`, `aud=bayflow`.
+  `roles`, `tid` (the user's workshop), `iss=bayflow-auth`, `aud=bayflow`.
+- **Workshops (multi-tenancy):** every row belongs to a workshop (`tenant_id`),
+  and every service scopes all queries to the workshop in the caller's token.
+  Until workshops get their own addresses (SaaS phase 4) there is one workshop,
+  `default`. Details: [docs/PLAN.md § 9, item 17](docs/PLAN.md#9-assumptions).
 - The **refresh token** is a random value sent only as the `bayflow_rt` cookie
   (`HttpOnly`, `SameSite=Strict`, path `/api/v1/auth`), valid 7 days. Only its
   hash is stored. Every `/auth/refresh` rotates it; replaying an old one ends
@@ -228,6 +232,10 @@ spaced out to stay under the 10-per-minute login limit.
 | 6 | Frontend foundation | ✅ done |
 | 7 | Frontend screens per role | ✅ done |
 | 8 | nginx, full compose, Playwright e2e, CD | ✅ done |
+| SaaS 1 | Tenant foundation (`tenant_id`, `tid` claim) | 🔍 in review |
+| SaaS 2 | Row-level security and isolation tests | planned |
+| SaaS 3 | Per-workshop settings | planned |
+| SaaS 4 | Sign-up and workshop subdomains | planned |
 
 ## Assumptions
 

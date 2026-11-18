@@ -20,8 +20,14 @@ import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.User;
 import com.bayflow.auth.infrastructure.RefreshTokenRepository;
 import com.bayflow.auth.infrastructure.UserRepository;
+import com.bayflow.security.TenantContext;
 
-/** Registration, login, refresh-token rotation and logout. */
+/**
+ * Registration, login, refresh-token rotation and logout.
+ * <p>
+ * Every method works inside one workshop: callers set it with {@link TenantContext} (the
+ * workshop the request is for), and Hibernate scopes all user and token queries to it.
+ */
 @Service
 public class AuthService {
 
@@ -70,8 +76,8 @@ public class AuthService {
         if (users.existsByEmail(normalizedEmail)) {
             throw ApiException.conflict("email-taken", "An account with that email already exists.");
         }
-        User user = User.create(normalizedUsername, normalizedEmail, passwordEncoder.encode(password), roles,
-                clock.instant());
+        User user = User.create(TenantContext.require(), normalizedUsername, normalizedEmail,
+                passwordEncoder.encode(password), roles, clock.instant());
         return users.save(user);
     }
 
@@ -153,7 +159,8 @@ public class AuthService {
     private Session startSession(User user, Instant now) {
         String raw = SecureTokens.newToken();
         Instant expiresAt = now.plus(properties.getRefreshTokenTtl());
-        refreshTokens.save(RefreshToken.newFamily(user.getId(), SecureTokens.sha256(raw), expiresAt, now));
+        refreshTokens.save(RefreshToken.newFamily(user.getTenantId(), user.getId(), SecureTokens.sha256(raw),
+                expiresAt, now));
         return new Session(tokenService.forUser(user), raw, expiresAt, user, now);
     }
 }

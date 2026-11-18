@@ -245,7 +245,8 @@ class JobCardApiIT extends IntegrationTestBase {
         return mvc.perform(post("/api/v1/job-cards").with(who).contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"appointmentId":"%s","vehicleId":"%s","vin":"1HGCM82633A004352","registration":"BFL 1234",
-                         "customerUserId":%s,"customerName":"Jane Doe","mileage":12480}
+                         "customerUserId":%s,"customerName":"Jane Doe","mileage":12480,
+                         "tenantId":"00000000-0000-0000-0000-000000000001"}
                         """.formatted(appointmentId, UUID.randomUUID(), customer)));
     }
 

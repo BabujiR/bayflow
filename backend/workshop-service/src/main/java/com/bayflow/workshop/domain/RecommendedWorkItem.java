@@ -14,6 +14,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import org.hibernate.annotations.TenantId;
+
 /** Work the advisor recommends, with an estimate, which the customer approves or declines. */
 @Entity
 @Table(name = "ws_recommended_items")
@@ -21,6 +23,11 @@ public class RecommendedWorkItem {
 
     @Id
     private UUID id;
+
+    /** The workshop this item belongs to. Hibernate fills it and filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "job_card_id", nullable = false)
@@ -96,6 +103,7 @@ public class RecommendedWorkItem {
     }
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
     public String getDescription() { return description; }
     public BigDecimal getEstimatedPartsCost() { return estimatedPartsCost; }
     public BigDecimal getEstimatedLabourHours() { return estimatedLabourHours; }

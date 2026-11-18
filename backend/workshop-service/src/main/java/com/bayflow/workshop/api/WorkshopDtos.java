@@ -47,7 +47,9 @@ public final class WorkshopDtos {
             @NotBlank @Size(max = 20) String registration,
             UUID customerUserId,
             @NotBlank @Size(max = 100) String customerName,
-            @NotNull @PositiveOrZero Integer mileage) {
+            @NotNull @PositiveOrZero Integer mileage,
+            /** The workshop; required from SYSTEM callers, ignored for users (their token decides). */
+            UUID tenantId) {
 
         OpenCommand toCommand() {
             return new OpenCommand(appointmentId, vehicleId, vin, registration, customerUserId, customerName,

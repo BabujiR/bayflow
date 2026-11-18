@@ -341,6 +341,27 @@ in the page `<meta name="description">`.
 16. **Job-card delivery** is at-least-once: the immediate attempt after check-in
     and the scheduled retry may both send the same request; workshop-service is
     idempotent on the appointment id, so only one job card ever exists.
+17. **Multi-tenancy (SaaS), phase 1** (see `docs/prompts/saas-local.md`): every
+    business row carries a `tenant_id` and every user token a `tid` claim.
+    - Tenants live in auth-service (`auth_tenants`); other services learn the
+      tenant only from the token. Data from before multi-tenancy belongs to the
+      `default` workshop, id `00000000-0000-0000-0000-000000000001` (Flyway
+      placeholder `default_tenant_id`, the same in every service).
+    - Hibernate's `@TenantId` fills and filters `tenant_id` on every entity;
+      `BayflowTenantResolver` (common-security) refuses to open a database
+      session when no tenant is known, so a missing tenant fails closed.
+    - `TenantContext` sets the tenant where there is no user token: sign-in,
+      registration and refresh (the request's workshop, always `default` until
+      phase 4), SYSTEM job-card requests (`tenantId` in the body, trusted only
+      from SYSTEM), and the outbox retry job (each message in its own workshop).
+      Only service clients and finding due outbox rows run across tenants.
+    - Usernames, emails and VINs are unique per workshop, not globally.
+    - `auth_user_roles.tenant_id` is filled by a trigger from the user, because
+      the JPA element collection inserts only `(user_id, role)`.
+    - A user token without `tid` gets 401, so sessions from before this change
+      must sign in again once. SYSTEM tokens carry no `tid`.
+    - Deferred to phase 4 (needs one address per workshop): seeding the `demo`
+      and `acme` workshops and the two-workshop Playwright scenario.
 
 ---
 
@@ -356,5 +377,9 @@ in the page `<meta name="description">`.
 | 6 | Frontend foundation: auth flow, layout, routing, API clients | login works against the backend |
 | 7 | Frontend screens for all three roles | full workflow possible in the UI |
 | 8 | nginx hardening, full compose, Playwright e2e, CD workflow, README | `docker compose up --build` + e2e green |
+| SaaS 1 | Tenant foundation: `tenant_id` everywhere, `tid` claim, Hibernate tenant filter | every row has a tenant, every user token a `tid`, all suites green |
+| SaaS 2 | Row-level security, separate DB roles, isolation suite | cross-tenant access impossible at the database |
+| SaaS 3 | Per-workshop settings, money frozen on job cards | no business setting read from env at request time |
+| SaaS 4 | Sign-up and `<slug>.localhost` subdomains | a new workshop signs up and runs on its own |
 
 Each milestone ends with a review pause.

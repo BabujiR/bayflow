@@ -176,7 +176,7 @@ class WorkAndHistoryApiIT extends IntegrationTestBase {
                         .content("""
                                 {"appointmentId":"%s","vehicleId":"%s","vin":"1HGCM82633A004352",
                                  "registration":"BFL 1234","customerUserId":"%s","customerName":"Jane Doe",
-                                 "mileage":12480}
+                                 "mileage":12480,"tenantId":"00000000-0000-0000-0000-000000000001"}
                                 """.formatted(UUID.randomUUID(), vehicleId, customerId)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();

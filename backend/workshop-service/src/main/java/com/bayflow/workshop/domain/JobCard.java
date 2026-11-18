@@ -21,6 +21,8 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import org.hibernate.annotations.TenantId;
+
 /**
  * The workshop's record for one checked-in vehicle. It is created from an appointment
  * (exactly one job card per appointment) and moves through inspection, customer approval,
@@ -34,6 +36,11 @@ public class JobCard {
 
     @Id
     private UUID id;
+
+    /** The workshop this job card belongs to. Hibernate fills it and filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
 
     @Column(name = "appointment_id", nullable = false, unique = true)
     private UUID appointmentId;
@@ -313,6 +320,7 @@ public class JobCard {
     // ---- getters ------------------------------------------------------------------------
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
     public UUID getAppointmentId() { return appointmentId; }
     public UUID getVehicleId() { return vehicleId; }
     public String getVin() { return vin; }

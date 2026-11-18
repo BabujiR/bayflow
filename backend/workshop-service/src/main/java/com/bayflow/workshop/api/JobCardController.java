@@ -32,6 +32,8 @@ import com.bayflow.workshop.application.JobCardService.OpenResult;
 import com.bayflow.workshop.config.WorkshopProperties;
 import com.bayflow.workshop.domain.JobCard;
 import com.bayflow.workshop.domain.JobCardStatus;
+import com.bayflow.workshop.application.ApiException;
+import com.bayflow.security.TenantContext;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -55,15 +57,24 @@ public class JobCardController {
     @PreAuthorize("hasAnyRole('SYSTEM', 'SERVICE_ADVISOR')")
     @Operation(summary = "Open the job card for a checked-in appointment",
             description = "Idempotent on appointmentId: 201 when created, 200 with the existing card on a repeat.")
-    public ResponseEntity<JobCardResponse> open(@Valid @RequestBody OpenJobCardRequest request) {
-        OpenResult result;
-        try {
-            result = jobCards.open(request.toCommand());
-        } catch (DataIntegrityViolationException raceLost) {
-            // A concurrent request created it first; return that card.
-            JobCard existing = jobCards.findByAppointment(request.appointmentId()).orElseThrow(() -> raceLost);
-            result = new OpenResult(existing, false);
+    public ResponseEntity<JobCardResponse> open(@Valid @RequestBody OpenJobCardRequest request,
+            Authentication auth) {
+        CurrentUser user = CurrentUser.from(auth);
+        // A SYSTEM token has no workshop, so appointment-service names it in the request. A user's
+        // own token decides for them; a tenantId they send is ignored.
+        UUID tenant = user.isSystem() ? request.tenantId() : user.tenantId();
+        if (tenant == null) {
+            throw ApiException.badRequest("tenant-required", "Name the workshop (tenantId) to open a job card.");
         }
+        OpenResult result = TenantContext.call(tenant, () -> {
+            try {
+                return jobCards.open(request.toCommand());
+            } catch (DataIntegrityViolationException raceLost) {
+                // A concurrent request created it first; return that card.
+                JobCard existing = jobCards.findByAppointment(request.appointmentId()).orElseThrow(() -> raceLost);
+                return new OpenResult(existing, false);
+            }
+        });
         return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK)
                 .body(response(result.jobCard()));
     }
@@ -89,7 +100,13 @@ public class JobCardController {
     @PreAuthorize("hasAnyRole('CUSTOMER', 'SERVICE_ADVISOR', 'MECHANIC', 'ADMIN', 'SYSTEM')")
     @Operation(summary = "The job card opened for an appointment")
     public JobCardResponse byAppointment(@PathVariable UUID appointmentId, Authentication auth) {
-        return response(jobCards.getByAppointment(CurrentUser.from(auth), appointmentId));
+        CurrentUser user = CurrentUser.from(auth);
+        if (user.isSystem()) {
+            // Appointment ids are globally unique; a SYSTEM caller has no workshop of its own.
+            return TenantContext.callAcrossTenants(
+                    () -> response(jobCards.getByAppointment(user, appointmentId)));
+        }
+        return response(jobCards.getByAppointment(user, appointmentId));
     }
 
     @PostMapping("/{id}/findings")
