@@ -51,7 +51,7 @@ public class Locations {
             throw ApiException.notFound("Location");
         }
         UUID wanted = requested != null ? requested : scope.single().orElse(null);
-        Optional<List<LocationSettings>> known = all(tenant);
+        Optional<List<LocationSettings>> known = all(tenant, wanted);
         if (known.isEmpty()) {
             if (wanted == null || wanted.equals(tenant)) {
                 return tenant;
@@ -96,7 +96,7 @@ public class Locations {
     /** The time zone of one of this organization's locations, or the fallback zone. */
     public ZoneId zoneOf(UUID locationId) {
         UUID tenant = TenantContext.require();
-        Optional<LocationSettings> location = all(tenant)
+        Optional<LocationSettings> location = all(tenant, locationId)
                 .flatMap(list -> list.stream().filter(l -> l.id().equals(locationId)).findFirst());
         if (location.isEmpty()) {
             return properties.getWorkshopZone();
@@ -110,8 +110,21 @@ public class Locations {
     }
 
     private Optional<List<LocationSettings>> all(UUID tenant) {
+        return all(tenant, null);
+    }
+
+    /**
+     * The locations, fetched again once if {@code expected} is not among the cached ones (a location
+     * added since): new locations work at once, not only after the cache expires.
+     */
+    private Optional<List<LocationSettings>> all(UUID tenant, UUID expected) {
         try {
-            return Optional.of(client.locations(tenant));
+            List<LocationSettings> known = client.locations(tenant);
+            if (expected != null && known.stream().noneMatch(l -> l.id().equals(expected))) {
+                client.evict(tenant);
+                known = client.locations(tenant);
+            }
+            return Optional.of(known);
         } catch (RuntimeException e) {
             log.warn("Could not read the locations of organization {} ({}); using fallbacks", tenant, e.getMessage());
             return Optional.empty();

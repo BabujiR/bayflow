@@ -429,6 +429,17 @@ export { expect };
 
 // ---- Arranging data through the API -----------------------------------------------------------
 
+/**
+ * "Main" (the organization's first location) when the organization has several active locations,
+ * otherwise nothing (the API picks the only one). Keeps the scenarios working while a scenario
+ * that adds a location is running, or after one stopped halfway.
+ */
+async function mainLocationIfSeveral(api: Api): Promise<string | undefined> {
+  const locations = await api.get<{ id: string; code: string; status: string }[]>('/api/v1/auth/locations');
+  const active = locations.filter((l) => l.status === 'ACTIVE');
+  return active.length > 1 ? (active.find((l) => l.code === 'main') ?? active[0])?.id : undefined;
+}
+
 export interface SeededCustomer {
   username: string;
   password: string;
@@ -478,10 +489,12 @@ export async function book(
   api: Api,
   vehicleId: string,
   at: Slot,
-  options: { durationMinutes?: number; serviceType?: string; notes?: string } = {},
+  options: { durationMinutes?: number; serviceType?: string; notes?: string; locationId?: string } = {},
 ): Promise<{ id: string }> {
   return api.post<{ id: string }>('/api/v1/appointments', {
     vehicleId,
+    // Organizations with several locations need one; the scenarios use "Main" unless they say.
+    locationId: options.locationId ?? (await mainLocationIfSeveral(api)),
     scheduledAt: at.iso,
     durationMinutes: options.durationMinutes ?? 60,
     serviceType: options.serviceType ?? 'ROUTINE_SERVICE',

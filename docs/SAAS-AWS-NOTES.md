@@ -54,3 +54,17 @@ This note lists what has to change when the same build runs on AWS. Nothing here
 | `SPRING_PROFILES_ACTIVE` | all | not `dev` (no demo workshops or users) |
 
 The existing deployment guide ("Bayflow on AWS: deployment guide") covers the rest: ECS/Fargate, RDS, ALB, CI/CD. Add the wildcard DNS, the certificate and the variables above to it.
+
+## Locations
+
+Organizations with several locations need nothing new on AWS, with one exception:
+
+- auth-service now calls appointment-service (before a location is archived) at
+  `BAYFLOW_APPOINTMENT_URL`, as well as the other way round. Allow that in the security
+  groups / service discovery, and keep `/api/v1/internal/` unreachable from the internet
+  (nginx returns 404 for it; the ALB should only route to nginx).
+- The 5-minute location caches in appointment-service and workshop-service are per instance:
+  a changed time zone or labour rate reaches every instance within 5 minutes; new locations
+  work at once.
+- Location codes and per-location time zones need no DNS changes: locations live inside their
+  organization's address (`<slug>.bayflow.example`).

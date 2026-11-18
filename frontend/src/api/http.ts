@@ -1,3 +1,5 @@
+import { locationHeader } from '@/features/locations/selection';
+
 import { ApiError, toApiError } from './errors';
 
 /**
@@ -87,6 +89,11 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
   }
   if (options.auth !== false && accessToken) {
     headers.Authorization = `Bearer ${accessToken}`;
+  }
+  // The location switcher (organizations with several locations): the services show only it.
+  const location = locationHeader();
+  if (options.auth !== false && accessToken && location) {
+    headers['X-Bayflow-Location'] = location;
   }
   return fetch(url, {
     method: options.method ?? 'GET',

@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useLocationLookup } from '@/features/locations/use-locations';
 import { APPOINTMENT_STATUS_LABELS, formatDateTime, SERVICE_TYPE_LABELS } from '@/lib/format';
 
 import { AppointmentActions } from './AppointmentActions';
@@ -29,6 +30,8 @@ export function AppointmentsPage() {
   const [date, setDate] = useState('');
   const [status, setStatus] = useState<AppointmentStatus | ''>('');
   const [page, setPage] = useState(0);
+  // Several locations: each booking shows where it is, and its time in that location's zone.
+  const locations = useLocationLookup();
   const filters = { date: date || undefined, status: status || undefined, page, size: 20 };
   const appointments = useQuery({
     queryKey: ['appointments', filters],
@@ -104,6 +107,7 @@ export function AppointmentsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>When</TableHead>
+                    {locations.hasSeveral && <TableHead>Location</TableHead>}
                     <TableHead>Vehicle</TableHead>
                     {staff && <TableHead>Customer</TableHead>}
                     <TableHead>Service</TableHead>
@@ -116,7 +120,10 @@ export function AppointmentsPage() {
                 <TableBody>
                   {result.content.map((a) => (
                     <TableRow key={a.id}>
-                      <TableCell className="whitespace-nowrap">{formatDateTime(a.scheduledAt)}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {formatDateTime(a.scheduledAt, locations.zoneOf(a.locationId))}
+                      </TableCell>
+                      {locations.hasSeveral && <TableCell>{locations.nameOf(a.locationId)}</TableCell>}
                       <TableCell>
                         <span className="font-medium">{a.vehicle.registration}</span>
                         <span className="block text-xs text-muted-foreground">

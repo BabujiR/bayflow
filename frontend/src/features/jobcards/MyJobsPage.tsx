@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { JobCardStatusBadge } from '@/components/common/StatusBadge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLocationLookup } from '@/features/locations/use-locations';
 import { formatDateTime, formatMileage } from '@/lib/format';
 
 const SECTIONS: { title: string; description: string; statuses: JobCardStatus[] }[] = [
@@ -59,6 +60,7 @@ function JobSection({
     })),
   });
   const loading = results.some((r) => r.isPending);
+  const locations = useLocationLookup();
   const cards: JobCardSummary[] = results.flatMap((r) => r.data?.content ?? []);
 
   return (
@@ -88,10 +90,11 @@ function JobSection({
                     </CardTitle>
                     <CardDescription>
                       {card.customerName} · {formatMileage(card.mileage)}
+                      {locations.hasSeveral && <> · {locations.nameOf(card.locationId)}</>}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="text-xs text-muted-foreground">
-                    Updated {formatDateTime(card.updatedAt)}
+                    Updated {formatDateTime(card.updatedAt, locations.zoneOf(card.locationId))}
                   </CardContent>
                 </Card>
               </Link>

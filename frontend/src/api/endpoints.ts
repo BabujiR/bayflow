@@ -12,6 +12,7 @@ import type {
   JobCardStatus,
   JobCardSummary,
   Location,
+  LocationRequest,
   LabourRequest,
   PageResponse,
   PartRequest,
@@ -62,6 +63,8 @@ export interface AppointmentFilters extends Paging {
   status?: AppointmentStatus;
   vehicleId?: string;
   customerId?: string;
+  /** One location; its day is the one `date` means (organizations with several locations). */
+  locationId?: string;
 }
 
 export const appointmentsApi = {
@@ -116,6 +119,9 @@ export const usersApi = {
     http.get<PageResponse<User>>('/api/v1/auth/users', { ...params }),
   create: (body: CreateStaffRequest) => http.post<User>('/api/v1/auth/users', body),
   setEnabled: (id: string, enabled: boolean) => http.patch<User>(`/api/v1/auth/users/${id}`, { enabled }),
+  /** Where a MANAGER, SERVICE_ADVISOR or MECHANIC works (at least one location). */
+  setLocations: (id: string, locationIds: string[]) =>
+    http.put<User>(`/api/v1/auth/users/${id}/locations`, { locationIds }),
 };
 
 export const workshopApi = {
@@ -136,4 +142,10 @@ export const tenantsApi = {
 /** The organization's locations (every signed-in user). Shown in the app from phase L3. */
 export const locationsApi = {
   list: () => http.get<Location[]>('/api/v1/auth/locations'),
+  /** ADMIN only. Empty timeZone / labourRate = use the organization's. */
+  create: (body: LocationRequest) => http.post<Location>('/api/v1/auth/locations', body),
+  update: (id: string, body: LocationRequest & { version: number }) =>
+    http.put<Location>(`/api/v1/auth/locations/${id}`, body),
+  archive: (id: string) => http.post<Location>(`/api/v1/auth/locations/${id}/archive`),
+  reactivate: (id: string) => http.post<Location>(`/api/v1/auth/locations/${id}/reactivate`),
 };

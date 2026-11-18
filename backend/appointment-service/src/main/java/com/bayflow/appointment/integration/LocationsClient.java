@@ -65,6 +65,11 @@ public class LocationsClient {
         return fresh;
     }
 
+    /** Forgets one organization's cached locations, so the next call asks auth-service again. */
+    public void evict(UUID tenantId) {
+        cache.remove(tenantId);
+    }
+
     /** Forgets cached answers (tests, or after a change is known). */
     public void evictAll() {
         cache.clear();

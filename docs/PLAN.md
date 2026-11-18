@@ -527,6 +527,36 @@ in the page `<meta name="description">`.
     - Services also check the location of every appointment and job card they load
       (404 outside the scope), and bookings / job-card opening refuse locations
       outside it (404). Without a location, a one-location scope books there.
+23. **Organizations and locations, phase L3: multi-location in the web app.**
+    - ADMIN manages locations (`POST /api/v1/auth/locations`, `PUT …/{id}` with
+      `version`, `POST …/{id}/archive` and `/reactivate`): code unique per
+      organization, optional time-zone and labour-rate overrides (empty = the
+      workshop's). Archiving is refused for the last active location (409
+      `last-location`) and while appointment-service reports upcoming (booked,
+      confirmed or arrived) appointments there (409 `location-has-appointments`;
+      503 if it can't be asked). auth-service calls appointment-service's
+      SYSTEM-only `GET /api/v1/internal/tenants/{tid}/locations/{lid}/upcoming`
+      with a SYSTEM token it signs itself (`BAYFLOW_APPOINTMENT_URL`); nginx does
+      not route `/api/v1/internal/`. Customers only see active locations.
+    - appointment-service fetches the locations again once when asked for one it
+      doesn't know (a location added since its 5-minute cache), so new locations
+      take bookings at once. Rate and time-zone edits reach it within 5 minutes.
+    - Web app:
+      - *Locations* page (ADMIN): list, add, edit, archive, reactivate.
+      - *User accounts*: Manager role; a "Works at" checklist when the
+        organization has several locations; *Locations* per staff member.
+      - Location switcher in the header for staff with more than one location
+        ("All locations" or one), remembered per user in the browser and sent as
+        `X-Bayflow-Location` on every API call.
+      - Times are shown in each record's location's zone; booking and
+        rescheduling read the time in the location's zone; booking offers a
+        location choice (preselected: the switcher's, else the first by name).
+      - The board always shows one location (the switcher's, or a picker on the
+        page when "All" is selected), because a day belongs to one time zone.
+      - With one location, none of this appears.
+    - e2e: `08-locations.spec.ts` adds a location, staffs it, books there and
+      archives it again; the booking helper sends Main's id while an organization
+      has several locations, so other scenarios are unaffected.
 
 ---
 
@@ -547,6 +577,6 @@ in the page `<meta name="description">`.
 | SaaS 3 | Per-workshop settings, money frozen on job cards | no business setting read from env at request time |
 | SaaS 4 | Sign-up and `<slug>.localhost` subdomains | a new workshop signs up and runs on its own |
 
-SaaS milestones: 1–4 done. Organizations and locations: L1 done, L2 in review; L3 (web app) planned.
+SaaS milestones: 1–4 done. Organizations and locations: L1 and L2 done, L3 in review.
 
 Each milestone ends with a review pause.

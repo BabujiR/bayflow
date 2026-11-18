@@ -90,6 +90,29 @@ public class Location {
         return location;
     }
 
+    /** Changes the details and overrides; null time zone / labour rate = use the organization's. */
+    public void update(String code, String name, String phone, String email, String address, String timeZone,
+            BigDecimal labourRate, Instant now) {
+        this.code = code;
+        this.name = name;
+        this.phone = phone;
+        this.email = email;
+        this.address = address;
+        this.timeZone = timeZone;
+        this.labourRate = labourRate;
+        this.updatedAt = now;
+    }
+
+    public void archive(Instant now) {
+        this.status = Status.ARCHIVED;
+        this.updatedAt = now;
+    }
+
+    public void reactivate(Instant now) {
+        this.status = Status.ACTIVE;
+        this.updatedAt = now;
+    }
+
     public boolean isActive() { return status == Status.ACTIVE; }
 
     public UUID getId() { return id; }

@@ -13,6 +13,7 @@ import { JobCardStatusBadge } from '@/components/common/StatusBadge';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useLocationLookup } from '@/features/locations/use-locations';
 import { formatDateTime, formatMileage, JOB_CARD_STATUS_LABELS } from '@/lib/format';
 
 const STATUSES = Object.keys(JOB_CARD_STATUS_LABELS) as JobCardStatus[];
@@ -20,6 +21,7 @@ const STATUSES = Object.keys(JOB_CARD_STATUS_LABELS) as JobCardStatus[];
 export function JobCardsPage() {
   const { hasRole } = useAuth();
   const customer = hasRole('CUSTOMER');
+  const locations = useLocationLookup();
   const [status, setStatus] = useState<JobCardStatus | ''>('');
   const [page, setPage] = useState(0);
   const params = { status: status || undefined, page, size: 20 };
@@ -64,6 +66,7 @@ export function JobCardsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Vehicle</TableHead>
+                    {locations.hasSeveral && <TableHead>Location</TableHead>}
                     {!customer && <TableHead>Customer</TableHead>}
                     <TableHead>Mileage</TableHead>
                     <TableHead>Status</TableHead>
@@ -82,12 +85,15 @@ export function JobCardsPage() {
                         </Link>
                         <span className="block font-mono text-xs text-muted-foreground">{card.vin}</span>
                       </TableCell>
+                      {locations.hasSeveral && <TableCell>{locations.nameOf(card.locationId)}</TableCell>}
                       {!customer && <TableCell>{card.customerName}</TableCell>}
                       <TableCell>{formatMileage(card.mileage)}</TableCell>
                       <TableCell>
                         <JobCardStatusBadge status={card.status} />
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">{formatDateTime(card.updatedAt)}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {formatDateTime(card.updatedAt, locations.zoneOf(card.locationId))}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

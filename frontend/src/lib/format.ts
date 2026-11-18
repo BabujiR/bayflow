@@ -18,21 +18,36 @@ export function setWorkshopZone(zone: string | undefined): void {
 
 export const getWorkshopZone = () => workshopZone;
 
-function formatter(key: string, options: Intl.DateTimeFormatOptions, locale?: string): Intl.DateTimeFormat {
-  let f = formatters.get(key);
+/**
+ * A cached formatter for `zone` (a location's time zone; default: the workshop's, else the
+ * browser's).
+ */
+function formatter(
+  key: string,
+  options: Intl.DateTimeFormatOptions,
+  locale?: string,
+  zone: string | undefined = workshopZone,
+): Intl.DateTimeFormat {
+  const cacheKey = `${key}|${zone ?? ''}`;
+  let f = formatters.get(cacheKey);
   if (!f) {
-    f = new Intl.DateTimeFormat(locale, { ...options, timeZone: workshopZone });
-    formatters.set(key, f);
+    f = new Intl.DateTimeFormat(locale, { ...options, timeZone: zone });
+    formatters.set(cacheKey, f);
   }
   return f;
 }
 
-export const formatDateTime = (iso?: string | null) =>
-  iso ? formatter('dateTime', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso)) : '—';
-export const formatDate = (iso?: string | null) =>
-  iso ? formatter('date', { dateStyle: 'medium' }).format(new Date(iso)) : '—';
-export const formatTime = (iso?: string | null) =>
-  iso ? formatter('time', { timeStyle: 'short' }).format(new Date(iso)) : '—';
+/** Each formatter takes an optional time zone: a location's, when a screen mixes locations. */
+export const formatDateTime = (iso?: string | null, zone?: string) =>
+  iso
+    ? formatter('dateTime', { dateStyle: 'medium', timeStyle: 'short' }, undefined, zone ?? workshopZone).format(
+        new Date(iso),
+      )
+    : '—';
+export const formatDate = (iso?: string | null, zone?: string) =>
+  iso ? formatter('date', { dateStyle: 'medium' }, undefined, zone ?? workshopZone).format(new Date(iso)) : '—';
+export const formatTime = (iso?: string | null, zone?: string) =>
+  iso ? formatter('time', { timeStyle: 'short' }, undefined, zone ?? workshopZone).format(new Date(iso)) : '—';
 
 export function formatMoney(amount: number | null | undefined, currency = 'USD'): string {
   if (amount === null || amount === undefined) {
@@ -56,8 +71,8 @@ export function currencySymbol(currency = 'USD'): string {
 export const formatMileage = (miles?: number | null) =>
   miles === null || miles === undefined ? '—' : `${new Intl.NumberFormat().format(miles)} mi`;
 
-/** Wall-clock parts of an instant in the workshop zone. */
-function wallClock(date: Date) {
+/** Wall-clock parts of an instant in `zone` (default: the workshop's). */
+function wallClock(date: Date, zone: string | undefined = workshopZone) {
   const parts = formatter(
     'parts',
     {
@@ -69,6 +84,7 @@ function wallClock(date: Date) {
       hourCycle: 'h23',
     },
     'en-US',
+    zone,
   ).formatToParts(date);
   const get = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((p) => p.type === type)?.value);
   return {
@@ -82,15 +98,15 @@ function wallClock(date: Date) {
 
 const pad = (n: number, width = 2) => String(n).padStart(width, '0');
 
-/** Today's date as YYYY-MM-DD in the workshop's time zone. */
-export function todayIso(now: Date = new Date()): string {
-  const { year, month, day } = wallClock(now);
+/** Today's date as YYYY-MM-DD in the workshop's time zone, or in `zone` (a location's). */
+export function todayIso(now: Date = new Date(), zone?: string): string {
+  const { year, month, day } = wallClock(now, zone ?? workshopZone);
   return `${pad(year, 4)}-${pad(month)}-${pad(day)}`;
 }
 
-/** An ISO instant as a datetime-local input value, in the workshop's time zone. */
-export function isoToLocalInput(iso: string): string {
-  const { year, month, day, hour, minute } = wallClock(new Date(iso));
+/** An ISO instant as a datetime-local input value, in the workshop's (or `zone`'s) time. */
+export function isoToLocalInput(iso: string, zone?: string): string {
+  const { year, month, day, hour, minute } = wallClock(new Date(iso), zone ?? workshopZone);
   return `${pad(year, 4)}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}`;
 }
 
@@ -98,33 +114,34 @@ export function isoToLocalInput(iso: string): string {
  * A datetime-local input value (workshop time) as epoch milliseconds; NaN when the value is
  * empty or not a date, so form checks can reject it without throwing.
  */
-export function localInputToMillis(value: string): number {
+export function localInputToMillis(value: string, zone?: string): number {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value ?? '');
   if (!match) {
     return Number.NaN;
   }
-  if (!workshopZone) {
+  const tz = zone ?? workshopZone;
+  if (!tz) {
     return new Date(value).getTime();
   }
   const [y, mo, d, h, mi] = match.slice(1).map(Number);
   const asUtc = Date.UTC(y, mo - 1, d, h, mi);
   // The zone's offset at that moment; checked twice so a DST change in between is handled.
   const offsetAt = (instant: number) => {
-    const w = wallClock(new Date(instant));
+    const w = wallClock(new Date(instant), tz);
     return Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute) - instant;
   };
   const first = asUtc - offsetAt(asUtc);
   return asUtc - offsetAt(first);
 }
 
-/** A datetime-local input value (workshop time) as an ISO instant. */
-export function localInputToIso(value: string): string {
-  return new Date(localInputToMillis(value)).toISOString();
+/** A datetime-local input value (workshop time, or `zone`'s) as an ISO instant. */
+export function localInputToIso(value: string, zone?: string): string {
+  return new Date(localInputToMillis(value, zone)).toISOString();
 }
 
 /** Short name of the workshop's zone right now, e.g. "EST" or "GMT+13". */
-export function zoneLabel(at: Date = new Date()): string {
-  const part = formatter('zone', { timeZoneName: 'short' })
+export function zoneLabel(at: Date = new Date(), zone?: string): string {
+  const part = formatter('zone', { timeZoneName: 'short' }, undefined, zone ?? workshopZone)
     .formatToParts(at)
     .find((p) => p.type === 'timeZoneName');
   return part?.value ?? '';

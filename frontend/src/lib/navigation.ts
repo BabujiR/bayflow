@@ -52,6 +52,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['ADMIN'],
   },
   {
+    to: '/locations',
+    label: 'Locations',
+    description: 'Your shops, with their own time zone and labour rate.',
+    roles: ['ADMIN'],
+  },
+  {
     to: '/settings',
     label: 'Workshop settings',
     description: 'Name, contact details, labour rate, currency and time zone.',

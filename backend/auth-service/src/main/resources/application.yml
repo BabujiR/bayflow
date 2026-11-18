@@ -90,6 +90,8 @@ bayflow:
     # Self-service sign-up of new workshops (POST /api/v1/tenants/signup).
     signup:
       max-per-hour-per-ip: ${BAYFLOW_SIGNUP_MAX_PER_HOUR:10}
+    # Asked before a location is archived whether it still has upcoming appointments.
+    appointment-url: ${BAYFLOW_APPOINTMENT_URL:http://localhost:8081}
     # Workshop for sign-in at an address without one (Swagger UI on :8083, scripts). Empty = none.
     fallback-workshop: ${BAYFLOW_FALLBACK_WORKSHOP:}
   # Workshops live at <slug>.<base domain>; the base domain itself is the public sign-up site.

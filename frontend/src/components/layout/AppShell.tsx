@@ -5,6 +5,7 @@ import { useAuth } from '@/auth/auth-context';
 import { effectiveRoles } from '@/auth/roles';
 import { FullPageSpinner } from '@/components/ui/spinner';
 import { CustomerProfileGate } from '@/features/customers/CustomerProfileGate';
+import { LocationSwitcher } from '@/features/locations/LocationSwitcher';
 import { useWorkshop } from '@/features/workshop/use-workshop';
 import { setWorkshopZone } from '@/lib/format';
 import { navItemsFor } from '@/lib/navigation';
@@ -52,6 +53,7 @@ export function AppShell() {
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-1 md:ml-0">
+            <LocationSwitcher />
             <ThemeToggle />
             <UserMenu />
           </div>

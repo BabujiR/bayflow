@@ -21,6 +21,9 @@ import com.bayflow.appointment.domain.AppointmentStatus;
 @Transactional(readOnly = true)
 public interface AppointmentRepository extends JpaRepository<Appointment, UUID>, AppointmentSearch {
 
+    /** Appointments at a location in the given statuses (archiving a location checks it). */
+    long countByLocationIdAndStatusIn(UUID locationId, Collection<AppointmentStatus> statuses);
+
     /** True if another active appointment of the vehicle overlaps [start, end). */
     @Query("""
             select count(a) > 0 from Appointment a

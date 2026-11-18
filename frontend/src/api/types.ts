@@ -173,7 +173,10 @@ export type JobCardSummary = Present<
   | 'status'
   | 'createdAt'
   | 'updatedAt'
->;
+> & {
+  /** Hand-written until `pnpm api:update`. */
+  locationId?: string;
+};
 
 export type ServiceRecord = W['ServiceRecord'];
 
@@ -190,7 +193,10 @@ export type ServiceHistoryEntry = Present<
   | 'labourTotal'
   | 'totalCost'
   | 'currency'
->;
+> & {
+  /** Where the work was done; hand-written until `pnpm api:update`. */
+  locationId?: string;
+};
 
 export type FindingRequest = W['FindingRequest'];
 export type RecommendationRequest = W['RecommendationRequest'];
@@ -286,4 +292,16 @@ export interface Location {
   ownTimeZone?: string | null;
   ownLabourRate?: number | null;
   version: number;
+}
+
+/** What an admin sets on a location; empty timeZone / labourRate = use the organization's. */
+export interface LocationRequest {
+  code: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  timeZone?: string;
+  labourRate?: number;
+  version?: number;
 }

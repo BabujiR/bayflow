@@ -9,6 +9,7 @@ import type {
   Role,
   TokenResponse,
   User,
+  Location,
   Vehicle,
   Workshop,
 } from '@/api/types';
@@ -23,6 +24,7 @@ export function pageOf<T>(content: T[]): PageResponse<T> {
  */
 const defaults = [
   http.get('*/api/v1/auth/tenant', () => HttpResponse.json(workshop())),
+  http.get('*/api/v1/auth/locations', () => HttpResponse.json([location()])),
   http.get('*/api/v1/tenants/current', () =>
     HttpResponse.json({
       slug: 'demo',
@@ -169,6 +171,23 @@ export function workshop(overrides: Partial<Workshop> = {}): Workshop {
     labourRate: 95,
     currency: 'USD',
     timeZone: 'America/New_York',
+    version: 0,
+    ...overrides,
+  };
+}
+
+/** A location of the organization; by default its first one, "Main" (id = the tenant id). */
+export function location(overrides: Partial<Location> = {}): Location {
+  return {
+    id: '00000000-0000-0000-0000-000000000001',
+    code: 'main',
+    name: 'Main',
+    status: 'ACTIVE',
+    timeZone: 'America/New_York',
+    labourRate: 95,
+    currency: 'USD',
+    ownTimeZone: null,
+    ownLabourRate: null,
     version: 0,
     ...overrides,
   };

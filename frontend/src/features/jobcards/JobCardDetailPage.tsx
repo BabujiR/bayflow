@@ -10,6 +10,7 @@ import { ApprovalBadge, JobCardStatusBadge, SeverityBadge } from '@/components/c
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useLocationLookup } from '@/features/locations/use-locations';
 import { formatDateTime, formatMileage, formatMoney } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
@@ -46,6 +47,9 @@ function JobCardView({ card }: { card: JobCard }) {
   const approved = card.recommendations.filter((r) => r.approvalStatus === 'APPROVED');
   const workPhase = ['APPROVED', 'PARTIALLY_APPROVED', 'IN_PROGRESS', 'COMPLETED'].includes(status);
   const money = (amount?: number | null) => formatMoney(amount, card.currency);
+  // Times on the card are its location's.
+  const locations = useLocationLookup();
+  const zone = locations.zoneOf(card.locationId);
 
   const addFinding = useJobCardAction(
     card.id,
@@ -100,7 +104,7 @@ function JobCardView({ card }: { card: JobCard }) {
             Job card · {card.registration} <JobCardStatusBadge status={status} />
           </span>
         }
-        description={`${card.customerName} · VIN ${card.vin} · ${formatMileage(card.mileage)} at check-in`}
+        description={`${locations.hasSeveral ? `${locations.nameOf(card.locationId)} · ` : ''}${card.customerName} · VIN ${card.vin} · ${formatMileage(card.mileage)} at check-in`}
         actions={
           <>
             {mechanic && (status === 'APPROVED' || status === 'PARTIALLY_APPROVED') && (
@@ -124,7 +128,7 @@ function JobCardView({ card }: { card: JobCard }) {
 
       <Card>
         <CardContent className="pt-6">
-          <JobCardTimeline card={card} />
+          <JobCardTimeline card={card} zone={zone} />
         </CardContent>
       </Card>
 
@@ -150,7 +154,7 @@ function JobCardView({ card }: { card: JobCard }) {
                   <SeverityBadge severity={f.severity} />
                   <span>{f.description}</span>
                   <span className="text-xs text-muted-foreground">
-                    — {f.recordedBy}, {formatDateTime(f.createdAt)}
+                    — {f.recordedBy}, {formatDateTime(f.createdAt, zone)}
                   </span>
                 </li>
               ))}

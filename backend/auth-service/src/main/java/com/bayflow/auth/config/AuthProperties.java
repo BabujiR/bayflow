@@ -26,6 +26,8 @@ public class AuthProperties {
     private final BootstrapAdmin bootstrapAdmin = new BootstrapAdmin();
     private final TenantDefaults tenantDefaults = new TenantDefaults();
     private final Signup signup = new Signup();
+    /** appointment-service, asked before a location is archived whether it has upcoming bookings. */
+    private String appointmentUrl = "http://localhost:8081";
     /**
      * Workshop for sign-in at an address without a workshop label (Swagger UI on the service's
      * own port, API scripts). Empty: such requests get 404 workshop-not-found.
@@ -50,6 +52,8 @@ public class AuthProperties {
     public BootstrapAdmin getBootstrapAdmin() { return bootstrapAdmin; }
     public TenantDefaults getTenantDefaults() { return tenantDefaults; }
     public Signup getSignup() { return signup; }
+    public String getAppointmentUrl() { return appointmentUrl; }
+    public void setAppointmentUrl(String appointmentUrl) { this.appointmentUrl = appointmentUrl; }
     public String getFallbackWorkshop() { return fallbackWorkshop; }
     public void setFallbackWorkshop(String fallbackWorkshop) { this.fallbackWorkshop = fallbackWorkshop; }
 

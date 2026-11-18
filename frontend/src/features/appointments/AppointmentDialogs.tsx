@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -12,6 +12,7 @@ import { Dialog, DialogClose, DialogContent, DialogTrigger } from '@/components/
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { useLocationLookup } from '@/features/locations/use-locations';
 import { formatDateTime, isoToLocalInput, localInputToIso, localInputToMillis } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
@@ -93,25 +94,30 @@ export function CheckInDialog({ appointment }: { appointment: Appointment }) {
   );
 }
 
-const rescheduleSchema = z.object({
-  scheduledAt: z
-    .string()
-    .min(1, 'Choose a date and time')
-    .refine((v) => localInputToMillis(v) > Date.now(), 'Choose a time in the future'),
-  durationMinutes: z.coerce.number<string>(),
-});
+/** The new time is read in the appointment's location's time zone (`zone`). */
+const rescheduleSchemaFor = (zone?: string) =>
+  z.object({
+    scheduledAt: z
+      .string()
+      .min(1, 'Choose a date and time')
+      .refine((v) => localInputToMillis(v, zone) > Date.now(), 'Choose a time in the future'),
+    durationMinutes: z.coerce.number<string>(),
+  });
+type RescheduleSchema = ReturnType<typeof rescheduleSchemaFor>;
 
 export function RescheduleDialog({ appointment }: { appointment: Appointment }) {
   const [open, setOpen] = useState(false);
+  const zone = useLocationLookup().zoneOf(appointment.locationId);
+  const rescheduleSchema = useMemo(() => rescheduleSchemaFor(zone), [zone]);
   const {
     register,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<z.input<typeof rescheduleSchema>, unknown, z.output<typeof rescheduleSchema>>({
+  } = useForm<z.input<RescheduleSchema>, unknown, z.output<RescheduleSchema>>({
     resolver: zodResolver(rescheduleSchema),
     defaultValues: {
-      scheduledAt: isoToLocalInput(appointment.scheduledAt),
+      scheduledAt: isoToLocalInput(appointment.scheduledAt, zone),
       durationMinutes: String(appointment.durationMinutes),
     },
   });
@@ -119,7 +125,7 @@ export function RescheduleDialog({ appointment }: { appointment: Appointment }) 
     (values: { scheduledAt: string; durationMinutes: number }) =>
       appointmentsApi.reschedule(appointment.id, values),
     {
-      success: (a) => `Moved to ${formatDateTime(a.scheduledAt)}`,
+      success: (a) => `Moved to ${formatDateTime(a.scheduledAt, zone)}`,
       invalidate: APPOINTMENT_KEYS,
       onSuccess: () => setOpen(false),
       onError: (error) => {
@@ -141,14 +147,14 @@ export function RescheduleDialog({ appointment }: { appointment: Appointment }) 
       </DialogTrigger>
       <DialogContent
         title="Reschedule appointment"
-        description={`Currently ${formatDateTime(appointment.scheduledAt)}`}
+        description={`Currently ${formatDateTime(appointment.scheduledAt, zone)}`}
       >
         <form
           noValidate
           className="grid gap-4"
           onSubmit={handleSubmit(async ({ scheduledAt, durationMinutes }) => {
             await reschedule
-              .mutateAsync({ scheduledAt: localInputToIso(scheduledAt), durationMinutes })
+              .mutateAsync({ scheduledAt: localInputToIso(scheduledAt, zone), durationMinutes })
               .catch(() => undefined);
           })}
         >
@@ -183,6 +189,7 @@ export function RescheduleDialog({ appointment }: { appointment: Appointment }) 
 /** Asks before cancelling, since a cancelled booking cannot be reopened. */
 export function CancelDialog({ appointment }: { appointment: Appointment }) {
   const [open, setOpen] = useState(false);
+  const zone = useLocationLookup().zoneOf(appointment.locationId);
   const cancel = useAction(() => appointmentsApi.cancel(appointment.id), {
     success: 'Appointment cancelled',
     invalidate: APPOINTMENT_KEYS,
@@ -197,7 +204,7 @@ export function CancelDialog({ appointment }: { appointment: Appointment }) {
       </DialogTrigger>
       <DialogContent
         title="Cancel this appointment?"
-        description={`${formatDateTime(appointment.scheduledAt)} · ${appointment.vehicle.registration}. This can't be undone.`}
+        description={`${formatDateTime(appointment.scheduledAt, zone)} · ${appointment.vehicle.registration}. This can't be undone.`}
       >
         <div className="flex justify-end gap-2">
           <DialogClose asChild>

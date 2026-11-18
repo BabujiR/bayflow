@@ -159,7 +159,10 @@ service's Swagger UI and paste it.
   location, and a location may override the organization's time zone and labour rate.
   Staff (MANAGER, SERVICE_ADVISOR, MECHANIC) see only the locations they work at,
   enforced by the services and by row-level security; ADMIN sees all of them.
-  Details: PLAN items 21–22 and `docs/prompts/organizations-locations.md`.
+  Admins manage locations under *Locations* and assign staff under *User accounts*;
+  staff with several locations get a switcher in the header; customers choose a
+  location when booking. Organizations with one location see none of this.
+  Details: PLAN items 21–23 and `docs/prompts/organizations-locations.md`.
 - **Workshop settings:** each workshop's labour rate, currency and time zone
   live in auth-service and are edited by its ADMIN. The other services read
   them with SYSTEM tokens. A job card keeps the rate and currency it opened
@@ -225,6 +228,7 @@ videos plus a trace for any failure.
 | `05-job-card` | Decline everything → inspection only; no work needed; customer and advisor decide the same item at once; only approved items can be worked on; every approved item needs work before completing; completed cards are locked; who can do what |
 | `06-resilience` | Stops `workshop-service`, checks in, starts it again: the job card arrives from the outbox, exactly once. Needs the Docker CLI; skip with `E2E_SKIP_CHAOS=1` |
 | `07-workshops` | Two workshops sign up through the public site, configure themselves, and reuse the same admin username independently; taken and reserved addresses refused; a token from one workshop refused at the other's address (401); an unknown address shows *Workshop not found* |
+| `08-locations` | The owner adds a location in Auckland with its own rate, hires an advisor for it; a customer books there in Auckland time; each location's advisor sees only their own; the job card charges the location's rate; the switcher shows one location or all; the location is archived again at the end |
 
 Pace of the videos: `E2E_SLOWMO` (ms per action, default 250) and `E2E_STEP_PAUSE` (ms per
 caption, default 900); set both to `0` for a fast run. The scenarios create their own
@@ -287,8 +291,8 @@ spaced out to stay under the 10-per-minute login limit.
 | SaaS 3 | Per-workshop settings, money frozen on job cards | ✅ done |
 | SaaS 4 | Sign-up and workshop subdomains | ✅ done |
 | Locations 1 | Organizations have locations ("Main" for everyone) | ✅ done |
-| Locations 2 | Location-scoped roles and isolation | 🔍 in review |
-| Locations 3 | Locations page, switcher, booking per location | planned |
+| Locations 2 | Location-scoped roles and isolation | ✅ done |
+| Locations 3 | Locations page, switcher, booking per location | 🔍 in review |
 
 ## Assumptions
 

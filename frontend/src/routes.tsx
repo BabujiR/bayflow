@@ -9,6 +9,7 @@ import { BoardPage } from '@/features/board/BoardPage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { JobCardDetailPage } from '@/features/jobcards/JobCardDetailPage';
+import { LocationsPage } from '@/features/locations/LocationsPage';
 import { JobCardsPage } from '@/features/jobcards/JobCardsPage';
 import { MyJobsPage } from '@/features/jobcards/MyJobsPage';
 import { LandingPage } from '@/features/site/LandingPage';
@@ -89,6 +90,7 @@ export const routes: RouteObject[] = [
             children: [
               { path: '/users', element: <UsersPage /> },
               { path: '/settings', element: <WorkshopSettingsPage /> },
+              { path: '/locations', element: <LocationsPage /> },
             ],
           },
           { path: '*', element: <NotFoundPage /> },

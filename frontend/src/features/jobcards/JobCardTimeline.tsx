@@ -3,7 +3,7 @@ import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 /** Where the job card is in its life: check-in → inspection → approval → work → done. */
-export function JobCardTimeline({ card }: { card: JobCard }) {
+export function JobCardTimeline({ card, zone }: { card: JobCard; zone?: string }) {
   const inspected = card.findings[0]?.createdAt;
   const steps = [
     { label: 'Checked in', at: card.createdAt },
@@ -39,7 +39,7 @@ export function JobCardTimeline({ card }: { card: JobCard }) {
             <span className="text-sm">
               <span className={cn('block font-medium', !done && 'text-muted-foreground')}>{step.label}</span>
               <span className="block text-xs text-muted-foreground">
-                {done ? formatDateTime(step.at) : 'Not yet'}
+                {done ? formatDateTime(step.at, zone) : 'Not yet'}
                 <span className="sr-only">{done ? ' (done)' : ''}</span>
               </span>
             </span>

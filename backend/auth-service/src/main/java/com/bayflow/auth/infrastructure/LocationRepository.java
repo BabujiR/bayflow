@@ -13,4 +13,6 @@ import com.bayflow.auth.domain.Location;
 public interface LocationRepository extends JpaRepository<Location, UUID> {
 
     List<Location> findAllByOrderByNameAsc();
+
+    java.util.Optional<Location> findByCode(String code);
 }

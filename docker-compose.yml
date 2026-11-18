@@ -57,6 +57,8 @@ services:
       BAYFLOW_BASE_DOMAIN: ${BAYFLOW_BASE_DOMAIN:-localhost}
       # Sign-in at an address without a workshop (Swagger UI on :8083). Empty outside dev.
       BAYFLOW_FALLBACK_WORKSHOP: ${BAYFLOW_FALLBACK_WORKSHOP:-demo}
+      # Checked before a location is archived (upcoming appointments there).
+      BAYFLOW_APPOINTMENT_URL: http://appointment-service:8081
       BAYFLOW_SIGNUP_MAX_PER_HOUR: ${BAYFLOW_SIGNUP_MAX_PER_HOUR:-30}
       # Starting settings for a workshop that has none yet; each ADMIN then sets their own.
       BAYFLOW_LABOUR_RATE: ${BAYFLOW_LABOUR_RATE:-95.00}

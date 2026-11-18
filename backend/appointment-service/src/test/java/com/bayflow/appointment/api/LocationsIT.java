@@ -85,6 +85,33 @@ class LocationsIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.locationId").value(MAIN.toString()));
     }
 
+    @Test
+    void aNewLocationTakesBookingsAtOnce() throws Exception {
+        // The cached answer predates North; asking for North fetches the locations again.
+        Mockito.doReturn(List.of(main("America/New_York")))
+                .doReturn(List.of(main("America/New_York"), location(NORTH, "north", true, "America/Chicago")))
+                .when(locationsClient).locations(ArgumentMatchers.any());
+        String vehicleId = vehicle();
+
+        book(vehicleId, NORTH).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.locationId").value(NORTH.toString()));
+        Mockito.verify(locationsClient).evict(Tenants.DEFAULT_TENANT_ID);
+    }
+
+    @Test
+    void authServiceAsksForUpcomingAppointmentsBeforeArchiving() throws Exception {
+        String vehicleId = vehicle();
+        book(vehicleId, null).andExpect(status().isCreated());
+        String url = "/api/v1/internal/tenants/" + MAIN + "/locations/" + MAIN + "/upcoming";
+
+        mvc.perform(get(url).with(as("SYSTEM", UUID.randomUUID(), MAIN))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)));
+        mvc.perform(get("/api/v1/internal/tenants/" + MAIN + "/locations/" + UUID.randomUUID() + "/upcoming")
+                        .with(as("SYSTEM", UUID.randomUUID(), MAIN)))
+                .andExpect(jsonPath("$.count").value(0));
+        mvc.perform(get(url).with(advisor)).andExpect(status().isForbidden());
+    }
+
     // ---- days are the location's days -----------------------------------------------------
 
     @Test
