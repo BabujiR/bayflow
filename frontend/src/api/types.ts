@@ -27,13 +27,17 @@ export interface PageResponse<T> {
 
 // ---- auth --------------------------------------------------------------------------
 
-export type Role = A['CreateStaffRequest']['role'];
+/** MANAGER (phase L2) is hand-written until `pnpm api:update`. */
+export type Role = A['CreateStaffRequest']['role'] | 'MANAGER';
 
 export type User = Present<
   Omit<A['UserResponse'], 'roles'>,
   'id' | 'username' | 'email' | 'enabled' | 'createdAt'
 > & {
   roles: Role[];
+  /** Works with every location (ADMIN, CUSTOMER); otherwise at locationIds. Hand-written (L2). */
+  allLocations?: boolean;
+  locationIds?: string[];
 };
 
 export type TokenResponse = Present<
@@ -43,7 +47,11 @@ export type TokenResponse = Present<
 
 export type LoginRequest = A['LoginRequest'];
 export type RegisterRequest = A['RegisterRequest'];
-export type CreateStaffRequest = A['CreateStaffRequest'];
+export type CreateStaffRequest = Omit<A['CreateStaffRequest'], 'role'> & {
+  role: Role;
+  /** For MANAGER, SERVICE_ADVISOR and MECHANIC; none = the organization's only location. */
+  locationIds?: string[];
+};
 
 // ---- appointments, customers, vehicles ------------------------------------------------
 

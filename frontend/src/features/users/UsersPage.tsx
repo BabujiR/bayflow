@@ -22,7 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatDate } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
-const STAFF_ROLES = ['SERVICE_ADVISOR', 'MECHANIC', 'ADMIN'] as const;
+const STAFF_ROLES = ['SERVICE_ADVISOR', 'MECHANIC', 'MANAGER', 'ADMIN'] as const;
 
 const staffSchema = z.object({
   username: z

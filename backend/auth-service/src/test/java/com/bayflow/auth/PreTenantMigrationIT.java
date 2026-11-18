@@ -29,6 +29,10 @@ class PreTenantMigrationIT {
         execute(url, "insert into auth_users (id, username, email, password_hash, created_at, updated_at) "
                 + "values ('" + userId + "', 'old-user', 'old@example.com', '{noop}x', now(), now())");
         execute(url, "insert into auth_user_roles (user_id, role) values ('" + userId + "', 'CUSTOMER')");
+        UUID advisorId = UUID.randomUUID();
+        execute(url, "insert into auth_users (id, username, email, password_hash, created_at, updated_at) "
+                + "values ('" + advisorId + "', 'old-advisor', 'adv@example.com', '{noop}x', now(), now())");
+        execute(url, "insert into auth_user_roles (user_id, role) values ('" + advisorId + "', 'SERVICE_ADVISOR')");
         execute(url, "insert into auth_refresh_tokens (id, user_id, family_id, token_hash, expires_at, created_at) "
                 + "values ('" + UUID.randomUUID() + "', '" + userId + "', '" + UUID.randomUUID()
                 + "', 'hash', now() + interval '1 day', now())");
@@ -46,6 +50,11 @@ class PreTenantMigrationIT {
         // Locations (L1, V7): the organization's first location, "Main", has the tenant's id.
         assertThat(single(url, "select code from auth_locations where id = '" + expected + "' and tenant_id = '"
                 + expected + "'")).isEqualTo("main");
+        // Scoped roles (L2, V8): existing advisors and mechanics work at "Main"; customers have no list.
+        assertThat(single(url, "select location_id from auth_user_locations where user_id = '" + advisorId + "'"))
+                .isEqualTo(expected);
+        assertThat(single(url, "select count(*) from auth_user_locations where user_id = '" + userId + "'"))
+                .isEqualTo("0");
     }
 
     private static Flyway flyway(String url, String target) {

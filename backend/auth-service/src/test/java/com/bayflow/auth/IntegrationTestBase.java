@@ -71,4 +71,26 @@ public abstract class IntegrationTestBase {
 
     @Autowired
     protected MockMvc mvc;
+
+    @Autowired
+    private com.bayflow.auth.application.AuthService testAuthService;
+
+    @Autowired
+    private com.bayflow.auth.application.UserLocationService testUserLocations;
+
+    /**
+     * Creates an account in {@code tenant} like an admin would: staff who work at particular
+     * locations (MANAGER, SERVICE_ADVISOR, MECHANIC) are assigned to the organization's first
+     * location, "Main" (id = tenant id), so they can sign in.
+     */
+    protected com.bayflow.auth.domain.User newUser(java.util.UUID tenant, String username, String email,
+            String password, java.util.Set<com.bayflow.auth.domain.Role> roles) {
+        return com.bayflow.security.TenantContext.call(tenant, () -> {
+            var user = testAuthService.createUser(username, email, password, roles);
+            if (com.bayflow.auth.application.UserLocationService.isLocationScoped(user)) {
+                testUserLocations.assign(user, java.util.List.of(tenant));
+            }
+            return user;
+        });
+    }
 }

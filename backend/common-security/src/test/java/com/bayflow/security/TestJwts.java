@@ -24,6 +24,6 @@ final class TestJwts {
 
     static Jwt userJwt(String subject, String username, List<String> roles) {
         return jwt(Map.of("sub", subject, "username", username, "roles", roles, "aud", List.of("bayflow"),
-                "tid", TENANT));
+                "tid", TENANT, "lsc", List.of("*")));
     }
 }

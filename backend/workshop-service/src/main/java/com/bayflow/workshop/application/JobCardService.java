@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bayflow.security.CurrentUser;
+import com.bayflow.security.LocationContext;
 import com.bayflow.security.TenantContext;
 import com.bayflow.workshop.domain.JobCard;
 import com.bayflow.workshop.domain.JobCardStatus;
@@ -67,6 +68,9 @@ public class JobCardService {
             return new OpenResult(loaded(existing.get()), false);
         }
         UUID location = command.locationId() != null ? command.locationId() : TenantContext.require();
+        if (!LocationContext.current().allows(location)) {
+            throw ApiException.notFound("Location");
+        }
         WorkshopSettings money = workshopSettings(location);
         JobCard card = JobCard.open(command.appointmentId(), location, command.vehicleId(), command.vin(),
                 command.registration(), command.customerUserId(), command.customerName(), command.mileage(),
@@ -197,8 +201,16 @@ public class JobCardService {
         return loaded(card);
     }
 
+    /**
+     * A job card of a location the caller works at. Row-level security already hides the others;
+     * this check makes sure a misconfigured database can't change that (404).
+     */
     private JobCard find(UUID id) {
-        return jobCards.findById(id).orElseThrow(() -> ApiException.notFound("Job card"));
+        JobCard card = jobCards.findById(id).orElseThrow(() -> ApiException.notFound("Job card"));
+        if (!LocationContext.current().allows(card.getLocationId())) {
+            throw ApiException.notFound("Job card");
+        }
+        return card;
     }
 
     private static JobCard visible(CurrentUser user, JobCard card) {

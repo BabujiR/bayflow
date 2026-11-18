@@ -27,6 +27,10 @@ public class InspectionFinding {
     @Column(name = "tenant_id", nullable = false, updatable = false)
     private UUID tenantId;
 
+    /** The job card's location, copied so row-level security can check this table on its own. */
+    @Column(name = "location_id", nullable = false, updatable = false)
+    private UUID locationId;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "job_card_id", nullable = false)
     private JobCard jobCard;
@@ -51,6 +55,7 @@ public class InspectionFinding {
     InspectionFinding(JobCard jobCard, String description, Severity severity, String recordedBy, Instant now) {
         this.id = UUID.randomUUID();
         this.jobCard = jobCard;
+        this.locationId = jobCard.getLocationId();
         this.description = description.trim();
         this.severity = severity;
         this.recordedBy = recordedBy;
@@ -59,6 +64,7 @@ public class InspectionFinding {
 
     public UUID getId() { return id; }
     public UUID getTenantId() { return tenantId; }
+    public UUID getLocationId() { return locationId; }
     public String getDescription() { return description; }
     public Severity getSeverity() { return severity; }
     public String getRecordedBy() { return recordedBy; }

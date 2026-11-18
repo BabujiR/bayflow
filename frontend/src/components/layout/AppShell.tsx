@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 
 import { useAuth } from '@/auth/auth-context';
+import { effectiveRoles } from '@/auth/roles';
 import { FullPageSpinner } from '@/components/ui/spinner';
 import { CustomerProfileGate } from '@/features/customers/CustomerProfileGate';
 import { useWorkshop } from '@/features/workshop/use-workshop';
@@ -16,7 +17,7 @@ import { UserMenu } from './UserMenu';
 /** The signed-in layout: header with role-based navigation, then the page. */
 export function AppShell() {
   const { user } = useAuth();
-  const items = navItemsFor(user?.roles ?? []);
+  const items = navItemsFor(effectiveRoles(user?.roles ?? []));
   const workshop = useWorkshop();
   // Signing out (or switching user) goes back to the browser's zone until the next workshop loads.
   useEffect(() => () => setWorkshopZone(undefined), []);

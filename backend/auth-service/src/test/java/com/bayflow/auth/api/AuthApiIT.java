@@ -43,8 +43,7 @@ class AuthApiIT extends IntegrationTestBase {
 
     /** Creates a user directly in the default workshop (registration only makes customers). */
     private User createUser(String username, String email, String password, Set<Role> roles) {
-        return TenantContext.call(Tenants.DEFAULT_TENANT_ID,
-                () -> authService.createUser(username, email, password, roles));
+        return newUser(Tenants.DEFAULT_TENANT_ID, username, email, password, roles);
     }
 
     // ---- registration ------------------------------------------------------

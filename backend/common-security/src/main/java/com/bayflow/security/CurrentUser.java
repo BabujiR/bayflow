@@ -64,6 +64,15 @@ public record CurrentUser(String subject, String username, Set<String> roles, UU
         return hasRole(Roles.SYSTEM);
     }
 
+    public boolean isManager() {
+        return hasRole(Roles.MANAGER);
+    }
+
+    /** The locations this request may work with (see {@link LocationContext}). */
+    public LocationScope locationScope() {
+        return LocationContext.current();
+    }
+
     private static Set<String> roleNames(Collection<? extends GrantedAuthority> authorities) {
         return authorities.stream()
                 .map(GrantedAuthority::getAuthority)

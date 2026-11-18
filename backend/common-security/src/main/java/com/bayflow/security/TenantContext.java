@@ -77,6 +77,12 @@ public final class TenantContext {
         return current().orElseThrow(() -> new IllegalStateException("No tenant for the current operation"));
     }
 
+    /** True inside {@link #call(UUID, Supplier)} (an explicitly named tenant, not across tenants). */
+    public static boolean isExplicit() {
+        Scope scope = SCOPE.get();
+        return scope != null && !scope.acrossTenants() && scope.tenantId() != null;
+    }
+
     /** True inside {@link #callAcrossTenants(Supplier)}. */
     public static boolean isAcrossTenants() {
         Scope scope = SCOPE.get();

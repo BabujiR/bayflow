@@ -51,24 +51,25 @@ public class TokenService {
 
     /**
      * A user token: names the user's workshop in the {@code tid} claim and its address label in
-     * {@code tsl} (services refuse the token at any other workshop's address).
+     * {@code tsl} (services refuse the token at any other workshop's address), and the locations the
+     * user works at in {@code lsc} ({@code ["*"]} for every location).
      */
-    public IssuedToken forUser(User user, String workshopSlug) {
+    public IssuedToken forUser(User user, String workshopSlug, List<String> locationScope) {
         if (user.getTenantId() == null) {
             throw new IllegalStateException("User " + user.getId() + " has no workshop");
         }
         List<String> roles = user.getRoles().stream().map(Role::name).sorted().toList();
         return issue(user.getId().toString(), user.getUsername(), roles, properties.getAccessTokenTtl(),
-                user.getTenantId(), workshopSlug);
+                user.getTenantId(), workshopSlug, locationScope);
     }
 
     /** A SYSTEM token for service-to-service calls: platform-level, no workshop. */
     public IssuedToken forClient(String clientId, Collection<String> roles) {
-        return issue(clientId, clientId, List.copyOf(roles), properties.getSystemTokenTtl(), null, null);
+        return issue(clientId, clientId, List.copyOf(roles), properties.getSystemTokenTtl(), null, null, null);
     }
 
     private IssuedToken issue(String subject, String username, List<String> roles, Duration ttl, UUID tenantId,
-            String workshopSlug) {
+            String workshopSlug, List<String> locationScope) {
         Instant now = clock.instant().truncatedTo(ChronoUnit.SECONDS);
         Instant expiresAt = now.plus(ttl);
         JwtClaimsSet claims = JwtClaimsSet.builder()
@@ -86,6 +87,9 @@ public class TokenService {
                     }
                     if (workshopSlug != null) {
                         c.put(Tenants.SLUG_CLAIM, workshopSlug);
+                    }
+                    if (locationScope != null) {
+                        c.put(Tenants.LOCATIONS_CLAIM, locationScope);
                     }
                 })
                 .build();

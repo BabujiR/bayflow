@@ -79,8 +79,29 @@ public abstract class IntegrationTestBase {
                             .claim("roles", List.of(role));
                     if (tenantId != null) {
                         token.claim(Tenants.CLAIM, tenantId.toString());
+                        // Every location of the organization (tests of location scopes set their own).
+                        token.claim(Tenants.LOCATIONS_CLAIM, List.of("*"));
                     }
                 })
                 .authorities(new SimpleGrantedAuthority("ROLE_" + role));
+    }
+
+    /** A staff member of the default organization who works at the given locations only. */
+    protected static RequestPostProcessor atLocations(String role, String username, UUID... locations) {
+        return jwt()
+                .jwt(token -> token.subject(UUID.randomUUID().toString())
+                        .claim("username", username)
+                        .claim("roles", List.of(role))
+                        .claim(Tenants.CLAIM, Tenants.DEFAULT_TENANT_ID.toString())
+                        .claim(Tenants.LOCATIONS_CLAIM, java.util.Arrays.stream(locations).map(UUID::toString).toList()))
+                .authorities(authoritiesOf(role));
+    }
+
+    /** As the token converter does: a MANAGER is also a SERVICE_ADVISOR. */
+    private static SimpleGrantedAuthority[] authoritiesOf(String role) {
+        return "MANAGER".equals(role)
+                ? new SimpleGrantedAuthority[] { new SimpleGrantedAuthority("ROLE_MANAGER"),
+                        new SimpleGrantedAuthority("ROLE_SERVICE_ADVISOR") }
+                : new SimpleGrantedAuthority[] { new SimpleGrantedAuthority("ROLE_" + role) };
     }
 }

@@ -25,6 +25,8 @@ import com.bayflow.auth.application.ApiException;
 import com.bayflow.auth.application.AuthService;
 import com.bayflow.auth.application.AuthService.Session;
 import com.bayflow.auth.application.ClientCredentialsService;
+import com.bayflow.auth.application.LocationAccess;
+import com.bayflow.auth.domain.User;
 import com.bayflow.auth.application.TokenService.IssuedToken;
 import com.bayflow.security.CurrentUser;
 import com.bayflow.security.TenantContext;
@@ -57,8 +59,9 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Register a customer account in this workshop")
     public UserResponse register(@Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
+        // Customers work with every location of the organization.
         return TenantContext.call(tenants.resolve(httpRequest), () -> UserResponse.from(
-                authService.register(request.username(), request.email(), request.password())));
+                authService.register(request.username(), request.email(), request.password()), LocationAccess.ALL));
     }
 
     @PostMapping("/login")
@@ -102,7 +105,8 @@ public class AuthController {
             // SYSTEM tokens carry a client id, not a user id
             throw ApiException.notFound("User");
         }
-        return UserResponse.from(authService.getUser(userId));
+        User user = authService.getUser(userId);
+        return UserResponse.from(user, authService.accessOf(user));
     }
 
     @PostMapping("/token")
@@ -117,7 +121,7 @@ public class AuthController {
     private ResponseEntity<TokenResponse> sessionResponse(Session session) {
         IssuedToken access = session.accessToken();
         TokenResponse body = new TokenResponse(access.value(), BEARER, access.expiresInSeconds(),
-                access.expiresAt(), UserResponse.from(session.user()));
+                access.expiresAt(), UserResponse.from(session.user(), session.access()));
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookies.issue(session.refreshToken(), session.refreshExpiresAt(),
                         session.issuedAt()).toString())

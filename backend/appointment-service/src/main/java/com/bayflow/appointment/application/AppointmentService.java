@@ -25,6 +25,7 @@ import com.bayflow.appointment.infrastructure.AppointmentFilter;
 import com.bayflow.appointment.infrastructure.AppointmentRepository;
 import com.bayflow.appointment.infrastructure.VehicleRepository;
 import com.bayflow.security.CurrentUser;
+import com.bayflow.security.LocationContext;
 
 /**
  * Booking and the appointment workflow up to check-in. Check-in also queues the request
@@ -182,8 +183,17 @@ public class AppointmentService {
         return appointments.saveAndFlush(appointment);
     }
 
+    /**
+     * An appointment of a location the caller works at. Row-level security already hides the
+     * others; this check makes sure a misconfigured database can't change that (404, as for any
+     * appointment the caller may not see).
+     */
     private Appointment find(UUID id) {
-        return appointments.findById(id).orElseThrow(() -> ApiException.notFound("Appointment"));
+        Appointment appointment = appointments.findById(id).orElseThrow(() -> ApiException.notFound("Appointment"));
+        if (!LocationContext.current().allows(appointment.getLocationId())) {
+            throw ApiException.notFound("Appointment");
+        }
+        return appointment;
     }
 
     private void requireFuture(Instant scheduledAt, Instant now) {

@@ -114,6 +114,84 @@ class RowLevelSecurityIT {
         }
     }
 
+    // ---- locations (phase L2) ---------------------------------------------------------
+
+    private static final String NORTH = "0a0a0a0a-1111-4000-8000-0000000000a1";
+    private static final String SOUTH = "0a0a0a0a-2222-4000-8000-0000000000a2";
+
+    private static String card(Statement owner, String location) throws SQLException {
+        String id = UUID.randomUUID().toString();
+        owner.execute("insert into bayflow.ws_job_cards (id, tenant_id, location_id, appointment_id, vehicle_id, vin,"
+                + " registration, customer_name, mileage, status, labour_rate, currency, created_at, updated_at)"
+                + " values ('" + id + "', '" + A + "', '" + location + "', '" + UUID.randomUUID() + "', '"
+                + UUID.randomUUID() + "', 'VIN', 'REG', 'Jane', 1, 'OPEN', 95.00, 'USD', now(), now())");
+        owner.execute("insert into bayflow.ws_inspection_findings (id, tenant_id, location_id, job_card_id,"
+                + " description, severity, recorded_by, created_at) values ('" + UUID.randomUUID() + "', '" + A
+                + "', '" + location + "', '" + id + "', 'Worn', 'HIGH', 'mech', now())");
+        return id;
+    }
+
+    @Test
+    void staffSeeOnlyTheLocationsTheyWorkAt() throws Exception {
+        String north;
+        String south;
+        try (Connection owner = owner(); Statement statement = owner.createStatement()) {
+            north = card(statement, NORTH);
+            south = card(statement, SOUTH);
+        }
+        try (Connection app = app(); Statement statement = app.createStatement()) {
+            app.setAutoCommit(false);
+            String mine = "select count(*) from bayflow.ws_job_cards where id in ('" + north + "', '" + south + "')";
+            String findings = "select count(*) from bayflow.ws_inspection_findings where job_card_id in ('" + north
+                    + "', '" + south + "')";
+
+            // No location setting: nothing.
+            statement.execute("select set_config('app.tenant', '" + A + "', true)");
+            assertThat(count(statement, mine)).isZero();
+            assertThat(count(statement, findings)).isZero();
+            app.rollback();
+
+            // Every location.
+            statement.execute("select set_config('app.tenant', '" + A + "', true), set_config('app.locations', '*', true)");
+            assertThat(count(statement, mine)).isEqualTo(2);
+            assertThat(count(statement, findings)).isEqualTo(2);
+            app.rollback();
+
+            // Only North: South's card and its findings are invisible and can't be written into.
+            statement.execute("select set_config('app.tenant', '" + A + "', true), set_config('app.locations', '"
+                    + NORTH + "', true)");
+            assertThat(count(statement, mine)).isEqualTo(1);
+            assertThat(count(statement, findings)).isEqualTo(1);
+            assertThat(statement.executeUpdate("update bayflow.ws_job_cards set mileage = 2 where id = '" + south + "'"))
+                    .isZero();
+            assertThatThrownBy(() -> statement.execute("insert into bayflow.ws_inspection_findings (id, tenant_id,"
+                    + " location_id, job_card_id, description, severity, recorded_by, created_at) values ('"
+                    + UUID.randomUUID() + "', '" + A + "', '" + SOUTH + "', '" + south
+                    + "', 'Sneaky', 'LOW', 'x', now())"))
+                    .isInstanceOf(SQLException.class)
+                    .hasMessageContaining("row-level security");
+            app.rollback();
+
+            // Two locations, as a comma-separated list.
+            statement.execute("select set_config('app.tenant', '" + A + "', true), set_config('app.locations', '"
+                    + NORTH + "," + SOUTH + "', true)");
+            assertThat(count(statement, mine)).isEqualTo(2);
+            app.rollback();
+        }
+    }
+
+    @Test
+    void aChildRowAlwaysHasItsCardsLocation() throws Exception {
+        try (Connection owner = owner(); Statement statement = owner.createStatement()) {
+            String north = card(statement, NORTH);
+            assertThatThrownBy(() -> statement.execute("insert into bayflow.ws_inspection_findings (id, tenant_id,"
+                    + " location_id, job_card_id, description, severity, recorded_by, created_at) values ('"
+                    + UUID.randomUUID() + "', '" + A + "', '" + SOUTH + "', '" + north + "', 'Moved', 'LOW', 'x', now())"))
+                    .isInstanceOf(SQLException.class)
+                    .hasMessageContaining("fk_inspection_findings_card_location");
+        }
+    }
+
     @Test
     void theWorkshopSettingEndsWithItsTransaction() throws Exception {
         try (Connection app = app(); Statement statement = app.createStatement()) {

@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 import com.bayflow.appointment.config.AppointmentProperties;
 import com.bayflow.appointment.integration.LocationsClient;
 import com.bayflow.appointment.integration.LocationsClient.LocationSettings;
+import com.bayflow.security.LocationContext;
+import com.bayflow.security.LocationScope;
 import com.bayflow.security.TenantContext;
 
 /**
@@ -38,27 +40,34 @@ public class Locations {
     }
 
     /**
-     * The location a new booking is for: the one asked for (it must be an active location of this
-     * organization), or the organization's only active location when none is given.
+     * The location a new booking is for: the one asked for (an active location of this
+     * organization that the caller works at, else 404 / 400), or, when none is given, the only one
+     * the caller works at or the organization's only active location.
      */
     public UUID forBooking(UUID requested) {
         UUID tenant = TenantContext.require();
+        LocationScope scope = LocationContext.current();
+        if (requested != null && !scope.allows(requested)) {
+            throw ApiException.notFound("Location");
+        }
+        UUID wanted = requested != null ? requested : scope.single().orElse(null);
         Optional<List<LocationSettings>> known = all(tenant);
         if (known.isEmpty()) {
-            if (requested == null || requested.equals(tenant)) {
+            if (wanted == null || wanted.equals(tenant)) {
                 return tenant;
             }
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "locations-unavailable", "Service Unavailable",
                     "The location could not be checked. Try again shortly.");
         }
         List<LocationSettings> active = known.get().stream().filter(LocationSettings::active).toList();
-        if (requested == null) {
-            if (active.size() == 1) {
-                return active.get(0).id();
+        if (wanted == null) {
+            List<LocationSettings> mine = active.stream().filter(l -> scope.allows(l.id())).toList();
+            if (mine.size() == 1) {
+                return mine.get(0).id();
             }
             throw ApiException.badRequest("location-required", "Choose the location for this appointment.");
         }
-        return active.stream().filter(l -> l.id().equals(requested)).findFirst()
+        return active.stream().filter(l -> l.id().equals(wanted)).findFirst()
                 .map(LocationSettings::id)
                 .orElseThrow(() -> ApiException.badRequest("invalid-location",
                         "That location does not exist or no longer takes bookings."));
@@ -71,6 +80,10 @@ public class Locations {
     public UUID forList(UUID requested) {
         if (requested != null) {
             return requested;
+        }
+        Optional<UUID> single = LocationContext.current().single();
+        if (single.isPresent()) {
+            return single.get();
         }
         UUID tenant = TenantContext.require();
         return all(tenant)

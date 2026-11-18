@@ -21,6 +21,12 @@ public final class Tenants {
     public static final String SLUG_CLAIM = "tsl";
 
     /**
+     * JWT claim holding the user's location scope: {@code ["*"]} (every location of the
+     * organization) or the ids of the locations they work at. See {@link LocationScope}.
+     */
+    public static final String LOCATIONS_CLAIM = "lsc";
+
+    /**
      * The workshop all data created before multi-tenancy belongs to. The same fixed value is
      * used by every service's Flyway migrations (placeholder {@code defaultTenantId}).
      */

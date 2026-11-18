@@ -27,6 +27,10 @@ public class PartUsage {
     @Column(name = "tenant_id", nullable = false, updatable = false)
     private UUID tenantId;
 
+    /** The job card's location, copied so row-level security can check this table on its own. */
+    @Column(name = "location_id", nullable = false, updatable = false)
+    private UUID locationId;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "job_card_id", nullable = false)
     private JobCard jobCard;
@@ -67,6 +71,7 @@ public class PartUsage {
         }
         this.id = UUID.randomUUID();
         this.jobCard = jobCard;
+        this.locationId = jobCard.getLocationId();
         this.recommendation = recommendation;
         this.partNumber = partNumber.trim();
         this.name = name.trim();
@@ -83,6 +88,7 @@ public class PartUsage {
 
     public UUID getId() { return id; }
     public UUID getTenantId() { return tenantId; }
+    public UUID getLocationId() { return locationId; }
     public RecommendedWorkItem getRecommendation() { return recommendation; }
     public String getPartNumber() { return partNumber; }
     public String getName() { return name; }

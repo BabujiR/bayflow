@@ -22,6 +22,7 @@ public final class BayflowSecurity {
             WorkshopHosts hosts) throws Exception {
         return http
                 .addFilterAfter(new WorkshopHostFilter(hosts, handlers), BearerTokenAuthenticationFilter.class)
+                .addFilterAfter(new LocationScopeFilter(handlers), WorkshopHostFilter.class)
                 // CSRF protection is off on purpose: every request is authenticated by a bearer
                 // token in the Authorization header, which a browser never attaches by itself,
                 // and there are no sessions or authentication cookies to ride on. (Spring

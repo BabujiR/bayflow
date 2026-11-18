@@ -26,7 +26,8 @@ class WorkshopAddressIT extends IntegrationTestBase {
                     token.subject(UUID.randomUUID().toString())
                             .claim("username", "advisor1")
                             .claim("roles", List.of("SERVICE_ADVISOR"))
-                            .claim(Tenants.CLAIM, Tenants.DEFAULT_TENANT_ID.toString());
+                            .claim(Tenants.CLAIM, Tenants.DEFAULT_TENANT_ID.toString())
+                            .claim(Tenants.LOCATIONS_CLAIM, List.of("*"));
                     if (slug != null) {
                         token.claim(Tenants.SLUG_CLAIM, slug);
                     }

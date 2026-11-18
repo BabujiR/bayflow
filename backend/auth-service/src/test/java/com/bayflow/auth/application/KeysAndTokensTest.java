@@ -90,7 +90,7 @@ class KeysAndTokensTest {
         User user = User.create(Tenants.DEFAULT_TENANT_ID, "advisor1", "a@b.c", "{noop}x", Set.of(Role.SERVICE_ADVISOR),
                 Instant.now());
 
-        TokenService.IssuedToken issued = tokens.forUser(user, "demo");
+        TokenService.IssuedToken issued = tokens.forUser(user, "demo", List.of("*"));
         Jwt jwt = decoder(keys, properties).decode(issued.value());
 
         assertThat(jwt.getSubject()).isEqualTo(user.getId().toString());

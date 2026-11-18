@@ -51,4 +51,20 @@ class SingleConnectionPoolIT extends IntegrationTestBase {
                         .content("{\"name\":\"" + name + "\",\"email\":\"" + UUID.randomUUID() + "@example.com\"}"))
                 .andExpect(status().isCreated());
     }
+
+    /** Phase L2: the location scope is set per transaction too, so it never carries over either. */
+    @Test
+    void theLocationScopeNeverLeaksBetweenRequestsOnAPooledConnection() throws Exception {
+        UUID north = UUID.fromString("0e0e0e0e-1111-4000-8000-0000000000e1");
+        RequestPostProcessor everywhere = as("SERVICE_ADVISOR", UUID.randomUUID(), Tenants.DEFAULT_TENANT_ID);
+        RequestPostProcessor northOnly = atLocations("SERVICE_ADVISOR", UUID.randomUUID(), north);
+        String newest = "/api/v1/appointments";
+
+        for (int round = 0; round < 5; round++) {
+            mvc.perform(get(newest).with(everywhere)).andExpect(status().isOk());
+            // North has no appointments: nothing from Main may show up after Main's request.
+            mvc.perform(get(newest).with(northOnly)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalElements").value(0));
+        }
+    }
 }

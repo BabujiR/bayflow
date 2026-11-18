@@ -6,6 +6,7 @@ import { configureSession, refreshSession, setAccessToken } from '@/api/http';
 import type { LoginRequest, RegisterRequest, Role, TokenResponse, User } from '@/api/types';
 
 import { AuthContext, type AuthContextValue, type AuthStatus } from './auth-context';
+import { effectiveRoles } from './roles';
 
 /** Refresh this many seconds before the access token expires. */
 const REFRESH_AHEAD_SECONDS = 60;
@@ -92,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [endSession]);
 
   const hasRole = useCallback(
-    (...roles: Role[]) => !!user && user.roles.some((r) => roles.includes(r)),
+    (...roles: Role[]) => !!user && effectiveRoles(user.roles).some((r) => roles.includes(r)),
     [user],
   );
 

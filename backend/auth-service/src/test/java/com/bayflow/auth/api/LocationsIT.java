@@ -47,6 +47,14 @@ class LocationsIT extends IntegrationTestBase {
         signupLimiter.reset();
     }
 
+    /** Other test classes expect the default organization to have one location. */
+    @org.junit.jupiter.api.AfterEach
+    void removeExtraLocations() {
+        jdbc.update("delete from bayflow.auth_user_locations where location_id in (select id from"
+                + " bayflow.auth_locations where tenant_id = ? and id <> ?)", MAIN, MAIN);
+        jdbc.update("delete from bayflow.auth_locations where tenant_id = ? and id <> ?", MAIN, MAIN);
+    }
+
     @Test
     void theDefaultOrganizationHasItsMainLocation() throws Exception {
         mvc.perform(get("/api/v1/auth/locations").header("Authorization", "Bearer " + tokenFor(Role.CUSTOMER)))
@@ -146,8 +154,7 @@ class LocationsIT extends IntegrationTestBase {
 
     private String tokenFor(Role role) throws Exception {
         String username = role.name().toLowerCase().replace('_', '-') + "-" + UUID.randomUUID().toString().substring(0, 8);
-        TenantContext.run(Tenants.DEFAULT_TENANT_ID,
-                () -> authService.createUser(username, username + "@example.com", PASSWORD, Set.of(role)));
+        newUser(Tenants.DEFAULT_TENANT_ID, username, username + "@example.com", PASSWORD, Set.of(role));
         String body = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"%s\",\"password\":\"%s\"}".formatted(username, PASSWORD)))
                 .andExpect(status().isOk())

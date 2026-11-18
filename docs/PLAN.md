@@ -495,6 +495,38 @@ in the page `<meta name="description">`.
       reads per location. Both cache for 5 minutes.
     - Responses add `locationId` (appointments, job cards, job-card summaries,
       service history); location names come from `/auth/locations` in the UI (L3).
+22. **Organizations and locations, phase L2: scoped access.**
+    - Roles: ADMIN (owner) and CUSTOMER work with every location; MANAGER (new:
+      a location's manager, or a regional manager of several), SERVICE_ADVISOR
+      and MECHANIC work at the locations in `auth_user_locations` (auth `V8`;
+      existing advisors and mechanics were given "Main"). A MANAGER also gets the
+      SERVICE_ADVISOR authority (token converter, and `effectiveRoles` in the web
+      app), so every advisor permission applies to managers.
+    - Tokens carry `lsc`: `["*"]` or the location ids (at most 200). Location
+      changes apply from the next token (≤ 15 minutes). Staff without a location
+      can't sign in (403 `no-locations`); a staff token without `lsc` is refused
+      (401), like one without `tid`.
+    - `POST /api/v1/auth/users` takes `locationIds` (none = the organization's only
+      active location, else 400 `locations-required`); `PUT
+      /api/v1/auth/users/{id}/locations` (ADMIN) changes them. Unknown or archived
+      locations → 400 `invalid-location`; ADMIN accounts take none (400
+      `not-location-scoped`). There is no role-change endpoint, so "an admin can't
+      remove their own ADMIN role" holds trivially.
+    - common-security: `LocationScope` / `LocationContext`; `LocationScopeFilter`
+      reads `X-Bayflow-Location: <id>|all` and only narrows (403
+      `location-not-allowed`); `TenantAwareJpaTransactionManager` sets
+      `app.locations` (`*`, id list, or empty) per transaction with `app.tenant`.
+      SYSTEM tokens and background work inside an explicit tenant use `*`.
+    - RLS: `apt_appointments` (appointment `V6`) and `ws_job_cards`, its child
+      tables and `ws_service_history` (workshop `V7`) check
+      `tenant_id AND (app.locations = '*' OR location_id = ANY(...))` (a CASE keeps
+      the `*` from being cast). The job card's child tables got their own
+      `location_id`, kept equal to the card's by a composite foreign key
+      `(job_card_id, location_id) → ws_job_cards (id, location_id)`. Customers,
+      vehicles and the outbox stay organization-wide.
+    - Services also check the location of every appointment and job card they load
+      (404 outside the scope), and bookings / job-card opening refuse locations
+      outside it (404). Without a location, a one-location scope books there.
 
 ---
 
@@ -515,6 +547,6 @@ in the page `<meta name="description">`.
 | SaaS 3 | Per-workshop settings, money frozen on job cards | no business setting read from env at request time |
 | SaaS 4 | Sign-up and `<slug>.localhost` subdomains | a new workshop signs up and runs on its own |
 
-SaaS milestones: 1–4 done. Organizations and locations: L1 in review; L2 (scoped access) and L3 (web app) planned.
+SaaS milestones: 1–4 done. Organizations and locations: L1 done, L2 in review; L3 (web app) planned.
 
 Each milestone ends with a review pause.
