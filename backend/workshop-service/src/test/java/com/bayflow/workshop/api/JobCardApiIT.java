@@ -44,9 +44,12 @@ class JobCardApiIT extends IntegrationTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value((String) JsonPath.read(first, "$.id")));
 
-        mvc.perform(get("/api/v1/job-cards/by-appointment/" + appointmentId).with(system))
+        mvc.perform(get("/api/v1/job-cards/by-appointment/" + appointmentId).with(advisor))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value((String) JsonPath.read(first, "$.id")));
+        // SYSTEM has no workshop, so it can't look cards up (it only opens them, naming the workshop).
+        mvc.perform(get("/api/v1/job-cards/by-appointment/" + appointmentId).with(system))
+                .andExpect(status().isForbidden());
     }
 
     @Test

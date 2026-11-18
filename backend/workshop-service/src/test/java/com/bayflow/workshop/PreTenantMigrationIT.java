@@ -49,7 +49,7 @@ class PreTenantMigrationIT {
                 .defaultSchema("bayflow")
                 .table("flyway_history_workshop")
                 .locations("classpath:db/migration")
-                .placeholders(Map.of("default_tenant_id", Tenants.DEFAULT_TENANT_ID.toString()));
+                .placeholders(Map.of("default_tenant_id", Tenants.DEFAULT_TENANT_ID.toString(), "app_role", "bayflow_app"));
         if (target != null) {
             config.target(target);
         }

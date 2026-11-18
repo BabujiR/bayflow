@@ -97,16 +97,10 @@ public class JobCardController {
     }
 
     @GetMapping("/by-appointment/{appointmentId}")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'SERVICE_ADVISOR', 'MECHANIC', 'ADMIN', 'SYSTEM')")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'SERVICE_ADVISOR', 'MECHANIC', 'ADMIN')")
     @Operation(summary = "The job card opened for an appointment")
     public JobCardResponse byAppointment(@PathVariable UUID appointmentId, Authentication auth) {
-        CurrentUser user = CurrentUser.from(auth);
-        if (user.isSystem()) {
-            // Appointment ids are globally unique; a SYSTEM caller has no workshop of its own.
-            return TenantContext.callAcrossTenants(
-                    () -> response(jobCards.getByAppointment(user, appointmentId)));
-        }
-        return response(jobCards.getByAppointment(user, appointmentId));
+        return response(jobCards.getByAppointment(CurrentUser.from(auth), appointmentId));
     }
 
     @PostMapping("/{id}/findings")

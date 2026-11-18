@@ -11,8 +11,9 @@ spring:
     name: auth-service
   datasource:
     url: ${BAYFLOW_DB_URL:jdbc:postgresql://localhost:5432/bayflow}
-    username: ${BAYFLOW_DB_USER:bayflow}
-    password: ${BAYFLOW_DB_PASSWORD:bayflow}
+    # Runtime login: not the table owner, so row-level security applies (RowLevelSecurityGuard checks).
+    username: ${BAYFLOW_DB_USER:bayflow_app}
+    password: ${BAYFLOW_DB_PASSWORD:bayflow_app}
   jpa:
     open-in-view: false
     hibernate:
@@ -31,9 +32,14 @@ spring:
     baseline-on-migrate: true
     baseline-version: "0"
     locations: classpath:db/migration
+    # Migrations run as the table owner; the services themselves connect as the app role.
+    user: ${BAYFLOW_DB_OWNER_USER:bayflow}
+    password: ${BAYFLOW_DB_OWNER_PASSWORD:bayflow}
     placeholders:
       # Same fixed value in every service: the workshop pre-multi-tenancy data belongs to.
       default_tenant_id: 00000000-0000-0000-0000-000000000001
+      # The runtime login that migrations grant access to (row-level security applies to it).
+      app_role: ${BAYFLOW_DB_USER:bayflow_app}
   data:
     web:
       pageable:

@@ -3,9 +3,15 @@ package com.bayflow.auth.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +25,7 @@ import com.bayflow.auth.IntegrationTestBase;
 import com.bayflow.auth.application.ApiException;
 import com.bayflow.auth.application.AuthService;
 import com.bayflow.auth.application.AuthService.Session;
+import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.User;
 import com.bayflow.auth.infrastructure.UserRepository;
 import com.bayflow.security.TenantContext;
@@ -40,8 +47,8 @@ class MultiTenantAuthIT extends IntegrationTestBase {
     @Autowired
     private UserRepository users;
 
-    @Autowired
-    private JdbcTemplate jdbc;
+    /** Owner connection: setup and checks across workshops. */
+    private final JdbcTemplate jdbc = ownerJdbc();
 
     @BeforeEach
     void secondWorkshop() {
@@ -108,6 +115,28 @@ class MultiTenantAuthIT extends IntegrationTestBase {
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"" + username + "\",\"password\":\"" + PASSWORD + "\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void anAdminOnlyManagesAccountsInTheirOwnWorkshop() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        User victim = TenantContext.call(Tenants.DEFAULT_TENANT_ID,
+                () -> authService.register("victim-" + suffix, "victim-" + suffix + "@example.com", PASSWORD));
+        String otherAdmin = "admin-" + suffix;
+        TenantContext.run(OTHER, () -> authService.createUser(otherAdmin, otherAdmin + "@example.com", PASSWORD,
+                Set.of(Role.ADMIN)));
+        String token = TenantContext.call(OTHER, () -> authService.login(otherAdmin, PASSWORD, "127.0.0.1"))
+                .accessToken().value();
+
+        mvc.perform(patch("/api/v1/auth/users/" + victim.getId()).header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"enabled\":false}"))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/auth/users").param("size", "100").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[*].username", not(hasItem("victim-" + suffix))));
+
+        assertThat(jdbc.queryForObject("select enabled from bayflow.auth_users where id = ?", Boolean.class,
+                victim.getId())).isTrue();
     }
 
     @Test

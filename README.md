@@ -53,6 +53,12 @@ docker compose ps                    # all five should become "healthy"
 
 Open **http://localhost:3000** and sign in with a demo user below.
 
+> **Upgrading an existing local database** (created before SaaS phase 2): the
+> services now connect as a separate `bayflow_app` login so that row-level
+> security applies to them. Create it once, keeping your data:
+> `./scripts/upgrade-local-db.ps1` (or `.sh`), then `docker compose up -d --build`.
+> Or start from an empty database with `docker compose down -v` (deletes local data).
+
 | What | URL |
 |---|---|
 | **Web app** (nginx, the whole stack on one origin) | http://localhost:3000 |
@@ -119,7 +125,11 @@ service's Swagger UI and paste it.
 - **Workshops (multi-tenancy):** every row belongs to a workshop (`tenant_id`),
   and every service scopes all queries to the workshop in the caller's token.
   Until workshops get their own addresses (SaaS phase 4) there is one workshop,
-  `default`. Details: [docs/PLAN.md § 9, item 17](docs/PLAN.md#9-assumptions).
+  `default`. Details: [docs/PLAN.md § 9, items 17–18](docs/PLAN.md#9-assumptions).
+- **Row-level security:** PostgreSQL itself hides other workshops' rows. The
+  services connect as `bayflow_app` (not the table owner, so the policies apply
+  to it) and name their workshop per transaction; Flyway migrates as the owner.
+  A service refuses to start with a login that RLS would not apply to.
 - The **refresh token** is a random value sent only as the `bayflow_rt` cookie
   (`HttpOnly`, `SameSite=Strict`, path `/api/v1/auth`), valid 7 days. Only its
   hash is stored. Every `/auth/refresh` rotates it; replaying an old one ends
@@ -232,8 +242,8 @@ spaced out to stay under the 10-per-minute login limit.
 | 6 | Frontend foundation | ✅ done |
 | 7 | Frontend screens per role | ✅ done |
 | 8 | nginx, full compose, Playwright e2e, CD | ✅ done |
-| SaaS 1 | Tenant foundation (`tenant_id`, `tid` claim) | 🔍 in review |
-| SaaS 2 | Row-level security and isolation tests | planned |
+| SaaS 1 | Tenant foundation (`tenant_id`, `tid` claim) | ✅ done |
+| SaaS 2 | Row-level security and isolation tests | 🔍 in review |
 | SaaS 3 | Per-workshop settings | planned |
 | SaaS 4 | Sign-up and workshop subdomains | planned |
 

@@ -17,6 +17,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-bayflow}
       POSTGRES_USER: ${POSTGRES_USER:-bayflow}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
+      # Password of bayflow_app, the services' runtime login (infra/postgres/init/02-create-app-role.sh)
+      BAYFLOW_APP_DB_PASSWORD: ${BAYFLOW_APP_DB_PASSWORD:-bayflow_app}
       TZ: UTC
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
@@ -44,8 +46,11 @@ services:
       # "dev" seeds the demo users customer1 / advisor1 / mechanic1 (see README)
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       BAYFLOW_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-bayflow}
-      BAYFLOW_DB_USER: ${POSTGRES_USER:-bayflow}
-      BAYFLOW_DB_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
+      # Runtime login: subject to row-level security. Flyway migrates as the table owner.
+      BAYFLOW_DB_USER: bayflow_app
+      BAYFLOW_DB_PASSWORD: ${BAYFLOW_APP_DB_PASSWORD:-bayflow_app}
+      BAYFLOW_DB_OWNER_USER: ${POSTGRES_USER:-bayflow}
+      BAYFLOW_DB_OWNER_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
       BAYFLOW_SYSTEM_CLIENT_SECRET: ${BAYFLOW_SYSTEM_CLIENT_SECRET:-dev-system-secret}
       BAYFLOW_BOOTSTRAP_ADMIN_USERNAME: ${BAYFLOW_BOOTSTRAP_ADMIN_USERNAME:-admin}
       BAYFLOW_BOOTSTRAP_ADMIN_EMAIL: ${BAYFLOW_BOOTSTRAP_ADMIN_EMAIL:-admin@bayflow.local}
@@ -72,8 +77,11 @@ services:
         condition: service_healthy
     environment:
       BAYFLOW_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-bayflow}
-      BAYFLOW_DB_USER: ${POSTGRES_USER:-bayflow}
-      BAYFLOW_DB_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
+      # Runtime login: subject to row-level security. Flyway migrates as the table owner.
+      BAYFLOW_DB_USER: bayflow_app
+      BAYFLOW_DB_PASSWORD: ${BAYFLOW_APP_DB_PASSWORD:-bayflow_app}
+      BAYFLOW_DB_OWNER_USER: ${POSTGRES_USER:-bayflow}
+      BAYFLOW_DB_OWNER_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
       # Tokens are verified with auth-service's public key
       BAYFLOW_JWKS_URI: http://auth-service:8083/.well-known/jwks.json
       BAYFLOW_WORKSHOP_ZONE: ${BAYFLOW_WORKSHOP_ZONE:-America/New_York}
@@ -99,8 +107,11 @@ services:
         condition: service_healthy
     environment:
       BAYFLOW_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-bayflow}
-      BAYFLOW_DB_USER: ${POSTGRES_USER:-bayflow}
-      BAYFLOW_DB_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
+      # Runtime login: subject to row-level security. Flyway migrates as the table owner.
+      BAYFLOW_DB_USER: bayflow_app
+      BAYFLOW_DB_PASSWORD: ${BAYFLOW_APP_DB_PASSWORD:-bayflow_app}
+      BAYFLOW_DB_OWNER_USER: ${POSTGRES_USER:-bayflow}
+      BAYFLOW_DB_OWNER_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
       # Public key for verifying tokens, fetched from auth-service
       BAYFLOW_JWKS_URI: http://auth-service:8083/.well-known/jwks.json
       BAYFLOW_LABOUR_RATE: ${BAYFLOW_LABOUR_RATE:-95.00}

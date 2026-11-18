@@ -8,12 +8,15 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+
 import com.bayflow.security.Tenants;
 
 /** Spring context on the shared PostgreSQL container, with helpers that sign requests as a role. */
@@ -25,12 +28,21 @@ public abstract class IntegrationTestBase {
     @DynamicPropertySource
     static void datasource(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", PostgresContainer.INSTANCE::getJdbcUrl);
-        registry.add("spring.datasource.username", PostgresContainer.INSTANCE::getUsername);
-        registry.add("spring.datasource.password", PostgresContainer.INSTANCE::getPassword);
+        // The service runs as the app login, subject to row-level security; Flyway as the owner.
+        registry.add("spring.datasource.username", () -> PostgresContainer.APP_USER);
+        registry.add("spring.datasource.password", () -> PostgresContainer.APP_PASSWORD);
+        registry.add("spring.flyway.user", PostgresContainer.INSTANCE::getUsername);
+        registry.add("spring.flyway.password", PostgresContainer.INSTANCE::getPassword);
     }
 
     @Autowired
     protected MockMvc mvc;
+
+    /** The table owner: sees every workshop's rows. For test setup and checks only. */
+    protected static JdbcTemplate ownerJdbc() {
+        return new JdbcTemplate(new DriverManagerDataSource(PostgresContainer.INSTANCE.getJdbcUrl(),
+                PostgresContainer.INSTANCE.getUsername(), PostgresContainer.INSTANCE.getPassword()));
+    }
 
     /**
      * Signs the request like a Bayflow access token for {@code subject} with one role, in the

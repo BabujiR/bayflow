@@ -68,7 +68,8 @@ class MigrationsCoexistIT {
                 .baselineOnMigrate(true)
                 .baselineVersion("0")
                 .locations("filesystem:" + migrations)
-                .placeholders(Map.of("default_tenant_id", "00000000-0000-0000-0000-000000000001"))
+                .placeholders(Map.of("default_tenant_id", "00000000-0000-0000-0000-000000000001",
+                        "app_role", PostgresContainer.APP_USER))
                 .load();
     }
 

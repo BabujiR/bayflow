@@ -34,6 +34,12 @@
             <artifactId>hibernate-core</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- TenantAwareJpaTransactionManager; every service brings it through its JPA starter -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-orm</artifactId>
+            <optional>true</optional>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

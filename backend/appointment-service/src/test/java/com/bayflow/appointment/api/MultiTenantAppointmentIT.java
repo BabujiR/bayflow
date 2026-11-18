@@ -2,17 +2,20 @@ package com.bayflow.appointment.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.bayflow.appointment.IntegrationTestBase;
@@ -27,8 +30,8 @@ class MultiTenantAppointmentIT extends IntegrationTestBase {
 
     private static final UUID OTHER = UUID.fromString("0b0b0b0b-0000-4000-8000-000000000002");
 
-    @Autowired
-    private JdbcTemplate jdbc;
+    /** Owner connection: setup and checks across workshops. */
+    private final JdbcTemplate jdbc = ownerJdbc();
 
     @Test
     void theSameCarCanBeRegisteredOnceInEachWorkshop() throws Exception {
@@ -67,6 +70,61 @@ class MultiTenantAppointmentIT extends IntegrationTestBase {
 
         mvc.perform(get("/api/v1/vehicles/" + vehicleId).with(hereAdvisor)).andExpect(status().isOk());
         mvc.perform(get("/api/v1/vehicles/" + vehicleId).with(otherAdvisor)).andExpect(status().isNotFound());
+    }
+
+    /**
+     * The isolation suite: another workshop's staff and customers get 404 from every endpoint
+     * that takes this workshop's ids (never 200, and never 403, which would confirm the record
+     * exists), and nothing changes.
+     */
+    @Test
+    void everyEndpointAnswers404ForAnotherWorkshopsRecords() throws Exception {
+        RequestPostProcessor here = customerWithProfile(Tenants.DEFAULT_TENANT_ID, "Suite Customer");
+        String customerId = id(mvc.perform(get("/api/v1/customers/me").with(here)).andExpect(status().isOk()));
+        String vehicleId = id(addVehicle(here, randomVin()).andExpect(status().isCreated()));
+        String appointmentId = id(mvc.perform(post("/api/v1/appointments").with(here)
+                        .contentType(MediaType.APPLICATION_JSON).content(bookingJson(vehicleId)))
+                .andExpect(status().isCreated()));
+
+        RequestPostProcessor otherAdvisor = as("SERVICE_ADVISOR", UUID.randomUUID(), OTHER);
+        RequestPostProcessor otherCustomer = customerWithProfile(OTHER, "Other Customer");
+        String appointment = "/api/v1/appointments/" + appointmentId;
+
+        List<MockHttpServletRequestBuilder> asAdvisor = List.of(
+                get("/api/v1/customers/" + customerId),
+                get("/api/v1/vehicles/" + vehicleId),
+                put("/api/v1/vehicles/" + vehicleId).contentType(MediaType.APPLICATION_JSON).content("""
+                        {"registration":"STOLEN","make":"Honda","model":"Civic","year":2020,"mileage":1}"""),
+                post("/api/v1/vehicles").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"customerId":"%s","vin":"%s","registration":"X","make":"Honda","model":"Civic",
+                         "year":2020,"mileage":1}""".formatted(customerId, randomVin())),
+                post("/api/v1/appointments").contentType(MediaType.APPLICATION_JSON).content(bookingJson(vehicleId)),
+                get(appointment),
+                post(appointment + "/confirm"),
+                post(appointment + "/arrive"),
+                post(appointment + "/no-show"),
+                post(appointment + "/check-in").contentType(MediaType.APPLICATION_JSON).content("{\"mileage\":2000}"),
+                patch(appointment + "/reschedule").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"scheduledAt\":\"2026-11-21T15:00:00Z\"}"),
+                post(appointment + "/cancel"));
+        for (MockHttpServletRequestBuilder request : asAdvisor) {
+            mvc.perform(request.with(otherAdvisor)).andExpect(status().isNotFound());
+        }
+        for (MockHttpServletRequestBuilder request : List.of(get(appointment), post(appointment + "/cancel"))) {
+            mvc.perform(request.with(otherCustomer)).andExpect(status().isNotFound());
+        }
+
+        // Nothing changed in the owning workshop.
+        assertThat(jdbc.queryForObject("select status from bayflow.apt_appointments where id = ?::uuid",
+                String.class, appointmentId)).isEqualTo("BOOKED");
+        assertThat(jdbc.queryForObject("select registration from bayflow.apt_vehicles where id = ?::uuid",
+                String.class, vehicleId)).isNotEqualTo("STOLEN");
+    }
+
+    private static String bookingJson(String vehicleId) {
+        return """
+                {"vehicleId":"%s","scheduledAt":"2026-11-20T15:00:00Z","durationMinutes":60,
+                 "serviceType":"ROUTINE_SERVICE"}""".formatted(vehicleId);
     }
 
     private RequestPostProcessor customerWithProfile(UUID tenant, String name) throws Exception {

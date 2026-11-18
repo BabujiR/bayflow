@@ -77,7 +77,7 @@ class CheckInJobCardIT extends IntegrationTestBase {
     void resetRemoteServices() {
         // The database is shared with other test classes, whose check-ins leave undelivered
         // messages behind (they have no workshop-service). Start each test with an empty outbox.
-        TenantContext.runAcrossTenants(outbox::deleteAllInBatch);
+        ownerJdbc().update("delete from bayflow.apt_outbox");
         WIREMOCK.resetAll();
         tokens.invalidate();
         WIREMOCK.stubFor(WireMock.post(urlEqualTo(TOKEN))

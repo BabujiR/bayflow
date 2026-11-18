@@ -366,6 +366,30 @@ in the page `<meta name="description">`.
       must sign in again once. SYSTEM tokens carry no `tid`.
     - Deferred to phase 4 (needs one address per workshop): seeding the `demo`
       and `acme` workshops and the two-workshop Playwright scenario.
+18. **Multi-tenancy (SaaS), phase 2: row-level security.**
+    - Two database logins. The table owner (`bayflow`, `POSTGRES_USER`) is used
+      only by Flyway (`spring.flyway.user`). The services run as `bayflow_app`:
+      no superuser, no BYPASSRLS, owns nothing. It is created by
+      `infra/postgres/init/02-create-app-role.sh` (new volumes) or
+      `scripts/upgrade-local-db.*` (existing ones); each service's `V4`
+      migration grants it access to that service's tables (placeholder `app_role`).
+    - Every table with a `tenant_id` has RLS enabled and a policy
+      `tenant_id = NULLIF(current_setting('app.tenant', true), '')::uuid` for
+      reads and writes. `TenantAwareJpaTransactionManager` runs
+      `set_config('app.tenant', <tenant>, true)` as each transaction starts;
+      the setting is transaction-local, so pooled connections never carry it.
+      No tenant set means no rows.
+    - RLS is enabled, not forced: the owner is exempt, so migrations and the
+      owner-run `SECURITY DEFINER` function `apt_due_outbox` see all rows (on
+      AWS RDS the owner is not a superuser, so FORCE would break both).
+      `RowLevelSecurityGuard` refuses to start a service whose login is a
+      superuser, has BYPASSRLS, or owns tables.
+    - The outbox retry job is the only cross-workshop read: `apt_due_outbox`
+      returns ids and workshops of due messages; each is then handled inside
+      its own workshop. `GET /job-cards/by-appointment` no longer accepts SYSTEM
+      tokens (nothing used it; it would have needed another cross-workshop read).
+    - Tests run as `bayflow_app` too; checks that must see every workshop use
+      an owner connection.
 
 ---
 
