@@ -94,26 +94,32 @@ export function isoToLocalInput(iso: string): string {
   return `${pad(year, 4)}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}`;
 }
 
-/** A datetime-local input value (workshop time) as an ISO instant. */
-export function localInputToIso(value: string): string {
-  if (!workshopZone) {
-    return new Date(value).toISOString();
+/**
+ * A datetime-local input value (workshop time) as epoch milliseconds; NaN when the value is
+ * empty or not a date, so form checks can reject it without throwing.
+ */
+export function localInputToMillis(value: string): number {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value ?? '');
+  if (!match) {
+    return Number.NaN;
   }
-  const [date, time = '00:00'] = value.split('T');
-  const [y, mo, d] = date.split('-').map(Number);
-  const [h, mi] = time.split(':').map(Number);
+  if (!workshopZone) {
+    return new Date(value).getTime();
+  }
+  const [y, mo, d, h, mi] = match.slice(1).map(Number);
   const asUtc = Date.UTC(y, mo - 1, d, h, mi);
   // The zone's offset at that moment; checked twice so a DST change in between is handled.
   const offsetAt = (instant: number) => {
     const w = wallClock(new Date(instant));
     return Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute) - instant;
   };
-  let instant = asUtc - offsetAt(asUtc);
-  const corrected = asUtc - offsetAt(instant);
-  if (corrected !== instant) {
-    instant = corrected;
-  }
-  return new Date(instant).toISOString();
+  const first = asUtc - offsetAt(asUtc);
+  return asUtc - offsetAt(first);
+}
+
+/** A datetime-local input value (workshop time) as an ISO instant. */
+export function localInputToIso(value: string): string {
+  return new Date(localInputToMillis(value)).toISOString();
 }
 
 /** Short name of the workshop's zone right now, e.g. "EST" or "GMT+13". */

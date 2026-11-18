@@ -12,7 +12,7 @@ import { Dialog, DialogClose, DialogContent, DialogTrigger } from '@/components/
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { formatDateTime, isoToLocalInput, localInputToIso } from '@/lib/format';
+import { formatDateTime, isoToLocalInput, localInputToIso, localInputToMillis } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
 const APPOINTMENT_KEYS = [['appointments'], ['appointment']];
@@ -97,7 +97,7 @@ const rescheduleSchema = z.object({
   scheduledAt: z
     .string()
     .min(1, 'Choose a date and time')
-    .refine((v) => new Date(localInputToIso(v)).getTime() > Date.now(), 'Choose a time in the future'),
+    .refine((v) => localInputToMillis(v) > Date.now(), 'Choose a time in the future'),
   durationMinutes: z.coerce.number<string>(),
 });
 

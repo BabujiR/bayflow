@@ -32,6 +32,14 @@ describe("dates in the workshop's time zone", () => {
     expect(isoToLocalInput('2030-01-14T21:30:00Z')).toBe('2030-01-15T10:30');
   });
 
+  it('treats an empty or partial input as not a time instead of throwing', () => {
+    setWorkshopZone('America/New_York');
+    expect(localInputToMillis('')).toBeNaN();
+    expect(localInputToMillis('2030-01-15')).toBeNaN();
+    setWorkshopZone(undefined);
+    expect(localInputToMillis('')).toBeNaN();
+  });
+
   it('handles the day clocks go forward', () => {
     setWorkshopZone('America/New_York');
     // 8 Mar 2026: 02:00 jumps to 03:00. 09:00 that day is EDT.

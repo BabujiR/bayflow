@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatDateTime, localInputToIso, SERVICE_TYPE_LABELS } from '@/lib/format';
+import { formatDateTime, localInputToIso, localInputToMillis, SERVICE_TYPE_LABELS } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
 import { DURATIONS } from './AppointmentDialogs';
@@ -29,7 +29,7 @@ const schema = z.object({
   scheduledAt: z
     .string()
     .min(1, 'Choose a date and time')
-    .refine((v) => new Date(localInputToIso(v)).getTime() > Date.now(), 'Choose a time in the future'),
+    .refine((v) => localInputToMillis(v) > Date.now(), 'Choose a time in the future'),
   durationMinutes: z.coerce.number<string>(),
   serviceType: z.enum(SERVICE_TYPES, 'Choose a service'),
   notes: z.string().max(1000, 'At most 1000 characters'),
