@@ -116,8 +116,8 @@ public abstract class IntegrationTestBase {
     @BeforeEach
     void resetClock() {
         clock.set(BASE);
-        Mockito.when(workshopSettings.get(ArgumentMatchers.any()))
-                .thenReturn(new WorkshopSettings("America/New_York", "USD"));
+        Mockito.doReturn(new WorkshopSettings("America/New_York", "USD"))
+                .when(workshopSettings).get(ArgumentMatchers.any());
     }
 
     /** Signs the request as a user with the given role in the default workshop, like a real access token. */

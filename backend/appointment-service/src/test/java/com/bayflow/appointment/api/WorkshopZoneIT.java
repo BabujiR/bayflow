@@ -50,15 +50,16 @@ class WorkshopZoneIT extends IntegrationTestBase {
     void theConfiguredZoneIsUsedWhileSettingsAreUnavailable() throws Exception {
         String vehicleId = vehicle();
         String id = book(vehicleId);
-        Mockito.when(workshopSettings.get(ArgumentMatchers.any()))
-                .thenThrow(new ResourceAccessException("auth-service down"));
+        Mockito.doThrow(new ResourceAccessException("auth-service down"))
+                .when(workshopSettings).get(ArgumentMatchers.any());
 
         // Fallback: bayflow.appointment.workshop-zone (America/New_York)
         count(vehicleId, "2026-11-17", 1, id);
     }
 
     private void inZone(String zone) {
-        Mockito.when(workshopSettings.get(ArgumentMatchers.any())).thenReturn(new WorkshopSettings(zone, "USD"));
+        Mockito.doReturn(new WorkshopSettings(zone, "USD"))
+                .when(workshopSettings).get(ArgumentMatchers.any());
     }
 
     private void count(String vehicleId, String date, int expected, String id) throws Exception {

@@ -87,8 +87,8 @@ class FrozenMoneyIT extends IntegrationTestBase {
     @Test
     void noCardOpensWhileTheWorkshopsSettingsAreUnavailable() throws Exception {
         UUID appointmentId = UUID.randomUUID();
-        Mockito.when(workshopSettings.get(ArgumentMatchers.any()))
-                .thenThrow(new ResourceAccessException("auth-service down"));
+        Mockito.doThrow(new ResourceAccessException("auth-service down"))
+                .when(workshopSettings).get(ArgumentMatchers.any());
 
         open(UUID.randomUUID(), appointmentId)
                 .andExpect(status().isServiceUnavailable())
@@ -103,8 +103,8 @@ class FrozenMoneyIT extends IntegrationTestBase {
     }
 
     private void charge(String rate, String currency) {
-        Mockito.when(workshopSettings.get(ArgumentMatchers.any()))
-                .thenReturn(new WorkshopSettings(new BigDecimal(rate), currency));
+        Mockito.doReturn(new WorkshopSettings(new BigDecimal(rate), currency))
+                .when(workshopSettings).get(ArgumentMatchers.any());
     }
 
     private ResultActions open(UUID customerId) throws Exception {

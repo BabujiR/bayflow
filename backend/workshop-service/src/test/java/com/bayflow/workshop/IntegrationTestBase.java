@@ -52,8 +52,8 @@ public abstract class IntegrationTestBase {
     /** Every workshop charges 95.00 USD unless a test says otherwise. */
     @BeforeEach
     void defaultWorkshopSettings() {
-        Mockito.when(workshopSettings.get(ArgumentMatchers.any()))
-                .thenReturn(new WorkshopSettings(new BigDecimal("95.00"), "USD"));
+        Mockito.doReturn(new WorkshopSettings(new BigDecimal("95.00"), "USD"))
+                .when(workshopSettings).get(ArgumentMatchers.any());
     }
 
     /** The table owner: sees every workshop's rows. For test setup and checks only. */
