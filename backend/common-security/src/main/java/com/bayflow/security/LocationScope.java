@@ -27,8 +27,9 @@ public record LocationScope(boolean all, Set<UUID> ids) {
         ids = all ? Set.of() : Collections.unmodifiableSet(new LinkedHashSet<>(ids));
     }
 
+    /** The given locations, in the order given (Set.copyOf would not keep it). */
     public static LocationScope of(Collection<UUID> ids) {
-        return new LocationScope(false, Set.copyOf(ids));
+        return new LocationScope(false, new LinkedHashSet<>(ids));
     }
 
     public static LocationScope of(UUID id) {
