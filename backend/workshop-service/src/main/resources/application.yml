@@ -38,6 +38,9 @@ spring:
       default_tenant_id: 00000000-0000-0000-0000-000000000001
       # The runtime login that migrations grant access to (row-level security applies to it).
       app_role: ${BAYFLOW_DB_USER:bayflow_app}
+      # Money frozen onto job cards and history that existed before per-workshop settings.
+      default_labour_rate: ${BAYFLOW_LABOUR_RATE:95.00}
+      default_currency: ${BAYFLOW_CURRENCY:USD}
 
 bayflow:
   security:
@@ -46,8 +49,11 @@ bayflow:
       issuer: ${BAYFLOW_JWT_ISSUER:bayflow-auth}
       audience: ${BAYFLOW_JWT_AUDIENCE:bayflow}
   workshop:
-    labour-rate: ${BAYFLOW_LABOUR_RATE:95.00}
-    currency: ${BAYFLOW_CURRENCY:USD}
+    # Labour rate and currency now come from each workshop's settings in auth-service.
+    auth-url: ${BAYFLOW_AUTH_URL:http://localhost:8083}
+    client-id: workshop-service
+    client-secret: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:dev-workshop-secret}
+    settings-cache-ttl: 5m
 
 management:
   endpoints:

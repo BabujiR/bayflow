@@ -15,6 +15,8 @@ public class IntegrationProperties {
     private String clientSecret = "dev-system-secret";
     private Duration connectTimeout = Duration.ofSeconds(2);
     private Duration readTimeout = Duration.ofSeconds(5);
+    /** How long a workshop's settings from auth-service are reused before asking again. */
+    private Duration settingsCacheTtl = Duration.ofMinutes(5);
     private final Dispatcher dispatcher = new Dispatcher();
 
     public String getAuthUrl() { return authUrl; }
@@ -29,6 +31,8 @@ public class IntegrationProperties {
     public void setConnectTimeout(Duration connectTimeout) { this.connectTimeout = connectTimeout; }
     public Duration getReadTimeout() { return readTimeout; }
     public void setReadTimeout(Duration readTimeout) { this.readTimeout = readTimeout; }
+    public Duration getSettingsCacheTtl() { return settingsCacheTtl; }
+    public void setSettingsCacheTtl(Duration settingsCacheTtl) { this.settingsCacheTtl = settingsCacheTtl; }
     public Dispatcher getDispatcher() { return dispatcher; }
 
     /** The scheduled retry of undelivered outbox messages. */

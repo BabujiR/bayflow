@@ -168,7 +168,11 @@ function JobCardView({ card }: { card: JobCard }) {
             </span>
           </div>
           {advisor && inspecting && (
-            <RecommendationForm labourRate={card.labourRate} onSubmit={(v) => addRecommendation.mutateAsync(v)} />
+            <RecommendationForm
+              labourRate={card.labourRate}
+              currency={card.currency}
+              onSubmit={(v) => addRecommendation.mutateAsync(v)}
+            />
           )}
           {advisor && status === 'INSPECTED' && (
             <div className="flex flex-wrap items-center gap-3">
@@ -206,6 +210,7 @@ function JobCardView({ card }: { card: JobCard }) {
               <WorkForms
                 items={approved}
                 labourRate={card.labourRate}
+                currency={card.currency}
                 onWork={(v) => logWork.mutateAsync(v)}
                 onPart={(v) => addPart.mutateAsync(v)}
                 onLabour={(v) => addLabour.mutateAsync(v)}

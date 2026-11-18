@@ -147,7 +147,9 @@ public final class WorkshopDtos {
             Instant submittedAt, Instant decidedAt, Instant startedAt, Instant completedAt,
             Instant createdAt, Instant updatedAt) {
 
-        static JobCardResponse from(JobCard c, BigDecimal rate, String currency) {
+        static JobCardResponse from(JobCard c) {
+            BigDecimal rate = c.getLabourRate();
+            String currency = c.getCurrency();
             return new JobCardResponse(c.getId(), c.getAppointmentId(), c.getVehicleId(), c.getVin(),
                     c.getRegistration(), c.getCustomerUserId(), c.getCustomerName(), c.getMileage(), c.getStatus(),
                     c.getFindings().stream().map(FindingResponse::from).toList(),
@@ -167,7 +169,8 @@ public final class WorkshopDtos {
             String registration, Instant serviceDate, int mileage, BigDecimal partsTotal, BigDecimal labourTotal,
             BigDecimal totalCost, String currency, ServiceRecord details) {
 
-        static ServiceHistoryResponse from(ServiceHistoryEntry e, ServiceRecord details, String currency) {
+        static ServiceHistoryResponse from(ServiceHistoryEntry e, ServiceRecord details) {
+            String currency = e.getCurrency();
             return new ServiceHistoryResponse(e.getId(), e.getVehicleId(), e.getJobCardId(), e.getAppointmentId(),
                     e.getVin(), e.getRegistration(), e.getServiceDate(), e.getMileage(), e.getPartsTotal(),
                     e.getLabourTotal(), e.getTotalCost(), currency, details);

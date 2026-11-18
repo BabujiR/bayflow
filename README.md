@@ -109,7 +109,8 @@ At http://localhost:3000 (or the dev server on :5173):
 6. **mechanic1** — *Start work*, log work (plus parts and labour) for each
    approved item, then *Complete job*.
 7. **customer1** — *My vehicles* → the vehicle → its service history.
-8. **admin1** — *User accounts* to create staff; read-only views elsewhere.
+8. **admin1** — *User accounts* to create staff; *Workshop settings* for the
+   workshop's name, labour rate, currency and time zone; read-only views elsewhere.
 
 ### Using the APIs directly
 
@@ -125,11 +126,17 @@ service's Swagger UI and paste it.
 - **Workshops (multi-tenancy):** every row belongs to a workshop (`tenant_id`),
   and every service scopes all queries to the workshop in the caller's token.
   Until workshops get their own addresses (SaaS phase 4) there is one workshop,
-  `default`. Details: [docs/PLAN.md § 9, items 17–18](docs/PLAN.md#9-assumptions).
+  `default`. Details: [docs/PLAN.md § 9, items 17–19](docs/PLAN.md#9-assumptions).
 - **Row-level security:** PostgreSQL itself hides other workshops' rows. The
   services connect as `bayflow_app` (not the table owner, so the policies apply
   to it) and name their workshop per transaction; Flyway migrates as the owner.
   A service refuses to start with a login that RLS would not apply to.
+- **Workshop settings:** each workshop's labour rate, currency and time zone
+  live in auth-service and are edited by its ADMIN. The other services read
+  them with SYSTEM tokens. A job card keeps the rate and currency it opened
+  with; the web app shows times in the workshop's zone. The `BAYFLOW_LABOUR_RATE`,
+  `BAYFLOW_CURRENCY` and `BAYFLOW_WORKSHOP_ZONE` variables are now only defaults
+  for new workshops (details: PLAN item 19).
 - The **refresh token** is a random value sent only as the `bayflow_rt` cookie
   (`HttpOnly`, `SameSite=Strict`, path `/api/v1/auth`), valid 7 days. Only its
   hash is stored. Every `/auth/refresh` rotates it; replaying an old one ends
@@ -211,7 +218,7 @@ spaced out to stay under the 10-per-minute login limit.
 
 - Set `SPRING_PROFILES_ACTIVE` to something other than `dev` (no demo users), set
   `BAYFLOW_BOOTSTRAP_ADMIN_PASSWORD` for the first admin, and change
-  `BAYFLOW_SYSTEM_CLIENT_SECRET` and the database password.
+  `BAYFLOW_SYSTEM_CLIENT_SECRET`, `BAYFLOW_WORKSHOP_CLIENT_SECRET` and the database password.
 - Generate a real signing key (`scripts/generate-dev-keys.*` shows how), mount it,
   and set `BAYFLOW_JWT_ALLOW_EPHEMERAL=false`.
 - Serve the web app over HTTPS (e.g. a load balancer in front of `bayflow-web`) and set
@@ -243,8 +250,8 @@ spaced out to stay under the 10-per-minute login limit.
 | 7 | Frontend screens per role | ✅ done |
 | 8 | nginx, full compose, Playwright e2e, CD | ✅ done |
 | SaaS 1 | Tenant foundation (`tenant_id`, `tid` claim) | ✅ done |
-| SaaS 2 | Row-level security and isolation tests | 🔍 in review |
-| SaaS 3 | Per-workshop settings | planned |
+| SaaS 2 | Row-level security and isolation tests | ✅ done |
+| SaaS 3 | Per-workshop settings, money frozen on job cards | 🔍 in review |
 | SaaS 4 | Sign-up and workshop subdomains | planned |
 
 ## Assumptions

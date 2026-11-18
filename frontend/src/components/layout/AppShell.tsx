@@ -1,7 +1,11 @@
+import { useEffect } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 
 import { useAuth } from '@/auth/auth-context';
+import { FullPageSpinner } from '@/components/ui/spinner';
 import { CustomerProfileGate } from '@/features/customers/CustomerProfileGate';
+import { useWorkshop } from '@/features/workshop/use-workshop';
+import { setWorkshopZone } from '@/lib/format';
 import { navItemsFor } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +17,9 @@ import { UserMenu } from './UserMenu';
 export function AppShell() {
   const { user } = useAuth();
   const items = navItemsFor(user?.roles ?? []);
+  const workshop = useWorkshop();
+  // Signing out (or switching user) goes back to the browser's zone until the next workshop loads.
+  useEffect(() => () => setWorkshopZone(undefined), []);
 
   return (
     <div className="min-h-svh">
@@ -25,8 +32,17 @@ export function AppShell() {
       <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4">
           <Link to="/" aria-label="Bayflow home">
-            <Logo withTagline />
+            <Logo withTagline={!workshop.data} />
           </Link>
+          {workshop.data && (
+            <span
+              className="hidden max-w-48 truncate border-l pl-4 text-sm font-semibold sm:inline"
+              data-testid="workshop-name"
+              title={workshop.data.displayName}
+            >
+              {workshop.data.displayName}
+            </span>
+          )}
           <nav aria-label="Main" className="hidden flex-1 items-center gap-1 md:flex">
             {items.map((item) => (
               <NavLink key={item.to} to={item.to} className={navLinkClass}>
@@ -49,9 +65,15 @@ export function AppShell() {
         </nav>
       </header>
       <main id="main" className="mx-auto max-w-7xl px-4 py-8">
-        <CustomerProfileGate>
-          <Outlet />
-        </CustomerProfileGate>
+        {workshop.isPending ? (
+          // Wait for the workshop so the first dates already use its time zone.
+          // If it fails, pages still work in the browser's zone.
+          <FullPageSpinner label="Loading your workshop" />
+        ) : (
+          <CustomerProfileGate>
+            <Outlet />
+          </CustomerProfileGate>
+        )}
       </main>
     </div>
   );

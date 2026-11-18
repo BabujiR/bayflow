@@ -8,7 +8,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("bayflow.appointment")
 public class AppointmentProperties {
 
-    /** Time zone the workshop operates in; defines "today" for date filters. */
+    /**
+     * Fallback time zone, used only when a workshop's own setting (from auth-service) can't be
+     * read. Each workshop sets its own in the app.
+     */
     private ZoneId workshopZone = ZoneId.of("America/New_York");
 
     /** Slot length when a booking does not specify one. */

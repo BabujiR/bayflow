@@ -44,15 +44,17 @@ public class AppointmentService {
     private final Callers callers;
     private final OutboxService outbox;
     private final AppointmentProperties properties;
+    private final WorkshopZones zones;
     private final Clock clock;
 
     public AppointmentService(AppointmentRepository appointments, VehicleRepository vehicles, Callers callers,
-            OutboxService outbox, AppointmentProperties properties, Clock clock) {
+            OutboxService outbox, AppointmentProperties properties, WorkshopZones zones, Clock clock) {
         this.appointments = appointments;
         this.vehicles = vehicles;
         this.callers = callers;
         this.outbox = outbox;
         this.properties = properties;
+        this.zones = zones;
         this.clock = clock;
     }
 
@@ -84,7 +86,7 @@ public class AppointmentService {
     @Transactional(readOnly = true)
     public Page<Appointment> list(CurrentUser user, ListQuery query, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size);
-        ZoneId zone = properties.getWorkshopZone();
+        ZoneId zone = zones.current();
         if (Callers.seesAll(user)) {
             return appointments.search(filter(query.customerId(), query, zone), pageable);
         }

@@ -1,7 +1,17 @@
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 
-import type { Appointment, Customer, JobCard, PageResponse, Role, TokenResponse, User, Vehicle } from '@/api/types';
+import type {
+  Appointment,
+  Customer,
+  JobCard,
+  PageResponse,
+  Role,
+  TokenResponse,
+  User,
+  Vehicle,
+  Workshop,
+} from '@/api/types';
 
 export function pageOf<T>(content: T[]): PageResponse<T> {
   return { content, page: 0, size: 20, totalElements: content.length, totalPages: content.length ? 1 : 0 };
@@ -12,6 +22,7 @@ export function pageOf<T>(content: T[]): PageResponse<T> {
  * resetHandlers() after each test restores them.
  */
 const defaults = [
+  http.get('*/api/v1/auth/tenant', () => HttpResponse.json(workshop())),
   http.get('*/api/v1/customers/me', () => HttpResponse.json(customer())),
   http.get('*/api/v1/vehicles', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/appointments', () => HttpResponse.json(pageOf([]))),
@@ -119,6 +130,24 @@ export function jobCard(overrides: Partial<JobCard> = {}): JobCard {
     approvedEstimate: 0,
     createdAt: '2026-11-10T14:00:00Z',
     updatedAt: '2026-11-10T14:00:00Z',
+    ...overrides,
+  };
+}
+
+/** The signed-in user's workshop (default workshop, New York, USD). */
+export function workshop(overrides: Partial<Workshop> = {}): Workshop {
+  return {
+    id: '00000000-0000-0000-0000-000000000001',
+    slug: 'default',
+    name: 'Bayflow Workshop',
+    displayName: 'Bayflow Downtown',
+    phone: '+1 555 0100',
+    email: 'desk@bayflow.local',
+    address: '1 Main St',
+    labourRate: 95,
+    currency: 'USD',
+    timeZone: 'America/New_York',
+    version: 0,
     ...overrides,
   };
 }

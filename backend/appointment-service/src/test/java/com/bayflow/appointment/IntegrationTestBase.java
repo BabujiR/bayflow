@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -24,11 +26,14 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
+import com.bayflow.appointment.integration.WorkshopSettingsClient;
+import com.bayflow.appointment.integration.WorkshopSettingsClient.WorkshopSettings;
 import com.bayflow.security.Tenants;
 
 /**
@@ -103,9 +108,16 @@ public abstract class IntegrationTestBase {
     @Autowired
     protected MutableClock clock;
 
+    /** Each workshop's settings live in auth-service; tests answer for it. */
+    @MockitoBean
+    protected WorkshopSettingsClient workshopSettings;
+
+    /** Every workshop is in New York unless a test says otherwise. */
     @BeforeEach
     void resetClock() {
         clock.set(BASE);
+        Mockito.when(workshopSettings.get(ArgumentMatchers.any()))
+                .thenReturn(new WorkshopSettings("America/New_York", "USD"));
     }
 
     /** Signs the request as a user with the given role in the default workshop, like a real access token. */

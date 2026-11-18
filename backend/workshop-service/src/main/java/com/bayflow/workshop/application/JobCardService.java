@@ -5,18 +5,23 @@ import java.time.Clock;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bayflow.security.CurrentUser;
-import com.bayflow.workshop.config.WorkshopProperties;
+import com.bayflow.security.TenantContext;
 import com.bayflow.workshop.domain.JobCard;
 import com.bayflow.workshop.domain.JobCardStatus;
 import com.bayflow.workshop.domain.Severity;
 import com.bayflow.workshop.infrastructure.JobCardRepository;
+import com.bayflow.workshop.integration.WorkshopSettingsClient;
+import com.bayflow.workshop.integration.WorkshopSettingsClient.WorkshopSettings;
 
 /**
  * Job cards from creation through the customer's decision. Role checks happen on the API;
@@ -36,28 +41,46 @@ public class JobCardService {
 
     private final JobCardRepository jobCards;
     private final ServiceHistoryService history;
-    private final WorkshopProperties properties;
+    private static final Logger log = LoggerFactory.getLogger(JobCardService.class);
+
+    private final WorkshopSettingsClient settings;
     private final Clock clock;
 
-    public JobCardService(JobCardRepository jobCards, ServiceHistoryService history, WorkshopProperties properties,
-            Clock clock) {
+    public JobCardService(JobCardRepository jobCards, ServiceHistoryService history,
+            WorkshopSettingsClient settings, Clock clock) {
         this.jobCards = jobCards;
         this.history = history;
-        this.properties = properties;
+        this.settings = settings;
         this.clock = clock;
     }
 
-    /** Idempotent on appointmentId: a repeated call returns the existing card. */
+    /**
+     * Idempotent on appointmentId: a repeated call returns the existing card. A new card freezes
+     * the workshop's current labour rate and currency; without them it is not opened (503), so
+     * the caller's outbox retries later.
+     */
     @Transactional
     public OpenResult open(OpenCommand command) {
         Optional<JobCard> existing = jobCards.findByAppointmentId(command.appointmentId());
         if (existing.isPresent()) {
             return new OpenResult(loaded(existing.get()), false);
         }
+        WorkshopSettings money = workshopSettings();
         JobCard card = JobCard.open(command.appointmentId(), command.vehicleId(), command.vin(),
                 command.registration(), command.customerUserId(), command.customerName(), command.mileage(),
-                clock.instant());
+                money.labourRate(), money.currency(), clock.instant());
         return new OpenResult(jobCards.saveAndFlush(card), true);
+    }
+
+    private WorkshopSettings workshopSettings() {
+        UUID tenantId = TenantContext.require();
+        try {
+            return settings.get(tenantId);
+        } catch (RuntimeException e) {
+            log.warn("Workshop settings for {} unavailable; not opening the job card: {}", tenantId, e.toString());
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "settings-unavailable", "Service Unavailable",
+                    "The workshop's labour rate could not be confirmed. Try again shortly.");
+        }
     }
 
     /** Used after a concurrent create lost the race on the unique appointment id. */
@@ -151,12 +174,12 @@ public class JobCardService {
         return loaded(card);
     }
 
-    /** {@code hourlyRate} defaults to the workshop rate when not given. */
+    /** {@code hourlyRate} defaults to the rate frozen on the card when it opened. */
     @Transactional
     public JobCard addLabour(CurrentUser user, UUID id, UUID recommendationId, BigDecimal hours,
             BigDecimal hourlyRate) {
         JobCard card = find(id);
-        BigDecimal rate = hourlyRate != null ? hourlyRate : properties.getLabourRate();
+        BigDecimal rate = hourlyRate != null ? hourlyRate : card.getLabourRate();
         card.addLabour(recommendationId, user.username(), hours, rate, clock.instant());
         return loaded(card);
     }

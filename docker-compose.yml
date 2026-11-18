@@ -52,6 +52,11 @@ services:
       BAYFLOW_DB_OWNER_USER: ${POSTGRES_USER:-bayflow}
       BAYFLOW_DB_OWNER_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
       BAYFLOW_SYSTEM_CLIENT_SECRET: ${BAYFLOW_SYSTEM_CLIENT_SECRET:-dev-system-secret}
+      BAYFLOW_WORKSHOP_CLIENT_SECRET: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:-dev-workshop-secret}
+      # Starting settings for a workshop that has none yet; each ADMIN then sets their own.
+      BAYFLOW_LABOUR_RATE: ${BAYFLOW_LABOUR_RATE:-95.00}
+      BAYFLOW_CURRENCY: ${BAYFLOW_CURRENCY:-USD}
+      BAYFLOW_WORKSHOP_ZONE: ${BAYFLOW_WORKSHOP_ZONE:-America/New_York}
       BAYFLOW_BOOTSTRAP_ADMIN_USERNAME: ${BAYFLOW_BOOTSTRAP_ADMIN_USERNAME:-admin}
       BAYFLOW_BOOTSTRAP_ADMIN_EMAIL: ${BAYFLOW_BOOTSTRAP_ADMIN_EMAIL:-admin@bayflow.local}
       BAYFLOW_BOOTSTRAP_ADMIN_PASSWORD: ${BAYFLOW_BOOTSTRAP_ADMIN_PASSWORD:-}
@@ -84,6 +89,7 @@ services:
       BAYFLOW_DB_OWNER_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
       # Tokens are verified with auth-service's public key
       BAYFLOW_JWKS_URI: http://auth-service:8083/.well-known/jwks.json
+      # Fallback only, used while auth-service can't be reached (workshops set their own zone).
       BAYFLOW_WORKSHOP_ZONE: ${BAYFLOW_WORKSHOP_ZONE:-America/New_York}
       # Check-in opens the job card in workshop-service using a SYSTEM token from auth-service.
       # If workshop-service is down, the request waits in the outbox and is retried.
@@ -114,8 +120,12 @@ services:
       BAYFLOW_DB_OWNER_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
       # Public key for verifying tokens, fetched from auth-service
       BAYFLOW_JWKS_URI: http://auth-service:8083/.well-known/jwks.json
+      # Each workshop's labour rate and currency come from auth-service; these two only
+      # fill job cards that existed before per-workshop settings (V5 migration).
       BAYFLOW_LABOUR_RATE: ${BAYFLOW_LABOUR_RATE:-95.00}
       BAYFLOW_CURRENCY: ${BAYFLOW_CURRENCY:-USD}
+      BAYFLOW_AUTH_URL: http://auth-service:8083
+      BAYFLOW_WORKSHOP_CLIENT_SECRET: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:-dev-workshop-secret}
     ports:
       - "${WORKSHOP_PORT:-8082}:8082"
 

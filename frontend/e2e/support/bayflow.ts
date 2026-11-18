@@ -37,22 +37,47 @@ export function randomVin(): string {
 }
 
 export interface Slot {
-  /** Local day, YYYY-MM-DD (the board and list filters). */
+  /** The workshop's day, YYYY-MM-DD (the board and list filters). */
   date: string;
-  /** Value for a datetime-local input. */
+  /** Value for a datetime-local input, in workshop time. */
   local: string;
   /** For the API. */
   iso: string;
 }
 
-/** A time `daysAhead` days from today, in the browser's (and this machine's) time zone. */
+/**
+ * The demo workshop's time zone (its setting, seeded from BAYFLOW_WORKSHOP_ZONE). The web app
+ * shows and reads times in it, whatever zone this machine or CI runner is in.
+ */
+export const WORKSHOP_ZONE = process.env.E2E_WORKSHOP_ZONE ?? 'America/New_York';
+
+function wallClock(instant: number) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: WORKSHOP_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(instant));
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return { y: get('year'), m: get('month'), d: get('day'), h: get('hour') % 24, mi: get('minute') };
+}
+
+/** A time `daysAhead` days from the workshop's today, at `hour:minute` workshop time. */
 export function slot(daysAhead: number, hour: number, minute = 0): Slot {
-  const d = new Date();
-  d.setDate(d.getDate() + daysAhead);
-  d.setHours(hour, minute, 0, 0);
+  const today = wallClock(Date.now());
+  const day = new Date(Date.UTC(today.y, today.m - 1, today.d + daysAhead));
   const pad = (n: number) => String(n).padStart(2, '0');
-  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  return { date, local: `${date}T${pad(hour)}:${pad(minute)}`, iso: d.toISOString() };
+  const date = `${day.getUTCFullYear()}-${pad(day.getUTCMonth() + 1)}-${pad(day.getUTCDate())}`;
+  const asUtc = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), hour, minute);
+  const offsetAt = (instant: number) => {
+    const w = wallClock(instant);
+    return Date.UTC(w.y, w.m - 1, w.d, w.h, w.mi) - instant;
+  };
+  const instant = asUtc - offsetAt(asUtc - offsetAt(asUtc));
+  return { date, local: `${date}T${pad(hour)}:${pad(minute)}`, iso: new Date(instant).toISOString() };
 }
 
 /** Spreads scenarios over different days so boards stay readable. */

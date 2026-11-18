@@ -69,7 +69,9 @@ class MigrationsCoexistIT {
                 .baselineVersion("0")
                 .locations("filesystem:" + migrations)
                 .placeholders(Map.of("default_tenant_id", "00000000-0000-0000-0000-000000000001",
-                        "app_role", PostgresContainer.APP_USER))
+                        "app_role", PostgresContainer.APP_USER,
+                        "default_labour_rate", "95.00", "default_currency", "USD",
+                        "default_time_zone", "America/New_York"))
                 .load();
     }
 

@@ -161,6 +161,9 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 | POST/GET | /auth/users | ADMIN |
 | PATCH | /auth/users/{id} | ADMIN (enable/disable) |
 | GET | /.well-known/jwks.json | public |
+| GET | /auth/tenant | any signed-in user (their workshop and its settings) |
+| PUT | /auth/tenant/settings | ADMIN (with the `version` read; 409 if stale) |
+| GET | /auth/internal/tenants/{id}/settings | SYSTEM only; nginx returns 404 for `/api/v1/auth/internal/` |
 
 ### appointment-service (:8081)
 | Method | Path | Who |
@@ -390,6 +393,33 @@ in the page `<meta name="description">`.
       tokens (nothing used it; it would have needed another cross-workshop read).
     - Tests run as `bayflow_app` too; checks that must see every workshop use
       an owner connection.
+19. **Multi-tenancy (SaaS), phase 3: per-workshop settings.**
+    - auth-service owns `auth_tenant_settings` (one row per workshop, RLS like
+      every other table): display name, phone, email, address, labour rate,
+      currency (ISO 4217) and time zone (IANA). `V5` creates a row for every
+      existing workshop from `BAYFLOW_LABOUR_RATE` / `BAYFLOW_CURRENCY` /
+      `BAYFLOW_WORKSHOP_ZONE`; a workshop without a row gets one from the same
+      defaults on first read. Updates carry the `version` read (optimistic
+      locking, 409 `concurrent-update`); unknown currencies and zones are 400s.
+    - appointment-service and workshop-service read settings through
+      `GET /api/v1/auth/internal/tenants/{id}/settings` with their own SYSTEM
+      logins (`appointment-service`, and the new `workshop-service` client with
+      `BAYFLOW_WORKSHOP_CLIENT_SECRET`), cached 5 minutes per workshop.
+    - **Time zone:** appointment-service uses the workshop's zone for "today"
+      and date filters. If auth-service can't be reached it falls back to
+      `BAYFLOW_WORKSHOP_ZONE`, so lists keep working.
+    - **Money is frozen:** `ws_job_cards.labour_rate` and `currency` are set
+      when the card opens and never change; history entries copy the currency.
+      Changing the settings affects new job cards only. workshop-service
+      refuses to open a card without confirmed settings (503
+      `settings-unavailable`); the check-in outbox retries it. `V5` fills
+      existing cards and history from the old env values.
+    - The web app loads the workshop once after sign-in: its name in the
+      header, every date and time shown and entered in its zone, amounts in the
+      card's currency. ADMINs edit it under *Workshop settings*.
+    - Still from env after phase 3: only the defaults for new workshops and the
+      appointment-service fallback zone; no business setting is read from env
+      at request time while auth-service is up.
 
 ---
 

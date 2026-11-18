@@ -65,6 +65,14 @@ public class JobCard {
     @Column(nullable = false)
     private int mileage;
 
+    /** The workshop's hourly labour rate when the card opened; frozen for this job. */
+    @Column(name = "labour_rate", nullable = false, precision = 10, scale = 2)
+    private BigDecimal labourRate;
+
+    /** ISO 4217 code of every amount on this card; frozen when it opened. */
+    @Column(nullable = false, length = 3)
+    private String currency;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private JobCardStatus status;
@@ -125,9 +133,16 @@ public class JobCard {
     }
 
     public static JobCard open(UUID appointmentId, UUID vehicleId, String vin, String registration,
-            UUID customerUserId, String customerName, int mileage, Instant now) {
+            UUID customerUserId, String customerName, int mileage, BigDecimal labourRate, String currency,
+            Instant now) {
         if (mileage < 0) {
             throw new IllegalArgumentException("Mileage cannot be negative");
+        }
+        if (labourRate == null || labourRate.signum() < 0) {
+            throw new IllegalArgumentException("A job card needs a labour rate of zero or more");
+        }
+        if (currency == null || !currency.matches("[A-Z]{3}")) {
+            throw new IllegalArgumentException("A job card needs a three-letter currency code");
         }
         JobCard card = new JobCard();
         card.id = UUID.randomUUID();
@@ -138,6 +153,8 @@ public class JobCard {
         card.customerUserId = customerUserId;
         card.customerName = customerName;
         card.mileage = mileage;
+        card.labourRate = labourRate;
+        card.currency = currency;
         card.status = JobCardStatus.OPEN;
         card.createdAt = now;
         card.updatedAt = now;
@@ -328,6 +345,8 @@ public class JobCard {
     public UUID getCustomerUserId() { return customerUserId; }
     public String getCustomerName() { return customerName; }
     public int getMileage() { return mileage; }
+    public BigDecimal getLabourRate() { return labourRate; }
+    public String getCurrency() { return currency; }
     public JobCardStatus getStatus() { return status; }
     public List<InspectionFinding> getFindings() { return Collections.unmodifiableList(findings); }
     public List<RecommendedWorkItem> getRecommendations() { return Collections.unmodifiableList(recommendations); }

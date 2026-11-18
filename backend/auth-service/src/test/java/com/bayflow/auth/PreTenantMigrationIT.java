@@ -51,7 +51,9 @@ class PreTenantMigrationIT {
                 .defaultSchema("bayflow")
                 .table("flyway_history_auth")
                 .locations("classpath:db/migration")
-                .placeholders(Map.of("default_tenant_id", Tenants.DEFAULT_TENANT_ID.toString(), "app_role", "bayflow_app"));
+                .placeholders(Map.of("default_tenant_id", Tenants.DEFAULT_TENANT_ID.toString(), "app_role", "bayflow_app",
+                        "default_labour_rate", "95.00", "default_currency", "USD",
+                        "default_time_zone", "America/New_York"));
         if (target != null) {
             config.target(target);
         }

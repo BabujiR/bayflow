@@ -67,6 +67,10 @@ public class ServiceHistoryEntry {
     @Column(name = "total_cost", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalCost;
 
+    /** ISO 4217 code of the amounts above, copied from the job card. */
+    @Column(nullable = false, length = 3)
+    private String currency;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -93,6 +97,7 @@ public class ServiceHistoryEntry {
         entry.partsTotal = card.getPartsTotal();
         entry.labourTotal = card.getLabourTotal();
         entry.totalCost = card.getGrandTotal();
+        entry.currency = card.getCurrency();
         entry.createdAt = card.getCompletedAt();
         return entry;
     }
@@ -115,5 +120,6 @@ public class ServiceHistoryEntry {
     public BigDecimal getPartsTotal() { return partsTotal; }
     public BigDecimal getLabourTotal() { return labourTotal; }
     public BigDecimal getTotalCost() { return totalCost; }
+    public String getCurrency() { return currency; }
     public Instant getCreatedAt() { return createdAt; }
 }

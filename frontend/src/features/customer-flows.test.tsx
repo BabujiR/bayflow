@@ -35,7 +35,7 @@ describe('customer profile', () => {
 });
 
 describe('booking an appointment', () => {
-  it('checks the form, then sends the booking in UTC and returns to the list', async () => {
+  it('checks the form, then sends the booking in UTC from workshop time and returns to the list', async () => {
     let booked: Record<string, unknown> | undefined;
     server.use(
       sessionFor(user('CUSTOMER')),
@@ -63,7 +63,8 @@ describe('booking an appointment', () => {
     expect(router.state.location.pathname).toBe('/appointments');
     expect(booked).toEqual({
       vehicleId: 'v0000000-0000-0000-0000-000000000001',
-      scheduledAt: new Date('2030-01-15T10:30').toISOString(),
+      // 10:30 in the workshop's zone (New York, EST in January), whatever the browser's zone.
+      scheduledAt: '2030-01-15T15:30:00.000Z',
       durationMinutes: 60,
       serviceType: 'BRAKES',
       notes: 'Squeal when braking',

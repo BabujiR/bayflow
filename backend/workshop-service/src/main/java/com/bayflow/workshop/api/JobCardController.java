@@ -29,7 +29,6 @@ import com.bayflow.workshop.api.WorkshopDtos.RecommendationRequest;
 import com.bayflow.workshop.api.WorkshopDtos.WorkLogRequest;
 import com.bayflow.workshop.application.JobCardService;
 import com.bayflow.workshop.application.JobCardService.OpenResult;
-import com.bayflow.workshop.config.WorkshopProperties;
 import com.bayflow.workshop.domain.JobCard;
 import com.bayflow.workshop.domain.JobCardStatus;
 import com.bayflow.workshop.application.ApiException;
@@ -46,11 +45,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class JobCardController {
 
     private final JobCardService jobCards;
-    private final WorkshopProperties properties;
 
-    public JobCardController(JobCardService jobCards, WorkshopProperties properties) {
+    public JobCardController(JobCardService jobCards) {
         this.jobCards = jobCards;
-        this.properties = properties;
     }
 
     @PostMapping
@@ -184,6 +181,6 @@ public class JobCardController {
     }
 
     private JobCardResponse response(JobCard card) {
-        return JobCardResponse.from(card, properties.getLabourRate(), properties.getCurrency());
+        return JobCardResponse.from(card);
     }
 }

@@ -14,6 +14,7 @@ import { MyJobsPage } from '@/features/jobcards/MyJobsPage';
 import { UsersPage } from '@/features/users/UsersPage';
 import { VehicleDetailPage } from '@/features/vehicles/VehicleDetailPage';
 import { VehiclesPage } from '@/features/vehicles/VehiclesPage';
+import { WorkshopSettingsPage } from '@/features/workshop/WorkshopSettingsPage';
 import { HomePage } from '@/pages/HomePage';
 import { LoginPage } from '@/pages/LoginPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
@@ -79,7 +80,10 @@ export const routes: RouteObject[] = [
           },
           {
             element: <RequireRole roles={['ADMIN']} />,
-            children: [{ path: '/users', element: <UsersPage /> }],
+            children: [
+              { path: '/users', element: <UsersPage /> },
+              { path: '/settings', element: <WorkshopSettingsPage /> },
+            ],
           },
           { path: '*', element: <NotFoundPage /> },
         ],

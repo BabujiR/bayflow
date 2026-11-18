@@ -14,7 +14,6 @@ import com.bayflow.security.CurrentUser;
 import com.bayflow.workshop.api.WorkshopDtos.PageResponse;
 import com.bayflow.workshop.api.WorkshopDtos.ServiceHistoryResponse;
 import com.bayflow.workshop.application.ServiceHistoryService;
-import com.bayflow.workshop.config.WorkshopProperties;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -27,11 +26,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class ServiceHistoryController {
 
     private final ServiceHistoryService history;
-    private final WorkshopProperties properties;
 
-    public ServiceHistoryController(ServiceHistoryService history, WorkshopProperties properties) {
+    public ServiceHistoryController(ServiceHistoryService history) {
         this.history = history;
-        this.properties = properties;
     }
 
     @GetMapping("/vehicles/{vehicleId}")
@@ -43,6 +40,6 @@ public class ServiceHistoryController {
             Authentication auth) {
         return PageResponse.from(
                 history.forVehicle(CurrentUser.from(auth), vehicleId, Paging.page(page), Paging.size(size)),
-                entry -> ServiceHistoryResponse.from(entry, history.details(entry), properties.getCurrency()));
+                entry -> ServiceHistoryResponse.from(entry, history.details(entry)));
     }
 }

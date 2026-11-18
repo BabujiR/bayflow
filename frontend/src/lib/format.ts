@@ -1,12 +1,38 @@
 import type { AppointmentStatus, JobCardStatus, ServiceType, Severity } from '@/api/types';
 
-const dateTime = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-const dateOnly = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
-const timeOnly = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' });
+/**
+ * Dates and times are shown in the workshop's time zone (its own setting), so a customer
+ * abroad and the front desk see the same booking time. Until the workshop is known (sign-in,
+ * tests) the browser's zone is used.
+ */
+let workshopZone: string | undefined;
+const formatters = new Map<string, Intl.DateTimeFormat>();
 
-export const formatDateTime = (iso?: string | null) => (iso ? dateTime.format(new Date(iso)) : '—');
-export const formatDate = (iso?: string | null) => (iso ? dateOnly.format(new Date(iso)) : '—');
-export const formatTime = (iso?: string | null) => (iso ? timeOnly.format(new Date(iso)) : '—');
+/** Called when the signed-in user's workshop is loaded; undefined goes back to the browser's zone. */
+export function setWorkshopZone(zone: string | undefined): void {
+  if (zone !== workshopZone) {
+    workshopZone = zone;
+    formatters.clear();
+  }
+}
+
+export const getWorkshopZone = () => workshopZone;
+
+function formatter(key: string, options: Intl.DateTimeFormatOptions, locale?: string): Intl.DateTimeFormat {
+  let f = formatters.get(key);
+  if (!f) {
+    f = new Intl.DateTimeFormat(locale, { ...options, timeZone: workshopZone });
+    formatters.set(key, f);
+  }
+  return f;
+}
+
+export const formatDateTime = (iso?: string | null) =>
+  iso ? formatter('dateTime', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso)) : '—';
+export const formatDate = (iso?: string | null) =>
+  iso ? formatter('date', { dateStyle: 'medium' }).format(new Date(iso)) : '—';
+export const formatTime = (iso?: string | null) =>
+  iso ? formatter('time', { timeStyle: 'short' }).format(new Date(iso)) : '—';
 
 export function formatMoney(amount: number | null | undefined, currency = 'USD'): string {
   if (amount === null || amount === undefined) {
@@ -15,26 +41,76 @@ export function formatMoney(amount: number | null | undefined, currency = 'USD')
   return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(amount);
 }
 
+/** The short symbol for a currency code, e.g. "$" for USD, "€" for EUR. */
+export function currencySymbol(currency = 'USD'): string {
+  const part = new Intl.NumberFormat(undefined, { style: 'currency', currency, currencyDisplay: 'narrowSymbol' })
+    .formatToParts(0)
+    .find((p) => p.type === 'currency');
+  return part?.value ?? currency;
+}
+
 export const formatMileage = (miles?: number | null) =>
   miles === null || miles === undefined ? '—' : `${new Intl.NumberFormat().format(miles)} mi`;
 
-/** Today's date as YYYY-MM-DD in the browser's time zone (the workshop's, for staff). */
-export function todayIso(): string {
-  const now = new Date();
-  const offset = now.getTimezoneOffset() * 60_000;
-  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+/** Wall-clock parts of an instant in the workshop zone. */
+function wallClock(date: Date) {
+  const parts = formatter(
+    'parts',
+    { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' },
+    'en-US',
+  ).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((p) => p.type === type)?.value);
+  return { year: get('year'), month: get('month'), day: get('day'), hour: get('hour') % 24, minute: get('minute') };
 }
 
-/** A datetime-local input value (local time) as an ISO instant. */
-export function localInputToIso(value: string): string {
-  return new Date(value).toISOString();
+const pad = (n: number, width = 2) => String(n).padStart(width, '0');
+
+/** Today's date as YYYY-MM-DD in the workshop's time zone. */
+export function todayIso(now: Date = new Date()): string {
+  const { year, month, day } = wallClock(now);
+  return `${pad(year, 4)}-${pad(month)}-${pad(day)}`;
 }
 
-/** An ISO instant as a datetime-local input value (local time). */
+/** An ISO instant as a datetime-local input value, in the workshop's time zone. */
 export function isoToLocalInput(iso: string): string {
-  const date = new Date(iso);
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+  const { year, month, day, hour, minute } = wallClock(new Date(iso));
+  return `${pad(year, 4)}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}`;
+}
+
+/** A datetime-local input value (workshop time) as an ISO instant. */
+export function localInputToIso(value: string): string {
+  if (!workshopZone) {
+    return new Date(value).toISOString();
+  }
+  const [date, time = '00:00'] = value.split('T');
+  const [y, mo, d] = date.split('-').map(Number);
+  const [h, mi] = time.split(':').map(Number);
+  const asUtc = Date.UTC(y, mo - 1, d, h, mi);
+  // The zone's offset at that moment; checked twice so a DST change in between is handled.
+  const offsetAt = (instant: number) => {
+    const w = wallClock(new Date(instant));
+    return Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute) - instant;
+  };
+  let instant = asUtc - offsetAt(asUtc);
+  const corrected = asUtc - offsetAt(instant);
+  if (corrected !== instant) {
+    instant = corrected;
+  }
+  return new Date(instant).toISOString();
+}
+
+/** Short name of the workshop's zone right now, e.g. "EST" or "GMT+13". */
+export function zoneLabel(at: Date = new Date()): string {
+  const part = formatter('zone', { timeZoneName: 'short' }).formatToParts(at).find((p) => p.type === 'timeZoneName');
+  return part?.value ?? '';
+}
+
+/** Every IANA time zone the browser knows, for the settings form. */
+export function timeZones(): string[] {
+  const intl = Intl as typeof Intl & { supportedValuesOf?: (key: 'timeZone') => string[] };
+  const zones = intl.supportedValuesOf?.('timeZone') ?? [];
+  // Some engines leave out UTC from the list.
+  return zones.includes('UTC') ? zones : ['UTC', ...zones];
 }
 
 export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {

@@ -2,9 +2,13 @@ package com.bayflow.workshop;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -14,10 +18,13 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.bayflow.security.Tenants;
+import com.bayflow.workshop.integration.WorkshopSettingsClient;
+import com.bayflow.workshop.integration.WorkshopSettingsClient.WorkshopSettings;
 
 /** Spring context on the shared PostgreSQL container, with helpers that sign requests as a role. */
 @SpringBootTest
@@ -37,6 +44,17 @@ public abstract class IntegrationTestBase {
 
     @Autowired
     protected MockMvc mvc;
+
+    /** Each workshop's settings live in auth-service; tests answer for it. */
+    @MockitoBean
+    protected WorkshopSettingsClient workshopSettings;
+
+    /** Every workshop charges 95.00 USD unless a test says otherwise. */
+    @BeforeEach
+    void defaultWorkshopSettings() {
+        Mockito.when(workshopSettings.get(ArgumentMatchers.any()))
+                .thenReturn(new WorkshopSettings(new BigDecimal("95.00"), "USD"));
+    }
 
     /** The table owner: sees every workshop's rows. For test setup and checks only. */
     protected static JdbcTemplate ownerJdbc() {

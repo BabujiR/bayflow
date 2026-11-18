@@ -24,6 +24,7 @@ public class AuthProperties {
     private final CookieSettings cookie = new CookieSettings();
     private final Login login = new Login();
     private final BootstrapAdmin bootstrapAdmin = new BootstrapAdmin();
+    private final TenantDefaults tenantDefaults = new TenantDefaults();
     /** Service-to-service clients, keyed by client id. */
     private Map<String, Client> clients = new LinkedHashMap<>();
 
@@ -41,6 +42,21 @@ public class AuthProperties {
     public CookieSettings getCookie() { return cookie; }
     public Login getLogin() { return login; }
     public BootstrapAdmin getBootstrapAdmin() { return bootstrapAdmin; }
+    public TenantDefaults getTenantDefaults() { return tenantDefaults; }
+
+    /** Starting settings of a new workshop; each workshop then changes its own. */
+    public static class TenantDefaults {
+        private java.math.BigDecimal labourRate = new java.math.BigDecimal("95.00");
+        private String currency = "USD";
+        private String timeZone = "America/New_York";
+
+        public java.math.BigDecimal getLabourRate() { return labourRate; }
+        public void setLabourRate(java.math.BigDecimal labourRate) { this.labourRate = labourRate; }
+        public String getCurrency() { return currency; }
+        public void setCurrency(String currency) { this.currency = currency; }
+        public String getTimeZone() { return timeZone; }
+        public void setTimeZone(String timeZone) { this.timeZone = timeZone; }
+    }
     public Map<String, Client> getClients() { return clients; }
     public void setClients(Map<String, Client> clients) { this.clients = clients; }
 

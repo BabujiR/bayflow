@@ -156,3 +156,35 @@ export type RecommendationRequest = W['RecommendationRequest'];
 export type WorkLogRequest = W['WorkLogRequest'];
 export type PartRequest = W['PartRequest'];
 export type LabourRequest = W['LabourRequest'];
+
+// ---- workshop settings (auth-service, SaaS phase 3) --------------------------------------
+// Written by hand until the schema is regenerated with `pnpm api:update`.
+
+/** The signed-in user's workshop and its settings. */
+export interface Workshop {
+  id: string;
+  slug: string;
+  name: string;
+  displayName: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  labourRate: number;
+  /** ISO 4217 code, e.g. USD. */
+  currency: string;
+  /** IANA time zone, e.g. America/New_York. Defines the workshop's "today". */
+  timeZone: string;
+  /** Send back unchanged with an update; 409 if someone saved in between. */
+  version: number;
+}
+
+export interface UpdateWorkshopSettingsRequest {
+  displayName: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  labourRate: number;
+  currency: string;
+  timeZone: string;
+  version: number;
+}

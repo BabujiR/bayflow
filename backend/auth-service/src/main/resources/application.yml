@@ -40,6 +40,10 @@ spring:
       default_tenant_id: 00000000-0000-0000-0000-000000000001
       # The runtime login that migrations grant access to (row-level security applies to it).
       app_role: ${BAYFLOW_DB_USER:bayflow_app}
+      # Settings of the default workshop when they are first created (V5).
+      default_labour_rate: ${BAYFLOW_LABOUR_RATE:95.00}
+      default_currency: ${BAYFLOW_CURRENCY:USD}
+      default_time_zone: ${BAYFLOW_WORKSHOP_ZONE:America/New_York}
   data:
     web:
       pageable:
@@ -74,6 +78,15 @@ bayflow:
       appointment-service:
         secret: ${BAYFLOW_SYSTEM_CLIENT_SECRET:dev-system-secret}
         roles: [SYSTEM]
+      # Reads workshop settings (labour rate, currency) when opening job cards.
+      workshop-service:
+        secret: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:dev-workshop-secret}
+        roles: [SYSTEM]
+    # Starting settings of a new workshop (each workshop then edits its own in the app).
+    tenant-defaults:
+      labour-rate: ${BAYFLOW_LABOUR_RATE:95.00}
+      currency: ${BAYFLOW_CURRENCY:USD}
+      time-zone: ${BAYFLOW_WORKSHOP_ZONE:America/New_York}
 
 management:
   endpoints:

@@ -19,9 +19,11 @@ import type {
   RescheduleRequest,
   ServiceHistoryEntry,
   UpdateVehicleRequest,
+  UpdateWorkshopSettingsRequest,
   User,
   Vehicle,
   WorkLogRequest,
+  Workshop,
 } from './types';
 
 export interface Paging {
@@ -102,4 +104,11 @@ export const usersApi = {
   list: (params: Paging & { sort?: string }) => http.get<PageResponse<User>>('/api/v1/auth/users', { ...params }),
   create: (body: CreateStaffRequest) => http.post<User>('/api/v1/auth/users', body),
   setEnabled: (id: string, enabled: boolean) => http.patch<User>(`/api/v1/auth/users/${id}`, { enabled }),
+};
+
+export const workshopApi = {
+  /** The signed-in user's workshop and its settings (every role). */
+  current: () => http.get<Workshop>('/api/v1/auth/tenant'),
+  /** Workshop ADMIN only. */
+  updateSettings: (body: UpdateWorkshopSettingsRequest) => http.put<Workshop>('/api/v1/auth/tenant/settings', body),
 };

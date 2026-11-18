@@ -29,7 +29,7 @@ const schema = z.object({
   scheduledAt: z
     .string()
     .min(1, 'Choose a date and time')
-    .refine((v) => new Date(v).getTime() > Date.now(), 'Choose a time in the future'),
+    .refine((v) => new Date(localInputToIso(v)).getTime() > Date.now(), 'Choose a time in the future'),
   durationMinutes: z.coerce.number<string>(),
   serviceType: z.enum(SERVICE_TYPES, 'Choose a service'),
   notes: z.string().max(1000, 'At most 1000 characters'),
