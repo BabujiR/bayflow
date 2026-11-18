@@ -18,6 +18,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class AppointmentTest {
 
+    private static final UUID LOCATION = UUID.randomUUID();
+
     private static final Instant NOW = Instant.parse("2026-11-16T14:00:00Z");
     private static final Instant SLOT = NOW.plus(Duration.ofDays(1));
 
@@ -85,7 +87,7 @@ class AppointmentTest {
         Customer other = Customer.create(UUID.randomUUID(), "Other", "x@example.com", null, NOW);
         Vehicle vehicle = vehicle(owner);
 
-        assertThatThrownBy(() -> Appointment.book(other, vehicle, SLOT, 60, ServiceType.OIL_CHANGE, null, NOW))
+        assertThatThrownBy(() -> Appointment.book(other, vehicle, LOCATION, SLOT, 60, ServiceType.OIL_CHANGE, null, NOW))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -171,7 +173,7 @@ class AppointmentTest {
 
     private static Appointment book(Instant slot, int minutes) {
         Customer customer = Customer.create(UUID.randomUUID(), "Jane Doe", "Jane@Example.com", "555-0100", NOW);
-        return Appointment.book(customer, vehicle(customer), slot, minutes, ServiceType.ROUTINE_SERVICE, " rattle ",
+        return Appointment.book(customer, vehicle(customer), LOCATION, slot, minutes, ServiceType.ROUTINE_SERVICE, " rattle ",
                 NOW);
     }
 

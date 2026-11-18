@@ -36,7 +36,8 @@ import com.bayflow.security.CurrentUser;
 public class AppointmentService {
 
     /** Optional filters from the list endpoint. */
-    public record ListQuery(LocalDate date, AppointmentStatus status, UUID vehicleId, UUID customerId) {
+    public record ListQuery(LocalDate date, AppointmentStatus status, UUID vehicleId, UUID customerId,
+            UUID locationId) {
     }
 
     private final AppointmentRepository appointments;
@@ -44,23 +45,23 @@ public class AppointmentService {
     private final Callers callers;
     private final OutboxService outbox;
     private final AppointmentProperties properties;
-    private final WorkshopZones zones;
+    private final Locations locations;
     private final Clock clock;
 
     public AppointmentService(AppointmentRepository appointments, VehicleRepository vehicles, Callers callers,
-            OutboxService outbox, AppointmentProperties properties, WorkshopZones zones, Clock clock) {
+            OutboxService outbox, AppointmentProperties properties, Locations locations, Clock clock) {
         this.appointments = appointments;
         this.vehicles = vehicles;
         this.callers = callers;
         this.outbox = outbox;
         this.properties = properties;
-        this.zones = zones;
+        this.locations = locations;
         this.clock = clock;
     }
 
     @Transactional
-    public Appointment book(CurrentUser user, UUID vehicleId, Instant scheduledAt, Integer durationMinutes,
-            ServiceType serviceType, String notes) {
+    public Appointment book(CurrentUser user, UUID vehicleId, UUID locationId, Instant scheduledAt,
+            Integer durationMinutes, ServiceType serviceType, String notes) {
         Vehicle vehicle = vehicles.findById(vehicleId).orElseThrow(() -> ApiException.notFound("Vehicle"));
         Customer customer;
         if (Callers.seesAll(user)) {
@@ -74,26 +75,29 @@ public class AppointmentService {
         int minutes = durationMinutes != null ? durationMinutes : properties.getDefaultDurationMinutes();
         Instant now = clock.instant();
         requireFuture(scheduledAt, now);
+        UUID location = locations.forBooking(locationId);
         requireFreeSlot(vehicle.getId(), UUID.randomUUID(), scheduledAt, minutes);
-        Appointment appointment = Appointment.book(customer, vehicle, scheduledAt, minutes, serviceType, notes, now);
+        Appointment appointment = Appointment.book(customer, vehicle, location, scheduledAt, minutes, serviceType,
+                notes, now);
         return appointments.saveAndFlush(appointment);
     }
 
     /**
      * Advisors and admins see all appointments (with optional filters); customers only their
-     * own; mechanics only today's checked-in vehicles.
+     * own; mechanics only today's checked-in vehicles. Days ("date", "today") are those of the
+     * location asked for, or of the organization's default location.
      */
     @Transactional(readOnly = true)
     public Page<Appointment> list(CurrentUser user, ListQuery query, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size);
-        ZoneId zone = zones.current();
+        ZoneId zone = locations.zoneOf(locations.forList(query.locationId()));
         if (Callers.seesAll(user)) {
             return appointments.search(filter(query.customerId(), query, zone), pageable);
         }
         if (user.isMechanic()) {
             LocalDate today = LocalDate.now(clock.withZone(zone));
             return appointments.search(new AppointmentFilter(null, null, AppointmentStatus.CHECKED_IN,
-                    startOf(today, zone), startOf(today.plusDays(1), zone)), pageable);
+                    startOf(today, zone), startOf(today.plusDays(1), zone), query.locationId()), pageable);
         }
         Optional<Customer> own = callers.findOwnProfile(user);
         if (own.isEmpty()) {
@@ -199,7 +203,7 @@ public class AppointmentService {
     private static AppointmentFilter filter(UUID customerId, ListQuery query, ZoneId zone) {
         Instant from = query.date() == null ? null : startOf(query.date(), zone);
         Instant to = query.date() == null ? null : startOf(query.date().plusDays(1), zone);
-        return new AppointmentFilter(customerId, query.vehicleId(), query.status(), from, to);
+        return new AppointmentFilter(customerId, query.vehicleId(), query.status(), from, to, query.locationId());
     }
 
     private static Instant startOf(LocalDate date, ZoneId zone) {

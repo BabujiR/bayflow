@@ -107,6 +107,7 @@ export function vehicle(overrides: Partial<Vehicle> = {}): Vehicle {
 export function appointment(overrides: Partial<Appointment> = {}): Appointment {
   return {
     id: 'a0000000-0000-0000-0000-000000000001',
+    locationId: '00000000-0000-0000-0000-000000000001',
     customerId: 'c0000000-0000-0000-0000-000000000001',
     customerName: 'Jane Doe',
     vehicle: {
@@ -132,6 +133,7 @@ export function jobCard(overrides: Partial<JobCard> = {}): JobCard {
   return {
     id: 'j0000000-0000-0000-0000-000000000001',
     appointmentId: 'a0000000-0000-0000-0000-000000000001',
+    locationId: '00000000-0000-0000-0000-000000000001',
     vehicleId: 'v0000000-0000-0000-0000-000000000001',
     vin: '1HGCM82633A004352',
     registration: 'BFL 1234',

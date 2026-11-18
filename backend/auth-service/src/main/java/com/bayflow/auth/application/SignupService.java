@@ -17,7 +17,8 @@ import com.bayflow.auth.infrastructure.TenantRepository;
 import com.bayflow.security.TenantContext;
 
 /**
- * Self-service sign-up: a new workshop, its settings and its owner (an ADMIN), all or nothing.
+ * Self-service sign-up: a new workshop, its settings, its first location and its owner (an ADMIN),
+ * all or nothing.
  * The workshop's address is {@code <slug>.<base domain>}; the slug never changes.
  */
 @Service
@@ -45,13 +46,15 @@ public class SignupService {
 
     private final TenantRepository tenants;
     private final TenantSettingsService settings;
+    private final LocationService locations;
     private final AuthService authService;
     private final Clock clock;
 
-    public SignupService(TenantRepository tenants, TenantSettingsService settings, AuthService authService,
-            Clock clock) {
+    public SignupService(TenantRepository tenants, TenantSettingsService settings, LocationService locations,
+            AuthService authService, Clock clock) {
         this.tenants = tenants;
         this.settings = settings;
+        this.locations = locations;
         this.authService = authService;
         this.clock = clock;
     }
@@ -102,6 +105,8 @@ public class SignupService {
             throw taken(slug);
         }
         settings.createForNewWorkshop(name, request.labourRate(), request.currency(), request.timeZone());
+        // Its first location, "Main" (id = tenant id), using the organization's settings.
+        locations.ensureMain();
         User admin = authService.createUser(request.adminUsername(), request.adminEmail(), request.adminPassword(),
                 Set.of(Role.ADMIN));
         return new Created(tenants.findById(tenantId).orElseThrow(), admin);

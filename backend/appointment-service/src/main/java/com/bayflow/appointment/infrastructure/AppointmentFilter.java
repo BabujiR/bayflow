@@ -7,5 +7,5 @@ import com.bayflow.appointment.domain.AppointmentStatus;
 
 /** Optional filters for listing appointments; null means "any". {@code to} is exclusive. */
 public record AppointmentFilter(UUID customerId, UUID vehicleId, AppointmentStatus status, Instant from,
-        Instant to) {
+        Instant to, UUID locationId) {
 }

@@ -55,6 +55,9 @@ class AppointmentSearchImpl implements AppointmentSearch {
         if (filter.vehicleId() != null) {
             predicates.add(cb.equal(root.get("vehicle").<UUID>get("id"), filter.vehicleId()));
         }
+        if (filter.locationId() != null) {
+            predicates.add(cb.equal(root.<UUID>get("locationId"), filter.locationId()));
+        }
         if (filter.status() != null) {
             predicates.add(cb.equal(root.<AppointmentStatus>get("status"), filter.status()));
         }

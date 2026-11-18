@@ -81,14 +81,15 @@ class FrozenMoneyIT extends IntegrationTestBase {
         mvc.perform(get("/api/v1/service-history/vehicles/" + vehicleId).with(customer))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].totalCost", closeTo(40.00, 0.001)))
-                .andExpect(jsonPath("$.content[0].currency").value("NZD"));
+                .andExpect(jsonPath("$.content[0].currency").value("NZD"))
+                .andExpect(jsonPath("$.content[0].locationId").value(Tenants.DEFAULT_TENANT_ID.toString()));
     }
 
     @Test
     void noCardOpensWhileTheWorkshopsSettingsAreUnavailable() throws Exception {
         UUID appointmentId = UUID.randomUUID();
         Mockito.doThrow(new ResourceAccessException("auth-service down"))
-                .when(workshopSettings).get(ArgumentMatchers.any());
+                .when(workshopSettings).get(ArgumentMatchers.any(), ArgumentMatchers.any());
 
         open(UUID.randomUUID(), appointmentId)
                 .andExpect(status().isServiceUnavailable())
@@ -102,9 +103,45 @@ class FrozenMoneyIT extends IntegrationTestBase {
         open(UUID.randomUUID(), appointmentId).andExpect(status().isCreated());
     }
 
+    @Test
+    void aCardFreezesItsLocationsRateAndKeepsItsLocation() throws Exception {
+        UUID north = UUID.randomUUID();
+        charge("95.00", "USD");
+        Mockito.doReturn(new WorkshopSettings(new BigDecimal("140.00"), "USD"))
+                .when(workshopSettings).get(ArgumentMatchers.any(), ArgumentMatchers.eq(north));
+
+        String body = open(UUID.randomUUID(), UUID.randomUUID(), north).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.locationId").value(north.toString()))
+                .andExpect(jsonPath("$.labourRate", closeTo(140.00, 0.001)))
+                .andReturn().getResponse().getContentAsString();
+        String cardId = JsonPath.read(body, "$.id");
+        mvc.perform(get("/api/v1/job-cards").with(advisor))
+                .andExpect(status().isOk());
+        org.assertj.core.api.Assertions.assertThat(ownerJdbc().queryForObject(
+                "select location_id from bayflow.ws_job_cards where id = ?::uuid", UUID.class, cardId))
+                .isEqualTo(north);
+
+        // Without a location: the organization's first location, "Main" (id = tenant id).
+        open(UUID.randomUUID()).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.locationId").value(Tenants.DEFAULT_TENANT_ID.toString()))
+                .andExpect(jsonPath("$.labourRate", closeTo(95.00, 0.001)));
+    }
+
+    @Test
+    void aLocationOfAnotherOrganizationIsRefused() throws Exception {
+        UUID foreign = UUID.randomUUID();
+        Mockito.doThrow(new com.bayflow.workshop.integration.WorkshopSettingsClient.UnknownLocationException(
+                Tenants.DEFAULT_TENANT_ID, foreign))
+                .when(workshopSettings).get(ArgumentMatchers.any(), ArgumentMatchers.eq(foreign));
+
+        open(UUID.randomUUID(), UUID.randomUUID(), foreign)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value(org.hamcrest.Matchers.endsWith("invalid-location")));
+    }
+
     private void charge(String rate, String currency) {
         Mockito.doReturn(new WorkshopSettings(new BigDecimal(rate), currency))
-                .when(workshopSettings).get(ArgumentMatchers.any());
+                .when(workshopSettings).get(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     private ResultActions open(UUID customerId) throws Exception {
@@ -112,12 +149,18 @@ class FrozenMoneyIT extends IntegrationTestBase {
     }
 
     private ResultActions open(UUID customerId, UUID appointmentId) throws Exception {
+        return open(customerId, appointmentId, null);
+    }
+
+    private ResultActions open(UUID customerId, UUID appointmentId, UUID locationId) throws Exception {
+        String location = locationId == null ? "" : ",\"locationId\":\"" + locationId + "\"";
         return mvc.perform(post("/api/v1/job-cards").with(system).contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"appointmentId":"%s","vehicleId":"%s","vin":"1HGCM82633A004352",
                          "registration":"BFL 1234","customerUserId":"%s","customerName":"Jane Doe",
-                         "mileage":12480,"tenantId":"%s"}
-                        """.formatted(appointmentId, UUID.randomUUID(), customerId, Tenants.DEFAULT_TENANT_ID)));
+                         "mileage":12480,"tenantId":"%s"%s}
+                        """.formatted(appointmentId, UUID.randomUUID(), customerId, Tenants.DEFAULT_TENANT_ID,
+                        location)));
     }
 
     private ResultActions act(RequestPostProcessor who, String cardId, String action, String json) throws Exception {

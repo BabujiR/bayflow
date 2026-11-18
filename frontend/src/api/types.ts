@@ -74,13 +74,20 @@ export type Appointment = Present<
   | 'status'
   | 'createdAt'
   | 'updatedAt'
-> & { vehicle: VehicleSummary };
+> & {
+  vehicle: VehicleSummary;
+  /** The location (shop) of the organization; hand-written until `pnpm api:update`. */
+  locationId: string;
+};
 
 export type ProfileRequest = P['ProfileRequest'];
 export type CreateCustomerRequest = P['CreateCustomerRequest'];
 export type CreateVehicleRequest = P['CreateVehicleRequest'];
 export type UpdateVehicleRequest = P['UpdateVehicleRequest'];
-export type BookAppointmentRequest = P['BookAppointmentRequest'];
+export type BookAppointmentRequest = P['BookAppointmentRequest'] & {
+  /** Optional while the organization has one location; hand-written until `pnpm api:update`. */
+  locationId?: string;
+};
 export type RescheduleRequest = P['RescheduleRequest'];
 
 // ---- workshop -----------------------------------------------------------------------
@@ -142,6 +149,8 @@ export type JobCard = Present<
   workLogs: WorkLog[];
   parts: Part[];
   labour: Labour[];
+  /** The location (shop) where the work is done; hand-written until `pnpm api:update`. */
+  locationId: string;
 };
 
 export type JobCardSummary = Present<
@@ -246,4 +255,27 @@ export interface SlugAvailability {
   slug: string;
   available: boolean;
   reason?: 'taken' | 'reserved' | 'invalid' | null;
+}
+
+// ---- organizations and locations (auth-service, phase L1) -----------------------------------
+
+/** A location (shop) of the organization, with the settings that apply to it. */
+export interface Location {
+  id: string;
+  code: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  status: 'ACTIVE' | 'ARCHIVED';
+  /** Effective time zone: the location's own, else the organization's. */
+  timeZone: string;
+  /** Effective labour rate: the location's own, else the organization's. */
+  labourRate: number;
+  /** The organization's currency. */
+  currency: string;
+  /** The location's own override; null = uses the organization's. */
+  ownTimeZone?: string | null;
+  ownLabourRate?: number | null;
+  version: number;
 }

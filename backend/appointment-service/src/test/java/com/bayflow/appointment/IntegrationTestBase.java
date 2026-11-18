@@ -32,8 +32,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import com.bayflow.appointment.integration.WorkshopSettingsClient;
-import com.bayflow.appointment.integration.WorkshopSettingsClient.WorkshopSettings;
+import com.bayflow.appointment.integration.LocationsClient;
+import com.bayflow.appointment.integration.LocationsClient.LocationSettings;
 import com.bayflow.security.Tenants;
 
 /**
@@ -108,16 +108,24 @@ public abstract class IntegrationTestBase {
     @Autowired
     protected MutableClock clock;
 
-    /** Each workshop's settings live in auth-service; tests answer for it. */
+    /** Each organization's locations live in auth-service; tests answer for it. */
     @MockitoBean
-    protected WorkshopSettingsClient workshopSettings;
+    protected LocationsClient locationsClient;
 
-    /** Every workshop is in New York unless a test says otherwise. */
+    /**
+     * Every organization has one location, "Main" (id = tenant id), in New York, unless a test
+     * says otherwise.
+     */
     @BeforeEach
     void resetClock() {
         clock.set(BASE);
-        Mockito.doReturn(new WorkshopSettings("America/New_York", "USD"))
-                .when(workshopSettings).get(ArgumentMatchers.any());
+        Mockito.doAnswer(call -> List.of(mainLocation(call.getArgument(0), "America/New_York")))
+                .when(locationsClient).locations(ArgumentMatchers.any());
+    }
+
+    /** The organization's first location as auth-service describes it. */
+    protected static LocationSettings mainLocation(UUID tenantId, String timeZone) {
+        return new LocationSettings(tenantId, "main", "Main", true, timeZone, new java.math.BigDecimal("95.00"), "USD");
     }
 
     /** Signs the request as a user with the given role in the default workshop, like a real access token. */

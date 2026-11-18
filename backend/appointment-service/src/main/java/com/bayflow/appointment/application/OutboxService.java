@@ -48,7 +48,7 @@ public class OutboxService {
         OpenJobCardPayload payload = new OpenJobCardPayload(appointment.getId(), appointment.getVehicle().getId(),
                 appointment.getVehicle().getVin(), appointment.getVehicle().getRegistration(),
                 appointment.getCustomer().getUserId(), appointment.getCustomer().getName(),
-                appointment.getArrivalMileage(), appointment.getTenantId());
+                appointment.getArrivalMileage(), appointment.getTenantId(), appointment.getLocationId());
         outbox.save(OutboxMessage.create(appointment.getId(), OutboxMessage.CREATE_JOB_CARD,
                 json.writeValueAsString(payload), clock.instant()));
     }
@@ -75,7 +75,7 @@ public class OutboxService {
 
     public OpenJobCardPayload payload(OutboxMessage message) {
         OpenJobCardPayload payload = json.readValue(message.getPayload(), OpenJobCardPayload.class);
-        return payload.tenantId() != null ? payload : payload.withTenantId(message.getTenantId());
+        return payload.withDefaults(message.getTenantId());
     }
 
     /** Settles the message and stores the job card id on the appointment. Repeats are harmless. */

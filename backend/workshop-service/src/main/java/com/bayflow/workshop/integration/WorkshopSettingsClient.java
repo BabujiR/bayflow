@@ -19,8 +19,8 @@ import com.bayflow.workshop.config.WorkshopProperties;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * Reads a workshop's labour rate and currency from auth-service (which owns workshop settings)
- * with a SYSTEM token, keeping each workshop's answer for a few minutes.
+ * Reads a location's effective labour rate and the organization's currency from auth-service
+ * (which owns locations and settings) with a SYSTEM token, keeping each answer for a few minutes.
  */
 @Component
 public class WorkshopSettingsClient {
@@ -44,7 +44,17 @@ public class WorkshopSettingsClient {
     private final RestClient auth;
     private final WorkshopProperties properties;
     private final Clock clock;
-    private final Map<UUID, Cached> cache = new ConcurrentHashMap<>();
+    /** The location is not one of the organization's (auth-service answered 404). */
+    public static class UnknownLocationException extends RuntimeException {
+        public UnknownLocationException(UUID tenantId, UUID locationId) {
+            super("Location " + locationId + " is not a location of organization " + tenantId);
+        }
+    }
+
+    private record Key(UUID tenantId, UUID locationId) {
+    }
+
+    private final Map<Key, Cached> cache = new ConcurrentHashMap<>();
 
     private String token;
     private Instant tokenExpiresAt = Instant.EPOCH;
@@ -58,31 +68,39 @@ public class WorkshopSettingsClient {
         this.clock = clock;
     }
 
-    /** The workshop's settings; throws when auth-service can't be reached and nothing is cached. */
-    public WorkshopSettings get(UUID tenantId) {
-        Cached cached = cache.get(tenantId);
+    /**
+     * The settings for one location of an organization; throws {@link UnknownLocationException} when
+     * it is not the organization's, or another exception when auth-service can't be reached.
+     */
+    public WorkshopSettings get(UUID tenantId, UUID locationId) {
+        Key key = new Key(tenantId, locationId);
+        Cached cached = cache.get(key);
         if (cached != null && clock.instant().isBefore(cached.fetchedAt().plus(properties.getSettingsCacheTtl()))) {
             return cached.settings();
         }
         WorkshopSettings fresh;
         try {
-            fresh = fetch(tenantId);
-        } catch (HttpClientErrorException.Unauthorized e) {
-            invalidateToken();
-            fresh = fetch(tenantId);
+            try {
+                fresh = fetch(tenantId, locationId);
+            } catch (HttpClientErrorException.Unauthorized e) {
+                invalidateToken();
+                fresh = fetch(tenantId, locationId);
+            }
+        } catch (HttpClientErrorException.NotFound e) {
+            throw new UnknownLocationException(tenantId, locationId);
         }
-        cache.put(tenantId, new Cached(fresh, clock.instant()));
+        cache.put(key, new Cached(fresh, clock.instant()));
         return fresh;
     }
 
-    private WorkshopSettings fetch(UUID tenantId) {
+    private WorkshopSettings fetch(UUID tenantId, UUID locationId) {
         WorkshopSettings settings = auth.get()
-                .uri("/api/v1/auth/internal/tenants/{id}/settings", tenantId)
+                .uri("/api/v1/auth/internal/tenants/{id}/locations/{location}/settings", tenantId, locationId)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token())
                 .retrieve()
                 .body(WorkshopSettings.class);
         if (settings == null || settings.labourRate() == null || settings.currency() == null) {
-            throw new IllegalStateException("auth-service returned no settings for workshop " + tenantId);
+            throw new IllegalStateException("auth-service returned no settings for location " + locationId);
         }
         return settings;
     }

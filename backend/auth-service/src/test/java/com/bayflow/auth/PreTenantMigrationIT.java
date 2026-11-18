@@ -43,6 +43,9 @@ class PreTenantMigrationIT {
                 .isEqualTo(expected);
         // Phase 4 (V6): the default workshop is at demo.<base domain>.
         assertThat(single(url, "select slug from auth_tenants where id = '" + expected + "'")).isEqualTo("demo");
+        // Locations (L1, V7): the organization's first location, "Main", has the tenant's id.
+        assertThat(single(url, "select code from auth_locations where id = '" + expected + "' and tenant_id = '"
+                + expected + "'")).isEqualTo("main");
     }
 
     private static Flyway flyway(String url, String target) {

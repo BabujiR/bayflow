@@ -1,0 +1,107 @@
+package com.bayflow.appointment.application;
+
+import java.time.DateTimeException;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+
+import com.bayflow.appointment.config.AppointmentProperties;
+import com.bayflow.appointment.integration.LocationsClient;
+import com.bayflow.appointment.integration.LocationsClient.LocationSettings;
+import com.bayflow.security.TenantContext;
+
+/**
+ * The current organization's locations (shops), from auth-service. Decides which location a
+ * booking is for and which time zone defines a location's "today".
+ * <p>
+ * If auth-service can't be reached, lists keep working with the configured fallback zone and
+ * bookings fall back to the organization's first location ("Main", id = tenant id); a booking
+ * for any other location then waits until the locations can be checked (503).
+ */
+@Component
+public class Locations {
+
+    private static final Logger log = LoggerFactory.getLogger(Locations.class);
+
+    private final LocationsClient client;
+    private final AppointmentProperties properties;
+
+    public Locations(LocationsClient client, AppointmentProperties properties) {
+        this.client = client;
+        this.properties = properties;
+    }
+
+    /**
+     * The location a new booking is for: the one asked for (it must be an active location of this
+     * organization), or the organization's only active location when none is given.
+     */
+    public UUID forBooking(UUID requested) {
+        UUID tenant = TenantContext.require();
+        Optional<List<LocationSettings>> known = all(tenant);
+        if (known.isEmpty()) {
+            if (requested == null || requested.equals(tenant)) {
+                return tenant;
+            }
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "locations-unavailable", "Service Unavailable",
+                    "The location could not be checked. Try again shortly.");
+        }
+        List<LocationSettings> active = known.get().stream().filter(LocationSettings::active).toList();
+        if (requested == null) {
+            if (active.size() == 1) {
+                return active.get(0).id();
+            }
+            throw ApiException.badRequest("location-required", "Choose the location for this appointment.");
+        }
+        return active.stream().filter(l -> l.id().equals(requested)).findFirst()
+                .map(LocationSettings::id)
+                .orElseThrow(() -> ApiException.badRequest("invalid-location",
+                        "That location does not exist or no longer takes bookings."));
+    }
+
+    /**
+     * The location whose "today" a list uses: the one asked for, otherwise the organization's
+     * default ("Main" if it still exists, else its first active location).
+     */
+    public UUID forList(UUID requested) {
+        if (requested != null) {
+            return requested;
+        }
+        UUID tenant = TenantContext.require();
+        return all(tenant)
+                .flatMap(list -> list.stream().filter(l -> l.id().equals(tenant)).findFirst()
+                        .or(() -> list.stream().filter(LocationSettings::active).findFirst()))
+                .map(LocationSettings::id)
+                .orElse(tenant);
+    }
+
+    /** The time zone of one of this organization's locations, or the fallback zone. */
+    public ZoneId zoneOf(UUID locationId) {
+        UUID tenant = TenantContext.require();
+        Optional<LocationSettings> location = all(tenant)
+                .flatMap(list -> list.stream().filter(l -> l.id().equals(locationId)).findFirst());
+        if (location.isEmpty()) {
+            return properties.getWorkshopZone();
+        }
+        try {
+            return ZoneId.of(location.get().timeZone());
+        } catch (DateTimeException | NullPointerException e) {
+            log.warn("Location {} has an invalid time zone; using {}", locationId, properties.getWorkshopZone());
+            return properties.getWorkshopZone();
+        }
+    }
+
+    private Optional<List<LocationSettings>> all(UUID tenant) {
+        try {
+            return Optional.of(client.locations(tenant));
+        } catch (RuntimeException e) {
+            log.warn("Could not read the locations of organization {} ({}); using fallbacks", tenant, e.getMessage());
+            return Optional.empty();
+        }
+    }
+}

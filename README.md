@@ -154,6 +154,10 @@ service's Swagger UI and paste it.
   (nginx passes it in `X-Forwarded-Host`); after that it comes only from the token, which also
   names the address (`tsl`). Every service refuses a token at another workshop's address (401).
   Unknown addresses show *Workshop not found*; a suspended workshop can't sign in.
+- **Locations:** a workshop (organization) has one or more locations (shops). Every
+  organization starts with "Main"; appointments, job cards and history belong to a
+  location, and a location may override the organization's time zone and labour rate.
+  Details: PLAN item 21 and `docs/prompts/organizations-locations.md`.
 - **Workshop settings:** each workshop's labour rate, currency and time zone
   live in auth-service and are edited by its ADMIN. The other services read
   them with SYSTEM tokens. A job card keeps the rate and currency it opened
@@ -279,7 +283,10 @@ spaced out to stay under the 10-per-minute login limit.
 | SaaS 1 | Tenant foundation (`tenant_id`, `tid` claim) | ✅ done |
 | SaaS 2 | Row-level security and isolation tests | ✅ done |
 | SaaS 3 | Per-workshop settings, money frozen on job cards | ✅ done |
-| SaaS 4 | Sign-up and workshop subdomains | 🔍 in review |
+| SaaS 4 | Sign-up and workshop subdomains | ✅ done |
+| Locations 1 | Organizations have locations ("Main" for everyone) | 🔍 in review |
+| Locations 2 | Location-scoped roles and isolation | planned |
+| Locations 3 | Locations page, switcher, booking per location | planned |
 
 ## Assumptions
 

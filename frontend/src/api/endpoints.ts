@@ -11,6 +11,7 @@ import type {
   JobCard,
   JobCardStatus,
   JobCardSummary,
+  Location,
   LabourRequest,
   PageResponse,
   PartRequest,
@@ -130,4 +131,9 @@ export const tenantsApi = {
   current: () => http.get<PublicWorkshop>('/api/v1/tenants/current'),
   availability: (slug: string) => http.get<SlugAvailability>('/api/v1/tenants/slug-availability', { slug }),
   signup: (body: SignupRequest) => http.post<SignupResponse>('/api/v1/tenants/signup', body),
+};
+
+/** The organization's locations (every signed-in user). Shown in the app from phase L3. */
+export const locationsApi = {
+  list: () => http.get<Location[]>('/api/v1/auth/locations'),
 };

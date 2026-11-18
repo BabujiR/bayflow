@@ -103,6 +103,8 @@ class CheckInJobCardIT extends IntegrationTestBase {
                 .withRequestBody(matchingJsonPath("$.mileage", equalTo("15000")))
                 .withRequestBody(matchingJsonPath("$.customerName", equalTo("Jane Doe")))
                 .withRequestBody(matchingJsonPath("$.tenantId", equalTo(Tenants.DEFAULT_TENANT_ID.toString())))
+                // The organization's only location, "Main", whose id is the tenant id.
+                .withRequestBody(matchingJsonPath("$.locationId", equalTo(Tenants.DEFAULT_TENANT_ID.toString())))
                 .withRequestBody(matchingJsonPath("$.vin")));
         WIREMOCK.verify(1, postRequestedFor(urlEqualTo(TOKEN)).withRequestBody(equalToJson(
                 "{\"clientId\":\"appointment-service\",\"clientSecret\":\"test-client-secret\"}")));

@@ -31,7 +31,8 @@ import com.bayflow.workshop.integration.WorkshopSettingsClient.WorkshopSettings;
 public class JobCardService {
 
     /** What appointment-service (or an advisor) sends when a vehicle is checked in. */
-    public record OpenCommand(UUID appointmentId, UUID vehicleId, String vin, String registration,
+    /** locationId null = the organization's first location, "Main" (id = tenant id). */
+    public record OpenCommand(UUID appointmentId, UUID locationId, UUID vehicleId, String vin, String registration,
             UUID customerUserId, String customerName, int mileage) {
     }
 
@@ -56,8 +57,8 @@ public class JobCardService {
 
     /**
      * Idempotent on appointmentId: a repeated call returns the existing card. A new card freezes
-     * the workshop's current labour rate and currency; without them it is not opened (503), so
-     * the caller's outbox retries later.
+     * its location's current labour rate and the organization's currency; without them it is not
+     * opened (503), so the caller's outbox retries later.
      */
     @Transactional
     public OpenResult open(OpenCommand command) {
@@ -65,17 +66,20 @@ public class JobCardService {
         if (existing.isPresent()) {
             return new OpenResult(loaded(existing.get()), false);
         }
-        WorkshopSettings money = workshopSettings();
-        JobCard card = JobCard.open(command.appointmentId(), command.vehicleId(), command.vin(),
+        UUID location = command.locationId() != null ? command.locationId() : TenantContext.require();
+        WorkshopSettings money = workshopSettings(location);
+        JobCard card = JobCard.open(command.appointmentId(), location, command.vehicleId(), command.vin(),
                 command.registration(), command.customerUserId(), command.customerName(), command.mileage(),
                 money.labourRate(), money.currency(), clock.instant());
         return new OpenResult(jobCards.saveAndFlush(card), true);
     }
 
-    private WorkshopSettings workshopSettings() {
+    private WorkshopSettings workshopSettings(UUID locationId) {
         UUID tenantId = TenantContext.require();
         try {
-            return settings.get(tenantId);
+            return settings.get(tenantId, locationId);
+        } catch (WorkshopSettingsClient.UnknownLocationException e) {
+            throw ApiException.badRequest("invalid-location", "That location does not belong to this workshop.");
         } catch (RuntimeException e) {
             log.warn("Workshop settings for {} unavailable; not opening the job card: {}", tenantId, e.toString());
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "settings-unavailable", "Service Unavailable",

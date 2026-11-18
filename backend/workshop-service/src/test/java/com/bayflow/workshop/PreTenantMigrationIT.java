@@ -40,6 +40,8 @@ class PreTenantMigrationIT {
                     + expected + "'")).as(table).isEqualTo("0");
             assertThat(single(url, "select count(*) from " + table)).as(table).isEqualTo("1");
         }
+        // Locations (L1, V6): the card is at the organization's "Main" (id = tenant id).
+        assertThat(single(url, "select location_id from ws_job_cards where id = '" + card + "'")).isEqualTo(expected);
     }
 
     private static Flyway flyway(String url, String target) {

@@ -53,7 +53,7 @@ public abstract class IntegrationTestBase {
     @BeforeEach
     void defaultWorkshopSettings() {
         Mockito.doReturn(new WorkshopSettings(new BigDecimal("95.00"), "USD"))
-                .when(workshopSettings).get(ArgumentMatchers.any());
+                .when(workshopSettings).get(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     /** The table owner: sees every workshop's rows. For test setup and checks only. */

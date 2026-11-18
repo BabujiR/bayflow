@@ -48,6 +48,9 @@ class PreTenantMigrationIT {
             assertThat(single(url, "select count(*) from " + table + " where tenant_id is distinct from '"
                     + expected + "'")).as(table).isEqualTo("0");
         }
+        // Locations (L1, V5): the appointment is at the organization's "Main" (id = tenant id).
+        assertThat(single(url, "select location_id from apt_appointments where id = '" + appointment + "'"))
+                .isEqualTo(expected);
     }
 
     private static Flyway flyway(String url, String target) {

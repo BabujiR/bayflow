@@ -4,14 +4,20 @@ import java.util.UUID;
 
 /**
  * Body of workshop-service's POST /api/v1/job-cards. appointmentId is the idempotency key.
- * tenantId names the workshop; workshop-service trusts it only from a SYSTEM token.
+ * tenantId names the organization and locationId its location (shop); workshop-service trusts
+ * both only from a SYSTEM token.
  */
 public record OpenJobCardPayload(UUID appointmentId, UUID vehicleId, String vin, String registration,
-        UUID customerUserId, String customerName, int mileage, UUID tenantId) {
+        UUID customerUserId, String customerName, int mileage, UUID tenantId, UUID locationId) {
 
-    /** Messages queued before multi-tenancy have no tenant in their JSON; it comes from the row. */
-    public OpenJobCardPayload withTenantId(UUID tenant) {
+    /**
+     * Fills in what older queued messages lack: the tenant (before multi-tenancy, it comes from the
+     * row) and the location (before locations: the organization's "Main", whose id is the tenant id).
+     */
+    public OpenJobCardPayload withDefaults(UUID rowTenant) {
+        UUID tenant = tenantId != null ? tenantId : rowTenant;
+        UUID location = locationId != null ? locationId : tenant;
         return new OpenJobCardPayload(appointmentId, vehicleId, vin, registration, customerUserId, customerName,
-                mileage, tenant);
+                mileage, tenant, location);
     }
 }

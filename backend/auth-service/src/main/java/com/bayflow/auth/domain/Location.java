@@ -1,0 +1,110 @@
+package com.bayflow.auth.domain;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+
+import org.hibernate.annotations.TenantId;
+
+/**
+ * One shop of an organization (tenant). An independent workshop has exactly one, "Main", whose
+ * id is the tenant id. A location may override the organization's time zone and labour rate;
+ * {@code null} means it uses the organization's. Currency is organization-wide.
+ */
+@Entity
+@Table(name = "auth_locations")
+public class Location {
+
+    public enum Status { ACTIVE, ARCHIVED }
+
+    /** Code of the first location every organization gets. */
+    public static final String MAIN_CODE = "main";
+
+    @Id
+    private UUID id;
+
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
+
+    @Column(nullable = false, length = 20)
+    private String code;
+
+    @Column(nullable = false, length = 100)
+    private String name;
+
+    @Column(length = 30)
+    private String phone;
+
+    @Column(length = 254)
+    private String email;
+
+    @Column(length = 300)
+    private String address;
+
+    @Column(name = "time_zone", length = 64)
+    private String timeZone;
+
+    @Column(name = "labour_rate", precision = 10, scale = 2)
+    private BigDecimal labourRate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Status status;
+
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    @Version
+    private Long version;
+
+    protected Location() {
+        // for JPA
+    }
+
+    /** The organization's first location: id = tenant id, no overrides. */
+    public static Location main(UUID tenantId, Instant now) {
+        return create(tenantId, tenantId, MAIN_CODE, "Main", now);
+    }
+
+    public static Location create(UUID id, UUID tenantId, String code, String name, Instant now) {
+        Location location = new Location();
+        location.id = id;
+        location.tenantId = tenantId;
+        location.code = code;
+        location.name = name;
+        location.status = Status.ACTIVE;
+        location.createdAt = now;
+        location.updatedAt = now;
+        return location;
+    }
+
+    public boolean isActive() { return status == Status.ACTIVE; }
+
+    public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
+    public String getCode() { return code; }
+    public String getName() { return name; }
+    public String getPhone() { return phone; }
+    public String getEmail() { return email; }
+    public String getAddress() { return address; }
+    /** The override, or null to use the organization's. */
+    public String getTimeZone() { return timeZone; }
+    /** The override, or null to use the organization's. */
+    public BigDecimal getLabourRate() { return labourRate; }
+    public Status getStatus() { return status; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public Long getVersion() { return version; }
+}

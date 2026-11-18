@@ -65,7 +65,11 @@ public class JobCard {
     @Column(nullable = false)
     private int mileage;
 
-    /** The workshop's hourly labour rate when the card opened; frozen for this job. */
+    /** The location (shop) where the work is done; copied from the appointment, never changes. */
+    @Column(name = "location_id", nullable = false, updatable = false)
+    private UUID locationId;
+
+    /** The location's hourly labour rate when the card opened; frozen for this job. */
     @Column(name = "labour_rate", nullable = false, precision = 10, scale = 2)
     private BigDecimal labourRate;
 
@@ -132,9 +136,12 @@ public class JobCard {
         // for JPA
     }
 
-    public static JobCard open(UUID appointmentId, UUID vehicleId, String vin, String registration,
-            UUID customerUserId, String customerName, int mileage, BigDecimal labourRate, String currency,
-            Instant now) {
+    public static JobCard open(UUID appointmentId, UUID locationId, UUID vehicleId, String vin,
+            String registration, UUID customerUserId, String customerName, int mileage, BigDecimal labourRate,
+            String currency, Instant now) {
+        if (locationId == null) {
+            throw new IllegalArgumentException("A job card needs a location");
+        }
         if (mileage < 0) {
             throw new IllegalArgumentException("Mileage cannot be negative");
         }
@@ -147,6 +154,7 @@ public class JobCard {
         JobCard card = new JobCard();
         card.id = UUID.randomUUID();
         card.appointmentId = appointmentId;
+        card.locationId = locationId;
         card.vehicleId = vehicleId;
         card.vin = vin;
         card.registration = registration;
@@ -345,6 +353,7 @@ public class JobCard {
     public UUID getCustomerUserId() { return customerUserId; }
     public String getCustomerName() { return customerName; }
     public int getMileage() { return mileage; }
+    public UUID getLocationId() { return locationId; }
     public BigDecimal getLabourRate() { return labourRate; }
     public String getCurrency() { return currency; }
     public JobCardStatus getStatus() { return status; }

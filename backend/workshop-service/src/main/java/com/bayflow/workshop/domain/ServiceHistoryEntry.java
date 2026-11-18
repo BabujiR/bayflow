@@ -36,6 +36,10 @@ public class ServiceHistoryEntry {
     @Column(name = "job_card_id", nullable = false, unique = true)
     private UUID jobCardId;
 
+    /** The location where the work was done, copied from the job card. */
+    @Column(name = "location_id", nullable = false, updatable = false)
+    private UUID locationId;
+
     @Column(name = "appointment_id", nullable = false)
     private UUID appointmentId;
 
@@ -87,6 +91,7 @@ public class ServiceHistoryEntry {
         entry.id = UUID.randomUUID();
         entry.vehicleId = card.getVehicleId();
         entry.jobCardId = card.getId();
+        entry.locationId = card.getLocationId();
         entry.appointmentId = card.getAppointmentId();
         entry.customerUserId = card.getCustomerUserId();
         entry.vin = card.getVin();
@@ -110,6 +115,7 @@ public class ServiceHistoryEntry {
     public UUID getTenantId() { return tenantId; }
     public UUID getVehicleId() { return vehicleId; }
     public UUID getJobCardId() { return jobCardId; }
+    public UUID getLocationId() { return locationId; }
     public UUID getAppointmentId() { return appointmentId; }
     public UUID getCustomerUserId() { return customerUserId; }
     public String getVin() { return vin; }

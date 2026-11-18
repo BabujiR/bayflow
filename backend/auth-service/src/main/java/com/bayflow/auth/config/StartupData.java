@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.util.StringUtils;
 
 import com.bayflow.auth.application.ClientCredentialsService;
+import com.bayflow.auth.application.LocationService;
 import com.bayflow.auth.application.TenantSettingsService;
 import com.bayflow.auth.application.UserAdminService;
 import com.bayflow.auth.domain.Role;
@@ -63,7 +64,7 @@ public class StartupData {
     @Bean
     @Profile("dev")
     ApplicationRunner seedDevWorkshops(UserAdminService userAdmin, TenantRepository tenants,
-            TenantSettingsService settings, Clock clock) {
+            TenantSettingsService settings, LocationService locations, Clock clock) {
         return args -> {
             if (tenants.findById(ACME_TENANT_ID).isEmpty() && !tenants.existsBySlug("acme")) {
                 tenants.saveAndFlush(Tenant.create(ACME_TENANT_ID, "acme", "Acme Motors", clock.instant()));
@@ -75,6 +76,7 @@ public class StartupData {
                 }
                 TenantContext.run(workshop, () -> {
                     settings.current();
+                    locations.ensureMain();
                     userAdmin.ensureUser("customer1", "customer1@bayflow.local", DEV_PASSWORD, Role.CUSTOMER);
                     userAdmin.ensureUser("advisor1", "advisor1@bayflow.local", DEV_PASSWORD, Role.SERVICE_ADVISOR);
                     userAdmin.ensureUser("mechanic1", "mechanic1@bayflow.local", DEV_PASSWORD, Role.MECHANIC);

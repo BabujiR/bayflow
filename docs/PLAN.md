@@ -458,6 +458,43 @@ in the page `<meta name="description">`.
     - Not built (see docs/SAAS-AWS-NOTES.md): a platform-admin UI to suspend or
       delete workshops (SQL for now), email verification of sign-ups, custom
       domains per workshop, a shared rate-limit store.
+21. **Organizations and locations, phase L1: locations exist** (prompt:
+    `docs/prompts/organizations-locations.md`). A tenant is now an
+    *organization* with one or more *locations* (shops); nothing visible changes
+    while an organization has one.
+    - auth `V7`: `auth_locations` (code unique per organization, contact details,
+      optional time-zone and labour-rate overrides, ACTIVE/ARCHIVED; RLS like
+      every per-tenant table). Every existing organization got **"Main" (code
+      `main`) whose id is the tenant id**. That is deliberate: the other services
+      fill in `location_id = tenant_id` on their own rows (appointment `V5`,
+      workshop `V6`) without reading auth tables. Sign-up and the dev seeding create
+      Main the same way; an organization without a location gets it on first use.
+    - Effective settings: a location's own time zone / labour rate, else the
+      organization's. Currency is organization-wide only.
+    - `location_id` (NOT NULL, indexed after `tenant_id`) on `apt_appointments`,
+      `ws_job_cards` and `ws_service_history`; it is copied from the appointment
+      through the check-in outbox payload to the job card and its history entry.
+      Payloads queued before L1 fall back to the tenant id (= Main). Customers and
+      vehicles stay organization-wide; the "no overlapping bookings" rule stays per
+      vehicle across all locations (a car is in one shop at a time).
+    - Booking: `locationId` optional while the organization has one active location,
+      otherwise 400 `location-required`; unknown, archived or another organization's
+      location → 400 `invalid-location`. If auth-service is down, only Main takes
+      bookings (others: 503 `locations-unavailable`).
+    - Lists: `date` and "today" use the location in `locationId` (which also limits
+      the list), else the organization's default location (Main); fallback zone
+      `BAYFLOW_WORKSHOP_ZONE` while auth-service is down.
+    - Job cards freeze **their location's** effective labour rate plus the
+      organization's currency (`locationId` in the open request; none = Main; a
+      location that is not the organization's → 400 `invalid-location`; settings
+      unavailable → 503, the outbox retries).
+    - New endpoints: `GET /api/v1/auth/locations` (any signed-in user) and SYSTEM-only
+      `GET /api/v1/auth/internal/tenants/{tid}/locations` and
+      `…/locations/{lid}/settings`. appointment-service's `LocationsClient`
+      replaces its workshop-settings client; workshop-service's settings client now
+      reads per location. Both cache for 5 minutes.
+    - Responses add `locationId` (appointments, job cards, job-card summaries,
+      service history); location names come from `/auth/locations` in the UI (L3).
 
 ---
 
@@ -478,6 +515,6 @@ in the page `<meta name="description">`.
 | SaaS 3 | Per-workshop settings, money frozen on job cards | no business setting read from env at request time |
 | SaaS 4 | Sign-up and `<slug>.localhost` subdomains | a new workshop signs up and runs on its own |
 
-SaaS milestones: 1–3 done; 4 in review.
+SaaS milestones: 1–4 done. Organizations and locations: L1 in review; L2 (scoped access) and L3 (web app) planned.
 
 Each milestone ends with a review pause.

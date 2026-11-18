@@ -49,11 +49,13 @@ public final class WorkshopDtos {
             @NotBlank @Size(max = 100) String customerName,
             @NotNull @PositiveOrZero Integer mileage,
             /** The workshop; required from SYSTEM callers, ignored for users (their token decides). */
-            UUID tenantId) {
+            UUID tenantId,
+            /** The location of the appointment; none = the organization's first location ("Main"). */
+            UUID locationId) {
 
         OpenCommand toCommand() {
-            return new OpenCommand(appointmentId, vehicleId, vin, registration, customerUserId, customerName,
-                    mileage);
+            return new OpenCommand(appointmentId, locationId, vehicleId, vin, registration, customerUserId,
+                    customerName, mileage);
         }
     }
 
@@ -138,7 +140,8 @@ public final class WorkshopDtos {
      * Full job card: estimates the customer approves against, the work recorded, and (once
      * COMPLETED) the final totals.
      */
-    public record JobCardResponse(UUID id, UUID appointmentId, UUID vehicleId, String vin, String registration,
+    public record JobCardResponse(UUID id, UUID appointmentId, UUID locationId, UUID vehicleId, String vin,
+            String registration,
             UUID customerUserId, String customerName, int mileage, JobCardStatus status,
             List<FindingResponse> findings, List<RecommendationResponse> recommendations,
             List<WorkLogResponse> workLogs, List<PartResponse> parts, List<LabourResponse> labour,
@@ -150,7 +153,8 @@ public final class WorkshopDtos {
         static JobCardResponse from(JobCard c) {
             BigDecimal rate = c.getLabourRate();
             String currency = c.getCurrency();
-            return new JobCardResponse(c.getId(), c.getAppointmentId(), c.getVehicleId(), c.getVin(),
+            return new JobCardResponse(c.getId(), c.getAppointmentId(), c.getLocationId(), c.getVehicleId(),
+                    c.getVin(),
                     c.getRegistration(), c.getCustomerUserId(), c.getCustomerName(), c.getMileage(), c.getStatus(),
                     c.getFindings().stream().map(FindingResponse::from).toList(),
                     c.getRecommendations().stream().map(i -> RecommendationResponse.from(i, rate)).toList(),
@@ -165,24 +169,28 @@ public final class WorkshopDtos {
     }
 
     /** One completed job in a vehicle's service history. */
-    public record ServiceHistoryResponse(UUID id, UUID vehicleId, UUID jobCardId, UUID appointmentId, String vin,
+    public record ServiceHistoryResponse(UUID id, UUID locationId, UUID vehicleId, UUID jobCardId,
+            UUID appointmentId, String vin,
             String registration, Instant serviceDate, int mileage, BigDecimal partsTotal, BigDecimal labourTotal,
             BigDecimal totalCost, String currency, ServiceRecord details) {
 
         static ServiceHistoryResponse from(ServiceHistoryEntry e, ServiceRecord details) {
             String currency = e.getCurrency();
-            return new ServiceHistoryResponse(e.getId(), e.getVehicleId(), e.getJobCardId(), e.getAppointmentId(),
+            return new ServiceHistoryResponse(e.getId(), e.getLocationId(), e.getVehicleId(), e.getJobCardId(),
+                    e.getAppointmentId(),
                     e.getVin(), e.getRegistration(), e.getServiceDate(), e.getMileage(), e.getPartsTotal(),
                     e.getLabourTotal(), e.getTotalCost(), currency, details);
         }
     }
 
     /** Job card row for lists (no findings or recommendations). */
-    public record JobCardSummary(UUID id, UUID appointmentId, UUID vehicleId, String vin, String registration,
+    public record JobCardSummary(UUID id, UUID appointmentId, UUID locationId, UUID vehicleId, String vin,
+            String registration,
             String customerName, int mileage, JobCardStatus status, Instant createdAt, Instant updatedAt) {
 
         static JobCardSummary from(JobCard c) {
-            return new JobCardSummary(c.getId(), c.getAppointmentId(), c.getVehicleId(), c.getVin(),
+            return new JobCardSummary(c.getId(), c.getAppointmentId(), c.getLocationId(), c.getVehicleId(),
+                    c.getVin(),
                     c.getRegistration(), c.getCustomerName(), c.getMileage(), c.getStatus(), c.getCreatedAt(),
                     c.getUpdatedAt());
         }
