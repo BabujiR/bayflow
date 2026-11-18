@@ -9,7 +9,10 @@ const APPOINTMENT = process.env.BAYFLOW_APPOINTMENT_URL ?? 'http://localhost:808
 const WORKSHOP = process.env.BAYFLOW_WORKSHOP_URL ?? 'http://localhost:8082';
 
 // The dev server mirrors what nginx does in Docker: one origin for the UI and all three
-// services, so the refresh-token cookie works and no CORS is needed.
+// services, so the refresh-token cookie works and no CORS is needed. Like nginx it serves every
+// workshop address (demo.localhost:5173, acme.localhost:5173, ...) and passes the browser's host
+// on in X-Forwarded-Host (xfwd), which is how the services know the workshop.
+const to = (target: string) => ({ target, xfwd: true });
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -17,20 +20,24 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    allowedHosts: ['localhost', '.localhost'],
     proxy: {
-      '/api/v1/auth': AUTH,
-      '/.well-known': AUTH,
-      '/api/v1/customers': APPOINTMENT,
-      '/api/v1/vehicles': APPOINTMENT,
-      '/api/v1/appointments': APPOINTMENT,
-      '/api/v1/job-cards': WORKSHOP,
-      '/api/v1/service-history': WORKSHOP,
+      '/api/v1/auth': to(AUTH),
+      '/api/v1/tenants': to(AUTH),
+      '/.well-known': to(AUTH),
+      '/api/v1/customers': to(APPOINTMENT),
+      '/api/v1/vehicles': to(APPOINTMENT),
+      '/api/v1/appointments': to(APPOINTMENT),
+      '/api/v1/job-cards': to(WORKSHOP),
+      '/api/v1/service-history': to(WORKSHOP),
     },
   },
   test: {
     // Unit and component tests only; e2e/ is run by Playwright against the real stack.
     include: ['src/**/*.test.{ts,tsx}'],
     environment: 'jsdom',
+    // Tests run as a workshop's app (demo.localhost); the public site has renderSite().
+    environmentOptions: { jsdom: { url: 'http://demo.localhost:3000/' } },
     setupFiles: ['./src/test/setup.ts'],
     css: false,
     restoreMocks: true,

@@ -25,6 +25,12 @@ public class AuthProperties {
     private final Login login = new Login();
     private final BootstrapAdmin bootstrapAdmin = new BootstrapAdmin();
     private final TenantDefaults tenantDefaults = new TenantDefaults();
+    private final Signup signup = new Signup();
+    /**
+     * Workshop for sign-in at an address without a workshop label (Swagger UI on the service's
+     * own port, API scripts). Empty: such requests get 404 workshop-not-found.
+     */
+    private String fallbackWorkshop = "";
     /** Service-to-service clients, keyed by client id. */
     private Map<String, Client> clients = new LinkedHashMap<>();
 
@@ -43,6 +49,18 @@ public class AuthProperties {
     public Login getLogin() { return login; }
     public BootstrapAdmin getBootstrapAdmin() { return bootstrapAdmin; }
     public TenantDefaults getTenantDefaults() { return tenantDefaults; }
+    public Signup getSignup() { return signup; }
+    public String getFallbackWorkshop() { return fallbackWorkshop; }
+    public void setFallbackWorkshop(String fallbackWorkshop) { this.fallbackWorkshop = fallbackWorkshop; }
+
+    /** Self-service workshop sign-up. */
+    public static class Signup {
+        /** Sign-ups allowed per client IP per hour. */
+        private int maxPerHourPerIp = 10;
+
+        public int getMaxPerHourPerIp() { return maxPerHourPerIp; }
+        public void setMaxPerHourPerIp(int maxPerHourPerIp) { this.maxPerHourPerIp = maxPerHourPerIp; }
+    }
 
     /** Starting settings of a new workshop; each workshop then changes its own. */
     public static class TenantDefaults {

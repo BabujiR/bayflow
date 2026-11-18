@@ -14,10 +14,14 @@ import type {
   LabourRequest,
   PageResponse,
   PartRequest,
+  PublicWorkshop,
   ProfileRequest,
   RecommendationRequest,
   RescheduleRequest,
   ServiceHistoryEntry,
+  SignupRequest,
+  SignupResponse,
+  SlugAvailability,
   UpdateVehicleRequest,
   UpdateWorkshopSettingsRequest,
   User,
@@ -119,4 +123,11 @@ export const workshopApi = {
   /** Workshop ADMIN only. */
   updateSettings: (body: UpdateWorkshopSettingsRequest) =>
     http.put<Workshop>('/api/v1/auth/tenant/settings', body),
+};
+
+/** Public: sign up a workshop, check an address, name the workshop at this address. */
+export const tenantsApi = {
+  current: () => http.get<PublicWorkshop>('/api/v1/tenants/current'),
+  availability: (slug: string) => http.get<SlugAvailability>('/api/v1/tenants/slug-availability', { slug }),
+  signup: (body: SignupRequest) => http.post<SignupResponse>('/api/v1/tenants/signup', body),
 };

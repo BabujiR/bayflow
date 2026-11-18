@@ -3,6 +3,12 @@ bayflow:
     login:
       # Integration tests log in many times from the same IP; the limiter has its own unit test.
       max-attempts-per-minute: 1000
+    # MockMvc requests come to "localhost", which names no workshop: they sign in to "demo"
+    # (the default workshop). Tests of workshop addresses set the Host header.
+    fallback-workshop: demo
+    signup:
+      # WorkshopSignupIT resets the limiter before each test and checks this limit.
+      max-per-hour-per-ip: 5
     bootstrap-admin:
       username: bootstrap-admin
       email: bootstrap-admin@example.com

@@ -84,7 +84,7 @@ public class AuthController {
     public ResponseEntity<Void> logout(HttpServletRequest httpRequest) {
         CookieRequestGuard.check(httpRequest);
         String refreshToken = cookies.read(httpRequest);
-        TenantContext.run(tenants.resolve(httpRequest), () -> authService.logout(refreshToken));
+        TenantContext.run(tenants.resolveAnyStatus(httpRequest), () -> authService.logout(refreshToken));
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, cookies.clear().toString())
                 .build();

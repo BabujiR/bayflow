@@ -15,6 +15,12 @@ public final class Tenants {
     public static final String CLAIM = "tid";
 
     /**
+     * JWT claim holding the workshop's slug, the first label of its address
+     * ({@code <slug>.<base domain>}). Services compare it with the address a request came to.
+     */
+    public static final String SLUG_CLAIM = "tsl";
+
+    /**
      * The workshop all data created before multi-tenancy belongs to. The same fixed value is
      * used by every service's Flyway migrations (placeholder {@code defaultTenantId}).
      */

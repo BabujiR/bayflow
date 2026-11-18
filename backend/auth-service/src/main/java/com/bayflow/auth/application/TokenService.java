@@ -49,22 +49,26 @@ public class TokenService {
         this.encoder = new NimbusJwtEncoder(new ImmutableJWKSet<SecurityContext>(new JWKSet(keys.signingJwk())));
     }
 
-    /** A user token: names the user's workshop in the {@code tid} claim. */
-    public IssuedToken forUser(User user) {
+    /**
+     * A user token: names the user's workshop in the {@code tid} claim and its address label in
+     * {@code tsl} (services refuse the token at any other workshop's address).
+     */
+    public IssuedToken forUser(User user, String workshopSlug) {
         if (user.getTenantId() == null) {
             throw new IllegalStateException("User " + user.getId() + " has no workshop");
         }
         List<String> roles = user.getRoles().stream().map(Role::name).sorted().toList();
         return issue(user.getId().toString(), user.getUsername(), roles, properties.getAccessTokenTtl(),
-                user.getTenantId());
+                user.getTenantId(), workshopSlug);
     }
 
     /** A SYSTEM token for service-to-service calls: platform-level, no workshop. */
     public IssuedToken forClient(String clientId, Collection<String> roles) {
-        return issue(clientId, clientId, List.copyOf(roles), properties.getSystemTokenTtl(), null);
+        return issue(clientId, clientId, List.copyOf(roles), properties.getSystemTokenTtl(), null, null);
     }
 
-    private IssuedToken issue(String subject, String username, List<String> roles, Duration ttl, UUID tenantId) {
+    private IssuedToken issue(String subject, String username, List<String> roles, Duration ttl, UUID tenantId,
+            String workshopSlug) {
         Instant now = clock.instant().truncatedTo(ChronoUnit.SECONDS);
         Instant expiresAt = now.plus(ttl);
         JwtClaimsSet claims = JwtClaimsSet.builder()
@@ -79,6 +83,9 @@ public class TokenService {
                 .claims(c -> {
                     if (tenantId != null) {
                         c.put(Tenants.CLAIM, tenantId.toString());
+                    }
+                    if (workshopSlug != null) {
+                        c.put(Tenants.SLUG_CLAIM, workshopSlug);
                     }
                 })
                 .build();

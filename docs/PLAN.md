@@ -164,6 +164,9 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 | GET | /auth/tenant | any signed-in user (their workshop and its settings) |
 | PUT | /auth/tenant/settings | ADMIN (with the `version` read; 409 if stale) |
 | GET | /auth/internal/tenants/{id}/settings | SYSTEM only; nginx returns 404 for `/api/v1/auth/internal/` |
+| POST | /tenants/signup | public (CSRF header, rate-limited per IP): new workshop + its ADMIN |
+| GET | /tenants/slug-availability?slug= | public |
+| GET | /tenants/current | public: the workshop at this address (404 if none) |
 
 ### appointment-service (:8081)
 | Method | Path | Who |
@@ -420,6 +423,41 @@ in the page `<meta name="description">`.
     - Still from env after phase 3: only the defaults for new workshops and the
       appointment-service fallback zone; no business setting is read from env
       at request time while auth-service is up.
+20. **Multi-tenancy (SaaS), phase 4: sign-up and workshop addresses.**
+    - A workshop lives at `<slug>.<BAYFLOW_BASE_DOMAIN>` (`demo.localhost:3000`);
+      the bare base domain is the public site (landing page, sign-up) and never
+      holds a session. Browsers resolve `*.localhost` themselves; nginx and the
+      Vite dev server serve every host and pass it on in `X-Forwarded-Host`.
+    - `V6` renames the original `default` workshop to `demo` (same id and data).
+      Slugs never change, because tokens and addresses refer to them. The dev
+      profile also seeds `acme` (fixed id) with the same four demo users.
+    - auth-service finds the workshop of sign-in, registration, refresh and
+      sign-out from the address (`RequestTenants`): unknown → 404
+      `workshop-not-found`; SUSPENDED → 403 `workshop-suspended` (sign-out still
+      works; issued access tokens run out within 15 minutes). Addresses with no
+      workshop label (Swagger UI on :8083, scripts) use
+      `BAYFLOW_FALLBACK_WORKSHOP` (`demo` in dev, empty otherwise → 404).
+    - Tokens add `tsl` (the slug). `WorkshopHostFilter` (common-security, all
+      three services) refuses a user token at another workshop's address with
+      401 `workshop-mismatch`, and a token without `tsl` at any workshop address.
+      Addresses without a workshop label and SYSTEM tokens are not checked; the
+      `tid` claim remains the only source of the tenant.
+    - `POST /api/v1/tenants/signup` (public, CSRF header required, 10 per IP per
+      hour by default, 30 in local compose for repeated e2e runs, in memory per
+      instance) creates the workshop, its settings and its first ADMIN in one
+      transaction, inside the new workshop's tenant context so row-level
+      security accepts the rows. Slug rules: 3–30 of `a-z`, `0-9` and single
+      hyphens, no hyphen at either end, unique, not reserved (www, api, admin,
+      auth, default, status, mail, help, …). `GET /api/v1/tenants/slug-availability`
+      checks live; `GET /api/v1/tenants/current` names the workshop for its
+      sign-in page. Losing a race on the slug is a 409, not a 500.
+    - Login rate limits are per workshop, username and IP (the same username in
+      two workshops is two people).
+    - Refresh cookies keep no `Domain` attribute, so each workshop address has
+      its own session and the public site has none.
+    - Not built (see docs/SAAS-AWS-NOTES.md): a platform-admin UI to suspend or
+      delete workshops (SQL for now), email verification of sign-ups, custom
+      domains per workshop, a shared rate-limit store.
 
 ---
 
@@ -439,5 +477,7 @@ in the page `<meta name="description">`.
 | SaaS 2 | Row-level security, separate DB roles, isolation suite | cross-tenant access impossible at the database |
 | SaaS 3 | Per-workshop settings, money frozen on job cards | no business setting read from env at request time |
 | SaaS 4 | Sign-up and `<slug>.localhost` subdomains | a new workshop signs up and runs on its own |
+
+SaaS milestones: 1–3 done; 4 in review.
 
 Each milestone ends with a review pause.

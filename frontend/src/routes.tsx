@@ -11,6 +11,9 @@ import { CustomersPage } from '@/features/customers/CustomersPage';
 import { JobCardDetailPage } from '@/features/jobcards/JobCardDetailPage';
 import { JobCardsPage } from '@/features/jobcards/JobCardsPage';
 import { MyJobsPage } from '@/features/jobcards/MyJobsPage';
+import { LandingPage } from '@/features/site/LandingPage';
+import { SignupPage } from '@/features/site/SignupPage';
+import { SiteLayout } from '@/features/site/SiteLayout';
 import { UsersPage } from '@/features/users/UsersPage';
 import { VehicleDetailPage } from '@/features/vehicles/VehicleDetailPage';
 import { VehiclesPage } from '@/features/vehicles/VehiclesPage';
@@ -20,7 +23,10 @@ import { LoginPage } from '@/pages/LoginPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RegisterPage } from '@/pages/RegisterPage';
 
-/** All routes. Role guards mirror the API's rules; the API remains the real enforcement. */
+/**
+ * A workshop's app (`<slug>.localhost`). Role guards mirror the API's rules; the API remains the
+ * real enforcement.
+ */
 export const routes: RouteObject[] = [
   {
     element: <GuestOnly />,
@@ -88,6 +94,18 @@ export const routes: RouteObject[] = [
           { path: '*', element: <NotFoundPage /> },
         ],
       },
+    ],
+  },
+];
+
+/** The public site at the base domain (`localhost:3000`): landing page and workshop sign-up. */
+export const publicRoutes: RouteObject[] = [
+  {
+    element: <SiteLayout />,
+    children: [
+      { index: true, element: <LandingPage /> },
+      { path: '/signup', element: <SignupPage /> },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ];

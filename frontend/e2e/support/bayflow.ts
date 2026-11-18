@@ -9,6 +9,8 @@ import {
   type TestInfo,
 } from '@playwright/test';
 
+import './localhost-dns';
+
 /**
  * Shared harness for the recorded end-to-end scenarios.
  *
@@ -268,8 +270,9 @@ export class Actor {
   check = (text: string) => this.say(text, 'check');
 
   async signIn(username: string, password = DEMO_PASSWORD): Promise<void> {
-    await throttleLogin(username);
     await this.page.goto('/login');
+    // Login limits are per workshop: key the throttle by this address.
+    await throttleLogin(`${new URL(this.page.url()).origin}|${username}`);
     await this.page.getByLabel('Username').fill(username);
     await this.page.getByLabel('Password').fill(password);
     await this.page.getByRole('button', { name: 'Sign in' }).click();
@@ -319,16 +322,32 @@ export class Cast {
     this.steps.push({ t: Date.now() - this.startedAt, actor, text, kind });
   }
 
-  private get baseURL(): string {
-    return (this.testInfo.project.use.baseURL as string | undefined) ?? 'http://localhost:3000';
+  /** This run's workshop address, e.g. http://demo.localhost:3000 (see playwright.config.ts). */
+  get baseURL(): string {
+    return (this.testInfo.project.use.baseURL as string | undefined) ?? 'http://demo.localhost:3000';
   }
 
-  /** A new person at their own browser, recorded on video. */
-  async actor(name: string): Promise<Actor> {
+  /** The public site (sign-up), e.g. http://localhost:3000. */
+  get siteURL(): string {
+    const url = new URL(this.baseURL);
+    return `${url.protocol}//${url.host.split('.').slice(1).join('.')}`;
+  }
+
+  /** Another workshop's address on the same site. */
+  workshopURL(slug: string): string {
+    const url = new URL(this.siteURL);
+    return `${url.protocol}//${slug}.${url.host}`;
+  }
+
+  /**
+   * A new person at their own browser, recorded on video. They start at this run's workshop
+   * (its sign-in page), or at `options.at` (another address, e.g. the public sign-up site).
+   */
+  async actor(name: string, options: { at?: string } = {}): Promise<Actor> {
     const use = this.testInfo.project.use;
     const viewport = use.viewport ?? { width: 1280, height: 800 };
     const context = await this.browser.newContext({
-      baseURL: this.baseURL,
+      baseURL: options.at ?? this.baseURL,
       viewport,
       isMobile: use.isMobile,
       hasTouch: use.hasTouch,
@@ -342,15 +361,15 @@ export class Cast {
     const page = await context.newPage();
     const actor = new Actor(name, context, page, this);
     this.actors.push({ actor, offsetMs: Date.now() - this.startedAt });
-    await page.goto('/login');
+    await page.goto(options.at ? '/' : '/login');
     await actor.say('joins the scenario');
     return actor;
   }
 
   /** A signed-in API client, for arranging data without clicking through the UI. */
-  async api(username: string, password = DEMO_PASSWORD): Promise<Api> {
-    await throttleLogin(username);
-    const http = await playwrightRequest.newContext({ baseURL: this.baseURL });
+  async api(username: string, password = DEMO_PASSWORD, at: string = this.baseURL): Promise<Api> {
+    await throttleLogin(`${new URL(at).origin}|${username}`);
+    const http = await playwrightRequest.newContext({ baseURL: at });
     this.apis.push(http);
     const response = await http.post('/api/v1/auth/login', { data: { username, password } });
     expect(response.ok(), `API login for ${username}`).toBeTruthy();
@@ -359,8 +378,8 @@ export class Cast {
   }
 
   /** An unauthenticated API client. */
-  async anonymousApi(): Promise<APIRequestContext> {
-    const http = await playwrightRequest.newContext({ baseURL: this.baseURL });
+  async anonymousApi(at: string = this.baseURL): Promise<APIRequestContext> {
+    const http = await playwrightRequest.newContext({ baseURL: at });
     this.apis.push(http);
     return http;
   }

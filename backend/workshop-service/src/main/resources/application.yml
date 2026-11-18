@@ -43,6 +43,9 @@ spring:
       default_currency: ${BAYFLOW_CURRENCY:USD}
 
 bayflow:
+  # A user token only works at its own workshop's address, <slug>.<base domain>.
+  tenancy:
+    base-domain: ${BAYFLOW_BASE_DOMAIN:localhost}
   security:
     jwt:
       jwk-set-uri: ${BAYFLOW_JWKS_URI:http://localhost:8083/.well-known/jwks.json}

@@ -212,3 +212,38 @@ export interface UpdateWorkshopSettingsRequest {
   timeZone: string;
   version: number;
 }
+
+// ---- workshops: sign-up and addresses (auth-service, SaaS phase 4) -----------------------
+
+/** The workshop at this address, for its sign-in page (public). */
+export interface PublicWorkshop {
+  slug: string;
+  name: string;
+  displayName: string;
+  /** False while the workshop is suspended: nobody can sign in. */
+  active: boolean;
+}
+
+export interface SignupRequest {
+  workshopName: string;
+  slug: string;
+  labourRate?: number;
+  currency?: string;
+  timeZone?: string;
+  adminUsername: string;
+  adminEmail: string;
+  adminPassword: string;
+}
+
+export interface SignupResponse {
+  id: string;
+  slug: string;
+  name: string;
+  adminUsername: string;
+}
+
+export interface SlugAvailability {
+  slug: string;
+  available: boolean;
+  reason?: 'taken' | 'reserved' | 'invalid' | null;
+}

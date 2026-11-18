@@ -19,6 +19,7 @@ import com.bayflow.auth.domain.RefreshToken;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.User;
 import com.bayflow.auth.infrastructure.RefreshTokenRepository;
+import com.bayflow.auth.infrastructure.TenantRepository;
 import com.bayflow.auth.infrastructure.UserRepository;
 import com.bayflow.security.TenantContext;
 
@@ -39,6 +40,7 @@ public class AuthService {
     }
 
     private final UserRepository users;
+    private final TenantRepository tenants;
     private final RefreshTokenRepository refreshTokens;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
@@ -48,9 +50,11 @@ public class AuthService {
     /** Compared against when the username is unknown, so response time does not reveal which users exist. */
     private final String dummyHash;
 
-    public AuthService(UserRepository users, RefreshTokenRepository refreshTokens, PasswordEncoder passwordEncoder,
-            TokenService tokenService, LoginRateLimiter rateLimiter, AuthProperties properties, Clock clock) {
+    public AuthService(UserRepository users, TenantRepository tenants, RefreshTokenRepository refreshTokens,
+            PasswordEncoder passwordEncoder, TokenService tokenService, LoginRateLimiter rateLimiter,
+            AuthProperties properties, Clock clock) {
         this.users = users;
+        this.tenants = tenants;
         this.refreshTokens = refreshTokens;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
@@ -84,7 +88,8 @@ public class AuthService {
     @Transactional(noRollbackFor = AuthenticationFailedException.class)
     public Session login(String username, String password, String clientIp) {
         String normalized = User.normalizeUsername(username);
-        rateLimiter.check(normalized + "|" + clientIp);
+        // Per workshop: the same username in two workshops is two different people.
+        rateLimiter.check(TenantContext.require() + "|" + normalized + "|" + clientIp);
         Instant now = clock.instant();
 
         Optional<User> found = users.findByUsername(normalized);
@@ -138,7 +143,7 @@ public class AuthService {
         String raw = SecureTokens.newToken();
         Instant expiresAt = now.plus(properties.getRefreshTokenTtl());
         refreshTokens.save(current.rotate(SecureTokens.sha256(raw), expiresAt, now));
-        return new Session(tokenService.forUser(user), raw, expiresAt, user, now);
+        return new Session(tokenService.forUser(user, slugOf(user)), raw, expiresAt, user, now);
     }
 
     /** Ends the session the refresh token belongs to. Unknown or missing tokens are ignored. */
@@ -161,6 +166,12 @@ public class AuthService {
         Instant expiresAt = now.plus(properties.getRefreshTokenTtl());
         refreshTokens.save(RefreshToken.newFamily(user.getTenantId(), user.getId(), SecureTokens.sha256(raw),
                 expiresAt, now));
-        return new Session(tokenService.forUser(user), raw, expiresAt, user, now);
+        return new Session(tokenService.forUser(user, slugOf(user)), raw, expiresAt, user, now);
+    }
+
+    private String slugOf(User user) {
+        return tenants.findById(user.getTenantId())
+                .orElseThrow(() -> new IllegalStateException("User " + user.getId() + " has no workshop"))
+                .getSlug();
     }
 }

@@ -1,5 +1,9 @@
 package com.bayflow.auth.config;
 
+import java.time.Clock;
+import java.util.List;
+import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationRunner;
@@ -9,8 +13,11 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.util.StringUtils;
 
 import com.bayflow.auth.application.ClientCredentialsService;
+import com.bayflow.auth.application.TenantSettingsService;
 import com.bayflow.auth.application.UserAdminService;
 import com.bayflow.auth.domain.Role;
+import com.bayflow.auth.domain.Tenant;
+import com.bayflow.auth.infrastructure.TenantRepository;
 import com.bayflow.security.TenantContext;
 import com.bayflow.security.Tenants;
 
@@ -45,15 +52,35 @@ public class StartupData {
         });
     }
 
-    /** Demo users in the default workshop, for local development. Never active outside "dev". */
+    /** The second demo workshop (acme.localhost), dev profile only. Fixed id so it is stable. */
+    public static final UUID ACME_TENANT_ID = UUID.fromString("0000000a-c3e0-4000-8000-000000000002");
+
+    /**
+     * Two demo workshops for local development, {@code demo} (all pre-multi-tenancy data) and
+     * {@code acme}, each with the same four users, so you can check they are independent.
+     * Never active outside "dev".
+     */
     @Bean
     @Profile("dev")
-    ApplicationRunner seedDevUsers(UserAdminService userAdmin) {
-        return args -> TenantContext.run(Tenants.DEFAULT_TENANT_ID, () -> {
-            userAdmin.ensureUser("customer1", "customer1@bayflow.local", DEV_PASSWORD, Role.CUSTOMER);
-            userAdmin.ensureUser("advisor1", "advisor1@bayflow.local", DEV_PASSWORD, Role.SERVICE_ADVISOR);
-            userAdmin.ensureUser("mechanic1", "mechanic1@bayflow.local", DEV_PASSWORD, Role.MECHANIC);
-            userAdmin.ensureUser("admin1", "admin1@bayflow.local", DEV_PASSWORD, Role.ADMIN);
-        });
+    ApplicationRunner seedDevWorkshops(UserAdminService userAdmin, TenantRepository tenants,
+            TenantSettingsService settings, Clock clock) {
+        return args -> {
+            if (tenants.findById(ACME_TENANT_ID).isEmpty() && !tenants.existsBySlug("acme")) {
+                tenants.saveAndFlush(Tenant.create(ACME_TENANT_ID, "acme", "Acme Motors", clock.instant()));
+                log.info("Created demo workshop 'acme' (acme.localhost)");
+            }
+            for (UUID workshop : List.of(Tenants.DEFAULT_TENANT_ID, ACME_TENANT_ID)) {
+                if (tenants.findById(workshop).isEmpty()) {
+                    continue;
+                }
+                TenantContext.run(workshop, () -> {
+                    settings.current();
+                    userAdmin.ensureUser("customer1", "customer1@bayflow.local", DEV_PASSWORD, Role.CUSTOMER);
+                    userAdmin.ensureUser("advisor1", "advisor1@bayflow.local", DEV_PASSWORD, Role.SERVICE_ADVISOR);
+                    userAdmin.ensureUser("mechanic1", "mechanic1@bayflow.local", DEV_PASSWORD, Role.MECHANIC);
+                    userAdmin.ensureUser("admin1", "admin1@bayflow.local", DEV_PASSWORD, Role.ADMIN);
+                });
+            }
+        };
     }
 }

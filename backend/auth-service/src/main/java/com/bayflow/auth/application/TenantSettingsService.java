@@ -58,16 +58,8 @@ public class TenantSettingsService {
     /** Changes the current workshop's settings; {@code version} must match what the caller last read. */
     @Transactional
     public WorkshopView update(SettingsUpdate update) {
-        String currency = update.currency().trim().toUpperCase();
-        try {
-            Currency.getInstance(currency);
-        } catch (IllegalArgumentException e) {
-            throw ApiException.badRequest("invalid-currency", "'" + update.currency() + "' is not a currency code.");
-        }
-        String timeZone = update.timeZone().trim();
-        if (!ZoneId.getAvailableZoneIds().contains(timeZone)) {
-            throw ApiException.badRequest("invalid-time-zone", "'" + update.timeZone() + "' is not a time zone.");
-        }
+        String currency = currencyCode(update.currency());
+        String timeZone = timeZone(update.timeZone());
         WorkshopView view = current();
         TenantSettings own = view.settings();
         if (own.getVersion() != null && own.getVersion() != update.version()) {
@@ -78,6 +70,41 @@ public class TenantSettingsService {
                 blankToNull(update.address()), update.labourRate(), currency, timeZone, clock.instant());
         settings.saveAndFlush(own);
         return new WorkshopView(view.tenant(), own);
+    }
+
+    /**
+     * Settings for a workshop that is being created (sign-up), in the workshop in
+     * {@link TenantContext}. Labour rate, currency and time zone default to the configured ones.
+     */
+    @Transactional
+    public TenantSettings createForNewWorkshop(String displayName, BigDecimal labourRate, String currency,
+            String timeZone) {
+        AuthProperties.TenantDefaults defaults = properties.getTenantDefaults();
+        return settings.saveAndFlush(TenantSettings.create(TenantContext.require(), displayName.trim(),
+                labourRate != null ? labourRate : defaults.getLabourRate(),
+                currencyCode(StringUtils.hasText(currency) ? currency : defaults.getCurrency()),
+                timeZone(StringUtils.hasText(timeZone) ? timeZone : defaults.getTimeZone()),
+                clock.instant()));
+    }
+
+    /** An ISO 4217 code in upper case, or 400 invalid-currency. */
+    static String currencyCode(String value) {
+        String currency = value.trim().toUpperCase();
+        try {
+            Currency.getInstance(currency);
+        } catch (IllegalArgumentException e) {
+            throw ApiException.badRequest("invalid-currency", "'" + value + "' is not a currency code.");
+        }
+        return currency;
+    }
+
+    /** A known IANA time zone, or 400 invalid-time-zone. */
+    static String timeZone(String value) {
+        String zone = value.trim();
+        if (!ZoneId.getAvailableZoneIds().contains(zone)) {
+            throw ApiException.badRequest("invalid-time-zone", "'" + value + "' is not a time zone.");
+        }
+        return zone;
     }
 
     private static String blankToNull(String value) {

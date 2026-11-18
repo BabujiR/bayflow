@@ -8,6 +8,9 @@ COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 COPY frontend/ ./
+# Workshops live at <slug>.<base domain>; the bare base domain is the public sign-up site.
+ARG VITE_BASE_DOMAIN=localhost
+ENV VITE_BASE_DOMAIN=${VITE_BASE_DOMAIN}
 RUN pnpm build
 
 # nginx running as a non-root user, listening on 8080

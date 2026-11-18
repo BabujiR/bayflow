@@ -87,6 +87,14 @@ bayflow:
       labour-rate: ${BAYFLOW_LABOUR_RATE:95.00}
       currency: ${BAYFLOW_CURRENCY:USD}
       time-zone: ${BAYFLOW_WORKSHOP_ZONE:America/New_York}
+    # Self-service sign-up of new workshops (POST /api/v1/tenants/signup).
+    signup:
+      max-per-hour-per-ip: ${BAYFLOW_SIGNUP_MAX_PER_HOUR:10}
+    # Workshop for sign-in at an address without one (Swagger UI on :8083, scripts). Empty = none.
+    fallback-workshop: ${BAYFLOW_FALLBACK_WORKSHOP:}
+  # Workshops live at <slug>.<base domain>; the base domain itself is the public sign-up site.
+  tenancy:
+    base-domain: ${BAYFLOW_BASE_DOMAIN:localhost}
 
 management:
   endpoints:

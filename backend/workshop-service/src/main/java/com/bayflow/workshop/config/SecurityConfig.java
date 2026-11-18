@@ -11,6 +11,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import com.bayflow.security.BayflowSecurity;
 import com.bayflow.security.ProblemDetailsSecurityHandlers;
 import com.bayflow.security.RolesClaimAuthenticationConverter;
+import com.bayflow.security.WorkshopHosts;
 
 /**
  * Tokens are verified with auth-service's public key (JWKS, configured by
@@ -27,8 +28,8 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, RolesClaimAuthenticationConverter converter,
-            ProblemDetailsSecurityHandlers handlers) throws Exception {
-        BayflowSecurity.statelessJwt(http, converter, handlers)
+            ProblemDetailsSecurityHandlers handlers, WorkshopHosts hosts) throws Exception {
+        BayflowSecurity.statelessJwt(http, converter, handlers, hosts)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")

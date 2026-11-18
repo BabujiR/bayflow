@@ -90,13 +90,14 @@ class KeysAndTokensTest {
         User user = User.create(Tenants.DEFAULT_TENANT_ID, "advisor1", "a@b.c", "{noop}x", Set.of(Role.SERVICE_ADVISOR),
                 Instant.now());
 
-        TokenService.IssuedToken issued = tokens.forUser(user);
+        TokenService.IssuedToken issued = tokens.forUser(user, "demo");
         Jwt jwt = decoder(keys, properties).decode(issued.value());
 
         assertThat(jwt.getSubject()).isEqualTo(user.getId().toString());
         assertThat(jwt.getClaimAsString("username")).isEqualTo("advisor1");
         assertThat(jwt.getClaimAsStringList("roles")).containsExactly("SERVICE_ADVISOR");
         assertThat(jwt.getClaimAsString("tid")).isEqualTo(Tenants.DEFAULT_TENANT_ID.toString());
+        assertThat(jwt.getClaimAsString("tsl")).isEqualTo("demo");
         assertThat(jwt.getAudience()).containsExactly("bayflow");
         assertThat(jwt.getClaimAsString("iss")).isEqualTo("bayflow-auth");
         assertThat(jwt.getId()).isNotBlank();

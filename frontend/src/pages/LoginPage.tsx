@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { z } from 'zod';
 
 import { ApiError, errorMessage } from '@/api/errors';
@@ -25,6 +25,9 @@ export function loginErrorMessage(error: unknown): string {
     if (error.code === 'invalid-credentials') {
       return 'Username or password is incorrect.';
     }
+    if (error.code === 'workshop-suspended') {
+      return "This workshop's account is suspended. Please contact the workshop.";
+    }
     if (error.isClientError) {
       return error.message;
     }
@@ -37,6 +40,8 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? '/';
+  const [params] = useSearchParams();
+  const welcome = params.get('welcome') === '1';
   const [formError, setFormError] = useState<string | null>(null);
   const {
     register,
@@ -62,6 +67,9 @@ export function LoginPage() {
       </CardHeader>
       <form onSubmit={onSubmit} noValidate>
         <CardContent className="grid gap-4">
+          {welcome && !formError && (
+            <Alert variant="info">Your workshop is ready. Sign in with the admin account you just created.</Alert>
+          )}
           {formError && <Alert>{formError}</Alert>}
           <Field label="Username" error={errors.username?.message}>
             <Input autoComplete="username" autoFocus {...register('username')} />

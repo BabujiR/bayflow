@@ -47,6 +47,18 @@ public class Tenant {
         // for JPA
     }
 
+    /** A new, active workshop. The slug is its address and never changes. */
+    public static Tenant create(UUID id, String slug, String name, Instant now) {
+        Tenant tenant = new Tenant();
+        tenant.id = id;
+        tenant.slug = slug;
+        tenant.name = name;
+        tenant.status = Status.ACTIVE;
+        tenant.createdAt = now;
+        tenant.updatedAt = now;
+        return tenant;
+    }
+
     public UUID getId() { return id; }
     public String getSlug() { return slug; }
     public String getName() { return name; }

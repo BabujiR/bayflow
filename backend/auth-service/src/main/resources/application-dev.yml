@@ -4,6 +4,8 @@ bayflow:
   auth:
     cookie:
       secure: ${BAYFLOW_COOKIE_SECURE:false}
+    # Swagger UI on http://localhost:8083 signs in to the "demo" workshop.
+    fallback-workshop: ${BAYFLOW_FALLBACK_WORKSHOP:demo}
 
 logging:
   level:
