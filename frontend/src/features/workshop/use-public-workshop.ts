@@ -13,4 +13,5 @@ export function usePublicWorkshop() {
   });
 }
 
-export const isWorkshopNotFound = (error: unknown) => error instanceof ApiError && error.code === 'workshop-not-found';
+export const isWorkshopNotFound = (error: unknown) =>
+  error instanceof ApiError && error.code === 'workshop-not-found';

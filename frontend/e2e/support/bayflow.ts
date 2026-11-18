@@ -270,7 +270,10 @@ export class Actor {
   check = (text: string) => this.say(text, 'check');
 
   async signIn(username: string, password = DEMO_PASSWORD): Promise<void> {
-    await this.page.goto('/login');
+    // The sign-in page of the address this browser is at now: after a workshop sign-up that is
+    // the new workshop, not the public site the browser started on.
+    const current = this.page.url();
+    await this.page.goto(current.startsWith('http') ? new URL('/login', current).href : '/login');
     // Login limits are per workshop: key the throttle by this address.
     await throttleLogin(`${new URL(this.page.url()).origin}|${username}`);
     await this.page.getByLabel('Username').fill(username);

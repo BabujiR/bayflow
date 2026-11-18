@@ -68,7 +68,9 @@ export function LoginPage() {
       <form onSubmit={onSubmit} noValidate>
         <CardContent className="grid gap-4">
           {welcome && !formError && (
-            <Alert variant="info">Your workshop is ready. Sign in with the admin account you just created.</Alert>
+            <Alert variant="info">
+              Your workshop is ready. Sign in with the admin account you just created.
+            </Alert>
           )}
           {formError && <Alert>{formError}</Alert>}
           <Field label="Username" error={errors.username?.message}>

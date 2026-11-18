@@ -8,7 +8,10 @@ import { Input } from '@/components/ui/input';
 import { BASE_DOMAIN, browser, workshopUrl } from '@/lib/site';
 
 const FEATURES = [
-  { title: 'Online booking', text: 'Customers book, reschedule and cancel themselves; double bookings are refused.' },
+  {
+    title: 'Online booking',
+    text: 'Customers book, reschedule and cancel themselves; double bookings are refused.',
+  },
   { title: 'Job cards', text: 'Inspection findings, estimates and customer approval, line by line.' },
   { title: 'Your own address', text: `Every workshop gets its own site at your-workshop.${BASE_DOMAIN}.` },
 ];
@@ -23,8 +26,8 @@ export function LandingPage() {
       <section className="grid gap-4 text-center">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Run your auto workshop on Bayflow</h1>
         <p className="mx-auto max-w-2xl text-muted-foreground">
-          Bookings, check-in, inspections, customer approvals and service history in one place, for your front desk,
-          your mechanics and your customers.
+          Bookings, check-in, inspections, customer approvals and service history in one place, for your front
+          desk, your mechanics and your customers.
         </p>
         <div className="flex justify-center">
           <Button asChild size="lg">

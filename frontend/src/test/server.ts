@@ -24,7 +24,12 @@ export function pageOf<T>(content: T[]): PageResponse<T> {
 const defaults = [
   http.get('*/api/v1/auth/tenant', () => HttpResponse.json(workshop())),
   http.get('*/api/v1/tenants/current', () =>
-    HttpResponse.json({ slug: 'demo', name: 'Bayflow Workshop', displayName: 'Bayflow Downtown', active: true }),
+    HttpResponse.json({
+      slug: 'demo',
+      name: 'Bayflow Workshop',
+      displayName: 'Bayflow Downtown',
+      active: true,
+    }),
   ),
   http.get('*/api/v1/customers/me', () => HttpResponse.json(customer())),
   http.get('*/api/v1/vehicles', () => HttpResponse.json(pageOf([]))),

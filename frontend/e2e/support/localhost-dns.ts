@@ -7,7 +7,11 @@ import dns from 'node:dns';
  */
 const LOCAL = /(^|\.)localhost\.?$/i;
 
-type LookupCallback = (err: NodeJS.ErrnoException | null, address: string | dns.LookupAddress[], family?: number) => void;
+type LookupCallback = (
+  err: NodeJS.ErrnoException | null,
+  address: string | dns.LookupAddress[],
+  family?: number,
+) => void;
 
 const originalLookup = dns.lookup.bind(dns) as unknown as (
   hostname: string,
@@ -32,7 +36,10 @@ function patchedLookup(hostname: string, options: unknown, callback?: unknown): 
 const originalPromiseLookup = dns.promises.lookup.bind(dns.promises);
 
 (dns as unknown as { lookup: unknown }).lookup = patchedLookup;
-(dns.promises as unknown as { lookup: unknown }).lookup = async (hostname: string, options?: dns.LookupOptions) => {
+(dns.promises as unknown as { lookup: unknown }).lookup = async (
+  hostname: string,
+  options?: dns.LookupOptions,
+) => {
   if (LOCAL.test(hostname) && hostname.toLowerCase() !== 'localhost') {
     return options?.all ? [{ address: '127.0.0.1', family: 4 }] : { address: '127.0.0.1', family: 4 };
   }

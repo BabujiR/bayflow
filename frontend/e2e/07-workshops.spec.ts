@@ -33,7 +33,7 @@ test.describe('Workshops on their own addresses', () => {
     await ownerA.check(`Workshop A is live at ${slugA}.localhost`);
 
     await ownerA.signIn('owner', ownerPasswordA);
-    await ownerA.page.goto('/settings');
+    await ownerA.page.goto(`${cast.workshopURL(slugA)}/settings`);
     const settings = ownerA.page.getByRole('form', { name: 'Workshop settings' });
     await expect(settings.getByLabel('Currency')).toHaveValue('EUR');
     await settings.getByLabel('Labour rate per hour').fill('120');
@@ -71,7 +71,7 @@ test.describe('Workshops on their own addresses', () => {
     await ownerB.page.getByRole('button', { name: 'Sign in' }).click();
     await expect(ownerB.page.getByText('Username or password is incorrect.')).toBeVisible();
     await ownerB.signIn('owner', ownerPasswordB);
-    await ownerB.page.goto('/settings');
+    await ownerB.page.goto(`${cast.workshopURL(slugB)}/settings`);
     await expect(
       ownerB.page.getByRole('form', { name: 'Workshop settings' }).getByLabel('Labour rate per hour'),
     ).not.toHaveValue('120');

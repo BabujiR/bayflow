@@ -73,7 +73,10 @@ describe('the public site (base domain)', () => {
   it('shows taken and reserved addresses and the server’s answer on the field', async () => {
     browser.go = vi.fn();
     server.use(
-      availability({ taken: { available: false, reason: 'taken' }, admin: { available: false, reason: 'reserved' } }),
+      availability({
+        taken: { available: false, reason: 'taken' },
+        admin: { available: false, reason: 'reserved' },
+      }),
       http.post('*/api/v1/tenants/signup', () => problem(409, 'slug-taken', "'race' is already taken.")),
     );
     renderSite('/signup');
@@ -122,7 +125,9 @@ describe("a workshop's sign-in page", () => {
   it('says so when no workshop has this address', async () => {
     server.use(
       noSession,
-      http.get('*/api/v1/tenants/current', () => problem(404, 'workshop-not-found', 'There is no workshop here.')),
+      http.get('*/api/v1/tenants/current', () =>
+        problem(404, 'workshop-not-found', 'There is no workshop here.'),
+      ),
     );
     renderApp('/login');
 
@@ -148,6 +153,8 @@ describe("a workshop's sign-in page", () => {
     await userEvent.type(screen.getByLabelText('Username'), 'admin1');
     await userEvent.type(screen.getByLabelText('Password'), 'Bayflow!2026');
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
-    expect(await screen.findByText("This workshop's account is suspended. Please contact the workshop.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("This workshop's account is suspended. Please contact the workshop."),
+    ).toBeInTheDocument();
   });
 });

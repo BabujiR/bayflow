@@ -27,7 +27,10 @@ const schema = z
       .string()
       .trim()
       .toLowerCase()
-      .regex(SLUG_PATTERN, '3-30 lower-case letters, digits and single hyphens, not starting or ending with one'),
+      .regex(
+        SLUG_PATTERN,
+        '3-30 lower-case letters, digits and single hyphens, not starting or ending with one',
+      ),
     currency: z.string().regex(/^[A-Z]{3}$/, 'Choose a currency'),
     timeZone: z.string().min(1, 'Choose a time zone'),
     adminUsername: z
@@ -48,7 +51,15 @@ const schema = z
 type SignupValues = z.input<typeof schema>;
 type SignupOutput = z.output<typeof schema>;
 
-const FIELDS = ['workshopName', 'slug', 'adminUsername', 'adminEmail', 'adminPassword', 'currency', 'timeZone'] as const;
+const FIELDS = [
+  'workshopName',
+  'slug',
+  'adminUsername',
+  'adminEmail',
+  'adminPassword',
+  'currency',
+  'timeZone',
+] as const;
 
 /** Self-service sign-up: a new workshop and its first admin, then on to the workshop's address. */
 export function SignupPage() {
@@ -217,7 +228,10 @@ export function SignupPage() {
             Create workshop
           </Button>
           <p className="text-sm text-muted-foreground">
-            Already on Bayflow? <Link to="/" className="font-medium text-primary hover:underline">Go to your workshop</Link>
+            Already on Bayflow?{' '}
+            <Link to="/" className="font-medium text-primary hover:underline">
+              Go to your workshop
+            </Link>
           </p>
         </CardFooter>
       </form>

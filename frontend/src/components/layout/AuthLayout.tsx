@@ -33,7 +33,9 @@ export function AuthLayout() {
         </div>
         <div className="grid w-full max-w-sm gap-4">
           {workshop.data && !workshop.data.active && (
-            <Alert>This workshop's account is suspended, so nobody can sign in. Please contact the workshop.</Alert>
+            <Alert>
+              This workshop's account is suspended, so nobody can sign in. Please contact the workshop.
+            </Alert>
           )}
           {notFound ? <WorkshopNotFoundPage /> : <Outlet />}
         </div>
