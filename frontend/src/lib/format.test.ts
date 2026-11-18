@@ -5,6 +5,7 @@ import {
   formatTime,
   isoToLocalInput,
   localInputToIso,
+  localInputToMillis,
   setWorkshopZone,
   todayIso,
 } from './format';
