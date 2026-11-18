@@ -37,7 +37,12 @@ export function BoardPage() {
             <div className="flex items-end gap-2">
               <div className="grid gap-1.5">
                 <Label htmlFor="board-date">Day</Label>
-                <Input id="board-date" type="date" value={date} onChange={(e) => setDate(e.target.value || todayIso())} />
+                <Input
+                  id="board-date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value || todayIso())}
+                />
               </div>
               {date !== todayIso() && (
                 <Button variant="ghost" onClick={() => setDate(todayIso())}>
@@ -67,7 +72,9 @@ export function BoardPage() {
                     >
                       <h2 className="flex items-center justify-between px-1 text-sm font-semibold">
                         {APPOINTMENT_STATUS_LABELS[status]}
-                        <span className="rounded-full bg-background px-2 text-xs text-muted-foreground">{items.length}</span>
+                        <span className="rounded-full bg-background px-2 text-xs text-muted-foreground">
+                          {items.length}
+                        </span>
                       </h2>
                       {items.length === 0 ? (
                         <p className="px-1 text-xs text-muted-foreground">None</p>

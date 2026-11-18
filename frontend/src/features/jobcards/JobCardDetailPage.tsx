@@ -47,23 +47,48 @@ function JobCardView({ card }: { card: JobCard }) {
   const workPhase = ['APPROVED', 'PARTIALLY_APPROVED', 'IN_PROGRESS', 'COMPLETED'].includes(status);
   const money = (amount?: number | null) => formatMoney(amount, card.currency);
 
-  const addFinding = useJobCardAction(card.id, (v: Parameters<typeof jobCardsApi.addFinding>[1]) => jobCardsApi.addFinding(card.id, v), 'Finding recorded');
+  const addFinding = useJobCardAction(
+    card.id,
+    (v: Parameters<typeof jobCardsApi.addFinding>[1]) => jobCardsApi.addFinding(card.id, v),
+    'Finding recorded',
+  );
   const addRecommendation = useJobCardAction(
     card.id,
     (v: Parameters<typeof jobCardsApi.addRecommendation>[1]) => jobCardsApi.addRecommendation(card.id, v),
     'Recommendation added',
   );
-  const submit = useJobCardAction(card.id, () => jobCardsApi.submit(card.id), 'Sent to the customer for approval');
+  const submit = useJobCardAction(
+    card.id,
+    () => jobCardsApi.submit(card.id),
+    'Sent to the customer for approval',
+  );
   const decide = useJobCardAction(
     card.id,
-    ({ itemId, decision }: { itemId: string; decision: 'approve' | 'decline' }) => jobCardsApi.decide(card.id, itemId, decision),
+    ({ itemId, decision }: { itemId: string; decision: 'approve' | 'decline' }) =>
+      jobCardsApi.decide(card.id, itemId, decision),
     'Decision recorded',
   );
   const start = useJobCardAction(card.id, () => jobCardsApi.start(card.id), 'Work started');
-  const logWork = useJobCardAction(card.id, (v: Parameters<typeof jobCardsApi.logWork>[1]) => jobCardsApi.logWork(card.id, v), 'Work logged');
-  const addPart = useJobCardAction(card.id, (v: Parameters<typeof jobCardsApi.addPart>[1]) => jobCardsApi.addPart(card.id, v), 'Part added');
-  const addLabour = useJobCardAction(card.id, (v: Parameters<typeof jobCardsApi.addLabour>[1]) => jobCardsApi.addLabour(card.id, v), 'Labour added');
-  const complete = useJobCardAction(card.id, () => jobCardsApi.complete(card.id), 'Job completed and added to the service history');
+  const logWork = useJobCardAction(
+    card.id,
+    (v: Parameters<typeof jobCardsApi.logWork>[1]) => jobCardsApi.logWork(card.id, v),
+    'Work logged',
+  );
+  const addPart = useJobCardAction(
+    card.id,
+    (v: Parameters<typeof jobCardsApi.addPart>[1]) => jobCardsApi.addPart(card.id, v),
+    'Part added',
+  );
+  const addLabour = useJobCardAction(
+    card.id,
+    (v: Parameters<typeof jobCardsApi.addLabour>[1]) => jobCardsApi.addLabour(card.id, v),
+    'Labour added',
+  );
+  const complete = useJobCardAction(
+    card.id,
+    () => jobCardsApi.complete(card.id),
+    'Job completed and added to the service history',
+  );
 
   const canComplete = (advisor || mechanic) && (status === 'IN_PROGRESS' || status === 'DECLINED');
 
@@ -105,7 +130,8 @@ function JobCardView({ card }: { card: JobCard }) {
 
       {customer && status === 'AWAITING_APPROVAL' && (
         <Alert variant="info">
-          Please approve or decline each recommended item below. Work starts once you've decided on all of them.
+          Please approve or decline each recommended item below. Work starts once you've decided on all of
+          them.
         </Alert>
       )}
 
@@ -152,7 +178,11 @@ function JobCardView({ card }: { card: JobCard }) {
                   key={item.id}
                   item={item}
                   money={money}
-                  canDecide={(customer || advisor) && status === 'AWAITING_APPROVAL' && item.approvalStatus === 'PENDING'}
+                  canDecide={
+                    (customer || advisor) &&
+                    status === 'AWAITING_APPROVAL' &&
+                    item.approvalStatus === 'PENDING'
+                  }
                   deciding={decide.isPending}
                   onDecide={(decision) => decide.mutate({ itemId: item.id, decision })}
                 />
@@ -177,7 +207,9 @@ function JobCardView({ card }: { card: JobCard }) {
           {advisor && status === 'INSPECTED' && (
             <div className="flex flex-wrap items-center gap-3">
               <Button disabled={submit.isPending} onClick={() => submit.mutate(undefined)}>
-                {card.recommendations.length === 0 ? 'Finish inspection (no work needed)' : 'Send to customer for approval'}
+                {card.recommendations.length === 0
+                  ? 'Finish inspection (no work needed)'
+                  : 'Send to customer for approval'}
               </Button>
               <span className="text-sm text-muted-foreground">
                 Findings and recommendations can't be changed after this.
@@ -229,7 +261,6 @@ function JobCardView({ card }: { card: JobCard }) {
           </CardContent>
         </Card>
       )}
-
     </div>
   );
 }
@@ -252,8 +283,9 @@ function RecommendationRow({
       <div className="grid gap-1">
         <span className="font-medium">{item.description}</span>
         <span className="text-sm text-muted-foreground">
-          Parts {money(item.estimatedPartsCost)} · Labour {item.estimatedLabourHours} h ({money(item.estimatedLabourCost)})
-          · <strong className="text-foreground">{money(item.estimatedTotal)}</strong>
+          Parts {money(item.estimatedPartsCost)} · Labour {item.estimatedLabourHours} h (
+          {money(item.estimatedLabourCost)}) ·{' '}
+          <strong className="text-foreground">{money(item.estimatedTotal)}</strong>
         </span>
         <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <ApprovalBadge status={item.approvalStatus} />
@@ -262,7 +294,12 @@ function RecommendationRow({
       </div>
       {canDecide && (
         <div className="flex gap-2">
-          <Button size="sm" disabled={deciding} onClick={() => onDecide('approve')} aria-label={`Approve ${item.description}`}>
+          <Button
+            size="sm"
+            disabled={deciding}
+            onClick={() => onDecide('approve')}
+            aria-label={`Approve ${item.description}`}
+          >
             Approve
           </Button>
           <Button
@@ -306,7 +343,8 @@ function WorkSummary({
           ))}
           {parts.map((p) => (
             <li key={p.id}>
-              {p.quantity} × {p.name} ({p.partNumber}) <span className="text-muted-foreground">— {money(p.lineTotal)}</span>
+              {p.quantity} × {p.name} ({p.partNumber}){' '}
+              <span className="text-muted-foreground">— {money(p.lineTotal)}</span>
             </li>
           ))}
           {labour.map((l) => (

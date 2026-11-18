@@ -42,7 +42,10 @@ export function ServiceHistoryList({ vehicleId }: { vehicleId: string }) {
                             <li key={work.recommendation}>
                               <span className="font-medium">{work.recommendation}</span>
                               {work.workPerformed && work.workPerformed.length > 0 && (
-                                <span className="text-muted-foreground"> — {work.workPerformed.join('; ')}</span>
+                                <span className="text-muted-foreground">
+                                  {' '}
+                                  — {work.workPerformed.join('; ')}
+                                </span>
                               )}
                             </li>
                           ))}
@@ -65,14 +68,19 @@ export function ServiceHistoryList({ vehicleId }: { vehicleId: string }) {
                       </div>
                     )}
                     {(entry.details?.declined ?? []).length > 0 && (
-                      <p className="text-muted-foreground">Declined: {(entry.details?.declined ?? []).join(', ')}</p>
+                      <p className="text-muted-foreground">
+                        Declined: {(entry.details?.declined ?? []).join(', ')}
+                      </p>
                     )}
                     <div className="flex flex-wrap justify-between gap-2 border-t pt-3">
                       <span>
                         Parts {formatMoney(entry.partsTotal, entry.currency)} · Labour{' '}
                         {formatMoney(entry.labourTotal, entry.currency)}
                       </span>
-                      <Link to={`/job-cards/${entry.jobCardId}`} className="font-medium text-primary hover:underline">
+                      <Link
+                        to={`/job-cards/${entry.jobCardId}`}
+                        className="font-medium text-primary hover:underline"
+                      >
                         View job card
                       </Link>
                     </div>

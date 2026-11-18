@@ -29,7 +29,10 @@ export interface PageResponse<T> {
 
 export type Role = A['CreateStaffRequest']['role'];
 
-export type User = Present<Omit<A['UserResponse'], 'roles'>, 'id' | 'username' | 'email' | 'enabled' | 'createdAt'> & {
+export type User = Present<
+  Omit<A['UserResponse'], 'roles'>,
+  'id' | 'username' | 'email' | 'enabled' | 'createdAt'
+> & {
   roles: Role[];
 };
 
@@ -54,7 +57,10 @@ export type Vehicle = Present<
   'id' | 'customerId' | 'vin' | 'registration' | 'make' | 'model' | 'year' | 'mileage' | 'createdAt'
 >;
 
-export type VehicleSummary = Present<P['VehicleSummary'], 'id' | 'vin' | 'registration' | 'make' | 'model' | 'year'>;
+export type VehicleSummary = Present<
+  P['VehicleSummary'],
+  'id' | 'vin' | 'registration' | 'make' | 'model' | 'year'
+>;
 
 export type Appointment = Present<
   Omit<P['AppointmentResponse'], 'vehicle'>,
@@ -83,7 +89,10 @@ export type JobCardStatus = NonNullable<W['JobCardResponse']['status']>;
 export type Severity = W['FindingRequest']['severity'];
 export type ApprovalStatus = NonNullable<W['RecommendationResponse']['approvalStatus']>;
 
-export type Finding = Present<W['FindingResponse'], 'id' | 'description' | 'severity' | 'recordedBy' | 'createdAt'>;
+export type Finding = Present<
+  W['FindingResponse'],
+  'id' | 'description' | 'severity' | 'recordedBy' | 'createdAt'
+>;
 
 export type Recommendation = Present<
   W['RecommendationResponse'],
@@ -96,14 +105,20 @@ export type Recommendation = Present<
   | 'approvalStatus'
 >;
 
-export type WorkLog = Present<W['WorkLogResponse'], 'id' | 'recommendationId' | 'mechanic' | 'description' | 'completedAt'>;
+export type WorkLog = Present<
+  W['WorkLogResponse'],
+  'id' | 'recommendationId' | 'mechanic' | 'description' | 'completedAt'
+>;
 
 export type Part = Present<
   W['PartResponse'],
   'id' | 'recommendationId' | 'partNumber' | 'name' | 'quantity' | 'unitPrice' | 'lineTotal' | 'recordedBy'
 >;
 
-export type Labour = Present<W['LabourResponse'], 'id' | 'recommendationId' | 'mechanic' | 'hours' | 'hourlyRate' | 'cost'>;
+export type Labour = Present<
+  W['LabourResponse'],
+  'id' | 'recommendationId' | 'mechanic' | 'hours' | 'hourlyRate' | 'cost'
+>;
 
 export type JobCard = Present<
   Omit<W['JobCardResponse'], 'findings' | 'recommendations' | 'workLogs' | 'parts' | 'labour'>,
@@ -131,7 +146,16 @@ export type JobCard = Present<
 
 export type JobCardSummary = Present<
   W['JobCardSummary'],
-  'id' | 'appointmentId' | 'vehicleId' | 'vin' | 'registration' | 'customerName' | 'mileage' | 'status' | 'createdAt' | 'updatedAt'
+  | 'id'
+  | 'appointmentId'
+  | 'vehicleId'
+  | 'vin'
+  | 'registration'
+  | 'customerName'
+  | 'mileage'
+  | 'status'
+  | 'createdAt'
+  | 'updatedAt'
 >;
 
 export type ServiceRecord = W['ServiceRecord'];

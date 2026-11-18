@@ -9,7 +9,13 @@ export function JobCardTimeline({ card }: { card: JobCard }) {
     { label: 'Checked in', at: card.createdAt },
     { label: 'Inspected', at: inspected },
     { label: 'Sent for approval', at: card.submittedAt },
-    { label: card.status === 'DECLINED' || (card.status === 'COMPLETED' && !card.startedAt) ? 'Declined' : 'Customer decided', at: card.decidedAt },
+    {
+      label:
+        card.status === 'DECLINED' || (card.status === 'COMPLETED' && !card.startedAt)
+          ? 'Declined'
+          : 'Customer decided',
+      at: card.decidedAt,
+    },
     { label: 'Work started', at: card.startedAt },
     { label: 'Completed', at: card.completedAt },
   ];
@@ -23,7 +29,9 @@ export function JobCardTimeline({ card }: { card: JobCard }) {
               aria-hidden
               className={cn(
                 'mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold',
-                done ? 'border-primary bg-primary text-primary-foreground' : 'bg-background text-muted-foreground',
+                done
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'bg-background text-muted-foreground',
               )}
             >
               {index + 1}

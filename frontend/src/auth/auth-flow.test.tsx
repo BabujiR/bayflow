@@ -88,7 +88,9 @@ describe('signing in and out', () => {
   it('registers a customer and signs them in', async () => {
     server.use(
       noSession,
-      http.post('*/api/v1/auth/register', () => HttpResponse.json(user('CUSTOMER', 'newbie'), { status: 201 })),
+      http.post('*/api/v1/auth/register', () =>
+        HttpResponse.json(user('CUSTOMER', 'newbie'), { status: 201 }),
+      ),
       http.post('*/api/v1/auth/login', () => HttpResponse.json(token(user('CUSTOMER', 'newbie')))),
     );
     renderApp('/register');
@@ -105,7 +107,9 @@ describe('signing in and out', () => {
   it('shows the server error on the right field when registering', async () => {
     server.use(
       noSession,
-      http.post('*/api/v1/auth/register', () => problem(409, 'username-taken', 'That username is already taken.')),
+      http.post('*/api/v1/auth/register', () =>
+        problem(409, 'username-taken', 'That username is already taken.'),
+      ),
     );
     renderApp('/register');
 

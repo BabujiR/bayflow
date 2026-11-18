@@ -26,7 +26,10 @@ export function TableHead({ className, ...props }: ComponentProps<'th'>) {
   return (
     <th
       scope="col"
-      className={cn('h-10 px-4 text-left align-middle text-xs font-medium uppercase text-muted-foreground', className)}
+      className={cn(
+        'h-10 px-4 text-left align-middle text-xs font-medium uppercase text-muted-foreground',
+        className,
+      )}
       {...props}
     />
   );

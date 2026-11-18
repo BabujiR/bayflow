@@ -146,7 +146,7 @@ test.describe('Accounts and access', () => {
     await expect(nosy.page.getByText(/was not found/).first()).toBeVisible();
     await nosy.page.goto('/job-cards');
     await expect(nosy.page.getByText(owner.vehicle.registration)).toHaveCount(0);
-    await nosy.check('Other customers\' records look like they do not exist (no 403 that confirms them)');
+    await nosy.check("Other customers' records look like they do not exist (no 403 that confirms them)");
 
     await inspectViaApi(advisorApi, jobCardId, []);
     await advisorApi.post(`/api/v1/job-cards/${jobCardId}/complete`);
@@ -154,7 +154,7 @@ test.describe('Accounts and access', () => {
     const path = `/api/v1/service-history/vehicles/${owner.vehicle.id}`;
     expect((await owner.api.get<HistoryPage>(path)).content).toHaveLength(1);
     expect((await other.api.get<HistoryPage>(path)).content).toHaveLength(0);
-    await cast.note("Service history API: the owner gets their 1 entry, another customer gets an empty list");
+    await cast.note('Service history API: the owner gets their 1 entry, another customer gets an empty list');
   });
 
   test('disabling an account signs the user out everywhere', async ({ cast }) => {

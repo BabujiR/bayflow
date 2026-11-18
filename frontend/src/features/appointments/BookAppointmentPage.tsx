@@ -82,7 +82,10 @@ export function BookAppointmentPage() {
     invalidate: [['appointments']],
     onSuccess: () => navigate('/appointments'),
     onError: (error) => {
-      if (error instanceof ApiError && (error.code === 'double-booking' || error.code === 'scheduled-in-past')) {
+      if (
+        error instanceof ApiError &&
+        (error.code === 'double-booking' || error.code === 'scheduled-in-past')
+      ) {
         setError('scheduledAt', { message: error.message });
         return true;
       }
@@ -121,7 +124,11 @@ export function BookAppointmentPage() {
               <ul className="grid gap-1">
                 {(customers.data?.content ?? []).map((c) => (
                   <li key={c.id}>
-                    <Button variant="ghost" className="w-full justify-start" onClick={() => setCustomerId(c.id)}>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => setCustomerId(c.id)}
+                    >
                       {c.name} <span className="text-muted-foreground">· {c.email}</span>
                     </Button>
                   </li>
@@ -146,7 +153,10 @@ export function BookAppointmentPage() {
                   !vehicles.isPending && vehicleList.length === 0 ? (
                     <>
                       No vehicles yet.{' '}
-                      <Link to={advisor ? `/customers/${customerId}` : '/vehicles'} className="text-primary underline">
+                      <Link
+                        to={advisor ? `/customers/${customerId}` : '/vehicles'}
+                        className="text-primary underline"
+                      >
                         Add one first
                       </Link>
                       .
@@ -171,7 +181,9 @@ export function BookAppointmentPage() {
                   <Select {...register('durationMinutes')}>
                     {DURATIONS.map((minutes) => (
                       <option key={minutes} value={minutes}>
-                        {minutes < 60 ? `${minutes} minutes` : `${minutes / 60} hour${minutes === 60 ? '' : 's'}`}
+                        {minutes < 60
+                          ? `${minutes} minutes`
+                          : `${minutes / 60} hour${minutes === 60 ? '' : 's'}`}
                       </option>
                     ))}
                   </Select>
@@ -186,7 +198,11 @@ export function BookAppointmentPage() {
                   ))}
                 </Select>
               </Field>
-              <Field label="Notes for the workshop" error={errors.notes?.message} hint="Optional, e.g. a noise when braking.">
+              <Field
+                label="Notes for the workshop"
+                error={errors.notes?.message}
+                hint="Optional, e.g. a noise when braking."
+              >
                 <Textarea {...register('notes')} />
               </Field>
               <div className="flex gap-2">

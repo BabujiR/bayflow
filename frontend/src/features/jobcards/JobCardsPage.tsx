@@ -29,7 +29,9 @@ export function JobCardsPage() {
     <>
       <PageHeader
         title="Job cards"
-        description={customer ? 'Inspections and work on your vehicles, newest first.' : 'Every job card, newest first.'}
+        description={
+          customer ? 'Inspections and work on your vehicles, newest first.' : 'Every job card, newest first.'
+        }
       />
       <div className="mb-4 grid max-w-xs gap-1.5">
         <Label htmlFor="job-card-status">Status</Label>
@@ -72,7 +74,10 @@ export function JobCardsPage() {
                   {result.content.map((card) => (
                     <TableRow key={card.id}>
                       <TableCell>
-                        <Link to={`/job-cards/${card.id}`} className="font-medium text-primary hover:underline">
+                        <Link
+                          to={`/job-cards/${card.id}`}
+                          className="font-medium text-primary hover:underline"
+                        >
                           {card.registration}
                         </Link>
                         <span className="block font-mono text-xs text-muted-foreground">{card.vin}</span>

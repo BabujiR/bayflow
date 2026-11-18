@@ -37,7 +37,8 @@ export function CheckInDialog({ appointment }: { appointment: Appointment }) {
     defaultValues: { mileage: '' },
   });
   const checkIn = useAction((mileage: number) => appointmentsApi.checkIn(appointment.id, mileage), {
-    success: (a) => (a.jobCardId ? 'Checked in. Job card opened.' : 'Checked in. The job card will open shortly.'),
+    success: (a) =>
+      a.jobCardId ? 'Checked in. Job card opened.' : 'Checked in. The job card will open shortly.',
     invalidate: APPOINTMENT_KEYS,
     onSuccess: () => {
       setOpen(false);
@@ -138,7 +139,10 @@ export function RescheduleDialog({ appointment }: { appointment: Appointment }) 
           Reschedule
         </Button>
       </DialogTrigger>
-      <DialogContent title="Reschedule appointment" description={`Currently ${formatDateTime(appointment.scheduledAt)}`}>
+      <DialogContent
+        title="Reschedule appointment"
+        description={`Currently ${formatDateTime(appointment.scheduledAt)}`}
+      >
         <form
           noValidate
           className="grid gap-4"

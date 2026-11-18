@@ -13,7 +13,9 @@ describe('customer profile', () => {
     server.use(
       sessionFor(user('CUSTOMER', 'newbie')),
       http.get('*/api/v1/customers/me', () =>
-        created ? HttpResponse.json(customer({ name: 'New Bie' })) : problem(404, 'not-found', 'Customer profile was not found.'),
+        created
+          ? HttpResponse.json(customer({ name: 'New Bie' }))
+          : problem(404, 'not-found', 'Customer profile was not found.'),
       ),
       http.post('*/api/v1/customers/me', async ({ request }) => {
         sent = await request.json();
@@ -76,7 +78,11 @@ describe('booking an appointment', () => {
       sessionFor(user('CUSTOMER')),
       http.get('*/api/v1/vehicles', () => HttpResponse.json(pageOf([vehicle()]))),
       http.post('*/api/v1/appointments', () =>
-        problem(409, 'double-booking', 'This vehicle already has an appointment that overlaps the requested time.'),
+        problem(
+          409,
+          'double-booking',
+          'This vehicle already has an appointment that overlaps the requested time.',
+        ),
       ),
     );
     renderApp('/appointments/new');

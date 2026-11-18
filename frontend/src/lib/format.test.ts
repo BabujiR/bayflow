@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { currencySymbol, formatTime, isoToLocalInput, localInputToIso, setWorkshopZone, todayIso } from './format';
+import {
+  currencySymbol,
+  formatTime,
+  isoToLocalInput,
+  localInputToIso,
+  setWorkshopZone,
+  todayIso,
+} from './format';
 
 describe("dates in the workshop's time zone", () => {
   afterEach(() => setWorkshopZone(undefined));

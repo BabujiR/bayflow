@@ -47,7 +47,12 @@ export function token(u: User = user(), accessToken = 'access-1'): TokenResponse
   return { accessToken, tokenType: 'Bearer', expiresIn: 900, expiresAt: '2026-11-10T20:00:00Z', user: u };
 }
 
-export function problem(status: number, type: string, detail: string, errors?: { field: string; message: string }[]) {
+export function problem(
+  status: number,
+  type: string,
+  detail: string,
+  errors?: { field: string; message: string }[],
+) {
   return HttpResponse.json(
     { type: `urn:bayflow:problem:${type}`, title: 'Error', status, detail, errors },
     { status, headers: { 'Content-Type': 'application/problem+json' } },
@@ -96,7 +101,14 @@ export function appointment(overrides: Partial<Appointment> = {}): Appointment {
     id: 'a0000000-0000-0000-0000-000000000001',
     customerId: 'c0000000-0000-0000-0000-000000000001',
     customerName: 'Jane Doe',
-    vehicle: { id: 'v1', vin: '1HGCM82633A004352', registration: 'BFL 1234', make: 'Toyota', model: 'Corolla', year: 2021 },
+    vehicle: {
+      id: 'v1',
+      vin: '1HGCM82633A004352',
+      registration: 'BFL 1234',
+      make: 'Toyota',
+      model: 'Corolla',
+      year: 2021,
+    },
     scheduledAt: '2030-01-15T15:00:00Z',
     endsAt: '2030-01-15T16:00:00Z',
     durationMinutes: 60,

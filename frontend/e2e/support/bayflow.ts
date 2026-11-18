@@ -145,7 +145,11 @@ export class Api {
     } catch {
       // not JSON
     }
-    return { status: response.status(), code: problem.type?.replace('urn:bayflow:problem:', ''), detail: problem.detail };
+    return {
+      status: response.status(),
+      code: problem.type?.replace('urn:bayflow:problem:', ''),
+      detail: problem.detail,
+    };
   }
 
   get = <T = unknown>(path: string) => this.call<T>('GET', path);
@@ -364,7 +368,9 @@ export class Cast {
   /** A caption that is not tied to one browser (e.g. an API-level check). */
   async note(text: string, kind: StepKind = 'check'): Promise<void> {
     this.record('API', text, kind);
-    await Promise.all(this.actors.map(({ actor }) => actor.show(`API · ${text}`, kind).catch(() => undefined)));
+    await Promise.all(
+      this.actors.map(({ actor }) => actor.show(`API · ${text}`, kind).catch(() => undefined)),
+    );
   }
 
   /** Closes every browser, attaches each video and the timeline to the report. */
@@ -421,7 +427,10 @@ export async function seedCustomer(cast: Cast, options: { mileage?: number } = {
   });
   expect(registered.ok(), 'register customer').toBeTruthy();
   const api = await cast.api(username, NEW_PASSWORD);
-  const customer = await api.post<{ id: string }>('/api/v1/customers/me', { name, email: `${username}@example.com` });
+  const customer = await api.post<{ id: string }>('/api/v1/customers/me', {
+    name,
+    email: `${username}@example.com`,
+  });
   const mileage = options.mileage ?? 20_000;
   const registration = `E2E ${id}`;
   const vin = randomVin();
@@ -467,7 +476,9 @@ export async function checkInViaApi(advisor: Api, appointmentId: string, mileage
   await expect
     .poll(
       async () => {
-        const appointment = await advisor.get<{ jobCardId?: string | null }>(`/api/v1/appointments/${appointmentId}`);
+        const appointment = await advisor.get<{ jobCardId?: string | null }>(
+          `/api/v1/appointments/${appointmentId}`,
+        );
         jobCardId = appointment.jobCardId ?? undefined;
         return jobCardId;
       },
@@ -483,7 +494,10 @@ export async function inspectViaApi(
   jobCardId: string,
   items: { description: string; parts: number; hours: number }[],
 ): Promise<{ id: string; description: string }[]> {
-  await advisor.post(`/api/v1/job-cards/${jobCardId}/findings`, { description: 'Inspection notes', severity: 'MEDIUM' });
+  await advisor.post(`/api/v1/job-cards/${jobCardId}/findings`, {
+    description: 'Inspection notes',
+    severity: 'MEDIUM',
+  });
   let card: { recommendations: { id: string; description: string }[] } = { recommendations: [] };
   for (const item of items) {
     card = await advisor.post<typeof card>(`/api/v1/job-cards/${jobCardId}/recommendations`, {
@@ -519,7 +533,9 @@ export async function openJobCardFromRow(actor: Actor, date: string, registratio
     if (!(await link.isVisible())) {
       await page.reload();
     }
-    await expect((await appointmentRow(actor, date, registration)).getByRole('link', { name: 'Job card' })).toBeVisible({
+    await expect(
+      (await appointmentRow(actor, date, registration)).getByRole('link', { name: 'Job card' }),
+    ).toBeVisible({
       timeout: 3_000,
     });
   }).toPass({ timeout, intervals: [2_000, 5_000] });

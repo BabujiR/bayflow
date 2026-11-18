@@ -91,7 +91,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [endSession]);
 
-  const hasRole = useCallback((...roles: Role[]) => !!user && user.roles.some((r) => roles.includes(r)), [user]);
+  const hasRole = useCallback(
+    (...roles: Role[]) => !!user && user.roles.some((r) => roles.includes(r)),
+    [user],
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({ status, user, login, register, logout, hasRole }),

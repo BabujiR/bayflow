@@ -1,7 +1,17 @@
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-import { appointmentRow, book, expect, jobCardHeading, nextDay, openJobCardFromRow, seedCustomer, slot, test } from './support/bayflow';
+import {
+  appointmentRow,
+  book,
+  expect,
+  jobCardHeading,
+  nextDay,
+  openJobCardFromRow,
+  seedCustomer,
+  slot,
+  test,
+} from './support/bayflow';
 
 /**
  * Check-in while workshop-service is down: the check-in still succeeds, the job-card request
@@ -26,7 +36,10 @@ function dockerAvailable(): boolean {
 }
 
 test.describe('Resilience', () => {
-  test.skip(process.env.E2E_SKIP_CHAOS === '1' || !dockerAvailable(), 'Needs the Docker CLI and the compose stack');
+  test.skip(
+    process.env.E2E_SKIP_CHAOS === '1' || !dockerAvailable(),
+    'Needs the Docker CLI and the compose stack',
+  );
 
   test('check-in while the workshop service is down: the job card arrives later, once', async ({ cast }) => {
     test.setTimeout(480_000);
@@ -62,18 +75,24 @@ test.describe('Resilience', () => {
 
     await advisor.say('Waits for the outbox to retry (backoff 10 s, doubling)');
     await expect
-      .poll(async () => (await advisorApi.get<{ jobCardId?: string }>(`/api/v1/appointments/${appointment.id}`)).jobCardId, {
-        timeout: 360_000,
-        intervals: [5_000],
-        message: 'job card delivered from the outbox',
-      })
+      .poll(
+        async () =>
+          (await advisorApi.get<{ jobCardId?: string }>(`/api/v1/appointments/${appointment.id}`)).jobCardId,
+        {
+          timeout: 360_000,
+          intervals: [5_000],
+          message: 'job card delivered from the outbox',
+        },
+      )
       .toBeTruthy();
 
     await openJobCardFromRow(advisor, at.date, seeded.vehicle.registration);
     await expect(jobCardHeading(advisor)).toContainText('Open');
     await advisor.check('The job card opened by itself once the workshop was back');
 
-    const cards = await advisorApi.get<{ content: { registration: string }[] }>('/api/v1/job-cards?status=OPEN&size=200');
+    const cards = await advisorApi.get<{ content: { registration: string }[] }>(
+      '/api/v1/job-cards?status=OPEN&size=200',
+    );
     expect(cards.content.filter((c) => c.registration === seeded.vehicle.registration)).toHaveLength(1);
     await cast.note('Exactly one job card exists for the appointment: retries are idempotent');
   });

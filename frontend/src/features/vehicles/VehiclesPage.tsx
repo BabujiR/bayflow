@@ -16,7 +16,10 @@ import { isVehicleFieldError, VehicleForm } from './VehicleForm';
 /** A customer's own vehicles, with a form to add one. */
 export function VehiclesPage() {
   const [adding, setAdding] = useState(false);
-  const vehicles = useQuery({ queryKey: ['vehicles', 'mine'], queryFn: () => vehiclesApi.list({ size: 100 }) });
+  const vehicles = useQuery({
+    queryKey: ['vehicles', 'mine'],
+    queryFn: () => vehiclesApi.list({ size: 100 }),
+  });
   const create = useAction(vehiclesApi.create, {
     success: (v) => `${v.make} ${v.model} added`,
     invalidate: [['vehicles']],
@@ -29,11 +32,7 @@ export function VehiclesPage() {
       <PageHeader
         title="My vehicles"
         description="Your vehicles, their mileage and service history."
-        actions={
-          !adding && (
-            <Button onClick={() => setAdding(true)}>Add vehicle</Button>
-          )
-        }
+        actions={!adding && <Button onClick={() => setAdding(true)}>Add vehicle</Button>}
       />
       {adding && (
         <Card className="mb-6">
@@ -70,7 +69,9 @@ export function VehiclesPage() {
                           {vehicle.registration} · {formatMileage(vehicle.mileage)}
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="font-mono text-xs text-muted-foreground">{vehicle.vin}</CardContent>
+                      <CardContent className="font-mono text-xs text-muted-foreground">
+                        {vehicle.vin}
+                      </CardContent>
                     </Card>
                   </Link>
                 </li>

@@ -110,7 +110,8 @@ function SettingsForm({ workshop }: { workshop: Workshop }) {
 
   const currency = watch('currency');
   const rate = Number(watch('labourRate'));
-  const preview = /^[A-Za-z]{3}$/.test(currency ?? '') && Number.isFinite(rate) ? safeMoney(rate, currency) : null;
+  const preview =
+    /^[A-Za-z]{3}$/.test(currency ?? '') && Number.isFinite(rate) ? safeMoney(rate, currency) : null;
 
   return (
     <form
@@ -171,7 +172,12 @@ function SettingsForm({ workshop }: { workshop: Workshop }) {
             <Input inputMode="decimal" {...register('labourRate')} />
           </Field>
           <Field label="Currency" error={errors.currency?.message} hint="ISO code, e.g. USD">
-            <Input list="workshop-currencies" autoCapitalize="characters" maxLength={3} {...register('currency')} />
+            <Input
+              list="workshop-currencies"
+              autoCapitalize="characters"
+              maxLength={3}
+              {...register('currency')}
+            />
           </Field>
           <datalist id="workshop-currencies">
             {COMMON_CURRENCIES.map((code) => (

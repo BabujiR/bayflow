@@ -29,7 +29,10 @@ test('a car goes from online booking to service history', async ({ cast }) => {
   await customer.registerCustomer(username, `Priya ${id}`);
 
   await customer.say('Adds a car');
-  await customer.page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'My vehicles' }).click();
+  await customer.page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'My vehicles' })
+    .click();
   await customer.page.getByRole('button', { name: 'Add vehicle' }).first().click();
   await customer.page.getByLabel('VIN').fill(randomVin());
   await customer.page.getByLabel('Registration').fill(registration);
@@ -153,7 +156,10 @@ test('a car goes from online booking to service history', async ({ cast }) => {
   // ---- Customer sees it in the history -----------------------------------------------------------
   await customer.say("Checks the car's service history");
   await customer.page.goto('/vehicles');
-  await customer.page.getByRole('link', { name: /Toyota Corolla/ }).first().click();
+  await customer.page
+    .getByRole('link', { name: /Toyota Corolla/ })
+    .first()
+    .click();
   await expect(customer.page.getByRole('heading', { name: 'Service history' })).toBeVisible();
   await expect(customer.page.getByText(pads)).toBeVisible();
   await expect(customer.page.getByText('Fitted new pads and bedded them in', { exact: false })).toBeVisible();

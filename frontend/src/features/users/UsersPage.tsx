@@ -45,10 +45,13 @@ export function UsersPage() {
   const [creating, setCreating] = useState(false);
   const params = { page, size: 20, sort: 'createdAt,desc' };
   const users = useQuery({ queryKey: ['users', params], queryFn: () => usersApi.list(params) });
-  const setEnabled = useAction(({ id, enabled }: { id: string; enabled: boolean }) => usersApi.setEnabled(id, enabled), {
-    success: (u) => `${u.username} ${u.enabled ? 'enabled' : 'disabled'}`,
-    invalidate: [['users']],
-  });
+  const setEnabled = useAction(
+    ({ id, enabled }: { id: string; enabled: boolean }) => usersApi.setEnabled(id, enabled),
+    {
+      success: (u) => `${u.username} ${u.enabled ? 'enabled' : 'disabled'}`,
+      invalidate: [['users']],
+    },
+  );
 
   return (
     <>
@@ -89,7 +92,9 @@ export function UsersPage() {
                     <TableCell>{u.email}</TableCell>
                     <TableCell>{u.roles.map((r) => ROLE_LABELS[r]).join(', ')}</TableCell>
                     <TableCell>
-                      <Badge variant={u.enabled ? 'success' : 'outline'}>{u.enabled ? 'Active' : 'Disabled'}</Badge>
+                      <Badge variant={u.enabled ? 'success' : 'outline'}>
+                        {u.enabled ? 'Active' : 'Disabled'}
+                      </Badge>
                     </TableCell>
                     <TableCell>{formatDate(u.createdAt)}</TableCell>
                     <TableCell className="text-right">

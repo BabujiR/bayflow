@@ -38,7 +38,8 @@ export const customersApi = {
   createMe: (body: ProfileRequest) => http.post<Customer>('/api/v1/customers/me', body),
   updateMe: (body: ProfileRequest) => http.put<Customer>('/api/v1/customers/me', body),
   create: (body: CreateCustomerRequest) => http.post<Customer>('/api/v1/customers', body),
-  list: (params: Paging & { q?: string }) => http.get<PageResponse<Customer>>('/api/v1/customers', { ...params }),
+  list: (params: Paging & { q?: string }) =>
+    http.get<PageResponse<Customer>>('/api/v1/customers', { ...params }),
   get: (id: string) => http.get<Customer>(`/api/v1/customers/${id}`),
 };
 
@@ -79,15 +80,18 @@ export const jobCardsApi = {
   list: (params: Paging & { status?: JobCardStatus }) =>
     http.get<PageResponse<JobCardSummary>>('/api/v1/job-cards', { ...params }),
   get: (id: string) => http.get<JobCard>(`/api/v1/job-cards/${id}`),
-  byAppointment: (appointmentId: string) => http.get<JobCard>(`/api/v1/job-cards/by-appointment/${appointmentId}`),
-  addFinding: (id: string, body: FindingRequest) => http.post<JobCard>(`/api/v1/job-cards/${id}/findings`, body),
+  byAppointment: (appointmentId: string) =>
+    http.get<JobCard>(`/api/v1/job-cards/by-appointment/${appointmentId}`),
+  addFinding: (id: string, body: FindingRequest) =>
+    http.post<JobCard>(`/api/v1/job-cards/${id}/findings`, body),
   addRecommendation: (id: string, body: RecommendationRequest) =>
     http.post<JobCard>(`/api/v1/job-cards/${id}/recommendations`, body),
   submit: (id: string) => http.post<JobCard>(`/api/v1/job-cards/${id}/submit-for-approval`),
   decide: (id: string, itemId: string, decision: 'approve' | 'decline') =>
     http.post<JobCard>(`/api/v1/job-cards/${id}/recommendations/${itemId}/${decision}`),
   start: (id: string) => http.post<JobCard>(`/api/v1/job-cards/${id}/start`),
-  logWork: (id: string, body: WorkLogRequest) => http.post<JobCard>(`/api/v1/job-cards/${id}/work-logs`, body),
+  logWork: (id: string, body: WorkLogRequest) =>
+    http.post<JobCard>(`/api/v1/job-cards/${id}/work-logs`, body),
   addPart: (id: string, body: PartRequest) => http.post<JobCard>(`/api/v1/job-cards/${id}/parts`, body),
   addLabour: (id: string, body: LabourRequest) => http.post<JobCard>(`/api/v1/job-cards/${id}/labour`, body),
   complete: (id: string) => http.post<JobCard>(`/api/v1/job-cards/${id}/complete`),
@@ -95,13 +99,16 @@ export const jobCardsApi = {
 
 export const historyApi = {
   forVehicle: (vehicleId: string, params: Paging = {}) =>
-    http.get<PageResponse<ServiceHistoryEntry>>(`/api/v1/service-history/vehicles/${vehicleId}`, { ...params }),
+    http.get<PageResponse<ServiceHistoryEntry>>(`/api/v1/service-history/vehicles/${vehicleId}`, {
+      ...params,
+    }),
 };
 
 // ---- auth-service ----------------------------------------------------------------------------
 
 export const usersApi = {
-  list: (params: Paging & { sort?: string }) => http.get<PageResponse<User>>('/api/v1/auth/users', { ...params }),
+  list: (params: Paging & { sort?: string }) =>
+    http.get<PageResponse<User>>('/api/v1/auth/users', { ...params }),
   create: (body: CreateStaffRequest) => http.post<User>('/api/v1/auth/users', body),
   setEnabled: (id: string, enabled: boolean) => http.patch<User>(`/api/v1/auth/users/${id}`, { enabled }),
 };
@@ -110,5 +117,6 @@ export const workshopApi = {
   /** The signed-in user's workshop and its settings (every role). */
   current: () => http.get<Workshop>('/api/v1/auth/tenant'),
   /** Workshop ADMIN only. */
-  updateSettings: (body: UpdateWorkshopSettingsRequest) => http.put<Workshop>('/api/v1/auth/tenant/settings', body),
+  updateSettings: (body: UpdateWorkshopSettingsRequest) =>
+    http.put<Workshop>('/api/v1/auth/tenant/settings', body),
 };

@@ -19,7 +19,10 @@ export function AppointmentActions({ appointment }: { appointment: Appointment }
   const open = status === 'BOOKED' || status === 'CONFIRMED';
   const pastStart = new Date(appointment.scheduledAt).getTime() < Date.now();
 
-  const confirm = useAction(() => appointmentsApi.confirm(appointment.id), { success: 'Confirmed', invalidate: KEYS });
+  const confirm = useAction(() => appointmentsApi.confirm(appointment.id), {
+    success: 'Confirmed',
+    invalidate: KEYS,
+  });
   const arrive = useAction(() => appointmentsApi.arrive(appointment.id), {
     success: 'Marked as arrived',
     invalidate: KEYS,
@@ -44,7 +47,12 @@ export function AppointmentActions({ appointment }: { appointment: Appointment }
       {advisor && status === 'ARRIVED' && <CheckInDialog appointment={appointment} />}
       {(advisor || customer) && open && <RescheduleDialog appointment={appointment} />}
       {advisor && open && pastStart && (
-        <Button size="sm" variant="outline" disabled={noShow.isPending} onClick={() => noShow.mutate(undefined)}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={noShow.isPending}
+          onClick={() => noShow.mutate(undefined)}
+        >
           No-show
         </Button>
       )}

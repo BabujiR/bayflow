@@ -64,7 +64,7 @@ test.describe('Booking', () => {
     await customer.page.getByRole('button', { name: 'Add vehicle' }).click();
     await expect(customer.page.getByText('17 letters and digits (no I, O or Q)')).toBeVisible();
 
-    await customer.edge("The VIN of a car already registered by someone else (typed in lower case)");
+    await customer.edge('The VIN of a car already registered by someone else (typed in lower case)');
     await customer.page.getByLabel('VIN').fill(first.vehicle.vin.toLowerCase());
     await customer.page.getByRole('button', { name: 'Add vehicle' }).click();
     await expect(customer.page.getByText('A vehicle with this VIN is already registered.')).toBeVisible();

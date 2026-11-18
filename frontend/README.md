@@ -19,13 +19,13 @@ so the browser talks to one origin, just like behind nginx in Docker.
 
 ## Scripts
 
-| Command | What it does |
-|---|---|
-| `pnpm dev` | Dev server with hot reload |
-| `pnpm build` | Type-check and build to `dist/` |
-| `pnpm test` | Vitest + React Testing Library + MSW |
-| `pnpm lint` / `pnpm typecheck` | ESLint / TypeScript |
-| `pnpm api:update` | Download the services' OpenAPI documents and regenerate `src/api/schema` (services must be running) |
+| Command                        | What it does                                                                                        |
+| ------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `pnpm dev`                     | Dev server with hot reload                                                                          |
+| `pnpm build`                   | Type-check and build to `dist/`                                                                     |
+| `pnpm test`                    | Vitest + React Testing Library + MSW                                                                |
+| `pnpm lint` / `pnpm typecheck` | ESLint / TypeScript                                                                                 |
+| `pnpm api:update`              | Download the services' OpenAPI documents and regenerate `src/api/schema` (services must be running) |
 
 ## How sign-in works here
 
@@ -39,11 +39,11 @@ so the browser talks to one origin, just like behind nginx in Docker.
 
 ## Layout
 
-| Path | Contents |
-|---|---|
-| `src/api` | HTTP client, errors, API functions, generated types (`schema/`) |
-| `src/auth` | AuthProvider, `useAuth`, route guards |
-| `src/components/ui` | Buttons, inputs, cards and other building blocks |
-| `src/components/layout` | App shell, logo, theme toggle, user menu |
-| `src/pages` | One component per screen |
-| `src/test` | Test setup, MSW server, render helper |
+| Path                    | Contents                                                        |
+| ----------------------- | --------------------------------------------------------------- |
+| `src/api`               | HTTP client, errors, API functions, generated types (`schema/`) |
+| `src/auth`              | AuthProvider, `useAuth`, route guards                           |
+| `src/components/ui`     | Buttons, inputs, cards and other building blocks                |
+| `src/components/layout` | App shell, logo, theme toggle, user menu                        |
+| `src/pages`             | One component per screen                                        |
+| `src/test`              | Test setup, MSW server, render helper                           |

@@ -43,7 +43,11 @@ export function formatMoney(amount: number | null | undefined, currency = 'USD')
 
 /** The short symbol for a currency code, e.g. "$" for USD, "€" for EUR. */
 export function currencySymbol(currency = 'USD'): string {
-  const part = new Intl.NumberFormat(undefined, { style: 'currency', currency, currencyDisplay: 'narrowSymbol' })
+  const part = new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'narrowSymbol',
+  })
     .formatToParts(0)
     .find((p) => p.type === 'currency');
   return part?.value ?? currency;
@@ -56,11 +60,24 @@ export const formatMileage = (miles?: number | null) =>
 function wallClock(date: Date) {
   const parts = formatter(
     'parts',
-    { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' },
+    {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    },
     'en-US',
   ).formatToParts(date);
   const get = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((p) => p.type === type)?.value);
-  return { year: get('year'), month: get('month'), day: get('day'), hour: get('hour') % 24, minute: get('minute') };
+  return {
+    year: get('year'),
+    month: get('month'),
+    day: get('day'),
+    hour: get('hour') % 24,
+    minute: get('minute'),
+  };
 }
 
 const pad = (n: number, width = 2) => String(n).padStart(width, '0');
@@ -101,7 +118,9 @@ export function localInputToIso(value: string): string {
 
 /** Short name of the workshop's zone right now, e.g. "EST" or "GMT+13". */
 export function zoneLabel(at: Date = new Date()): string {
-  const part = formatter('zone', { timeZoneName: 'short' }).formatToParts(at).find((p) => p.type === 'timeZoneName');
+  const part = formatter('zone', { timeZoneName: 'short' })
+    .formatToParts(at)
+    .find((p) => p.type === 'timeZoneName');
   return part?.value ?? '';
 }
 
