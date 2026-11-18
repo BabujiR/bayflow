@@ -91,7 +91,7 @@ class MultiTenantAppointmentIT extends IntegrationTestBase {
     }
 
     private UUID tenantOf(String table, String id) {
-        return jdbc.queryForObject("select tenant_id from " + table + " where id = ?::uuid", UUID.class, id);
+        return jdbc.queryForObject("select tenant_id from bayflow." + table + " where id = ?::uuid", UUID.class, id);
     }
 
     private static String randomVin() {

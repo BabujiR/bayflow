@@ -11,6 +11,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -45,7 +46,7 @@ class MultiTenantAuthIT extends IntegrationTestBase {
     @BeforeEach
     void secondWorkshop() {
         jdbc.update("""
-                insert into auth_tenants (id, slug, name, status, created_at, updated_at)
+                insert into bayflow.auth_tenants (id, slug, name, status, created_at, updated_at)
                 values (?, 'other-workshop', 'Other workshop', 'ACTIVE', now(), now())
                 on conflict (id) do nothing""", OTHER);
     }
@@ -85,7 +86,7 @@ class MultiTenantAuthIT extends IntegrationTestBase {
         String username = "other-" + UUID.randomUUID().toString().substring(0, 8);
         User user = TenantContext.call(OTHER, () -> authService.register(username, username + "@example.com", PASSWORD));
 
-        UUID roleTenant = jdbc.queryForObject("select tenant_id from auth_user_roles where user_id = ?",
+        UUID roleTenant = jdbc.queryForObject("select tenant_id from bayflow.auth_user_roles where user_id = ?",
                 UUID.class, user.getId());
         assertThat(roleTenant).isEqualTo(OTHER);
 
@@ -93,7 +94,7 @@ class MultiTenantAuthIT extends IntegrationTestBase {
         String tid = SignedJWT.parse(session.accessToken().value()).getJWTClaimsSet().getStringClaim("tid");
         assertThat(tid).isEqualTo(OTHER.toString());
 
-        UUID tokenTenant = jdbc.queryForObject("select tenant_id from auth_refresh_tokens where user_id = ? limit 1",
+        UUID tokenTenant = jdbc.queryForObject("select tenant_id from bayflow.auth_refresh_tokens where user_id = ? limit 1",
                 UUID.class, user.getId());
         assertThat(tokenTenant).isEqualTo(OTHER);
     }
@@ -107,6 +108,21 @@ class MultiTenantAuthIT extends IntegrationTestBase {
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"" + username + "\",\"password\":\"" + PASSWORD + "\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void withoutAWorkshopNothingIsReadAndNothingCanBeStored() {
+        // The bootstrap admin exists in the default workshop, but a session with no workshop sees nobody.
+        assertThat(TenantContext.call(Tenants.DEFAULT_TENANT_ID, () -> users.findByUsername("bootstrap-admin")))
+                .isPresent();
+        assertThat(users.findByUsername("bootstrap-admin")).isEmpty();
+
+        // The database itself refuses rows that belong to no real workshop.
+        assertThatThrownBy(() -> jdbc.update("""
+                insert into bayflow.auth_users (id, tenant_id, username, email, password_hash, created_at, updated_at)
+                values (?, ?, 'ghost', 'ghost@example.com', 'x', now(), now())""", UUID.randomUUID(),
+                Tenants.NO_TENANT))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test

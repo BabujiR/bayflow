@@ -19,8 +19,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
  *   <li>{@link #callAcrossTenants(Supplier)}: the few platform-level operations that are not
  *       about one workshop (service clients, finding due outbox rows). Use sparingly.</li>
  * </ul>
- * With neither set and no tenant in the token, {@link #current()} is empty and the Hibernate
- * tenant resolver refuses to open a session: a missing tenant fails closed.
+ * With neither set and no tenant in the token, {@link #current()} is empty and Hibernate works
+ * as {@link Tenants#NO_TENANT}: it reads nothing and cannot write, so a missing tenant fails closed.
  */
 public final class TenantContext {
 

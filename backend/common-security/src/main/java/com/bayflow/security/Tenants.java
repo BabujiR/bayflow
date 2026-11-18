@@ -20,6 +20,13 @@ public final class Tenants {
      */
     public static final UUID DEFAULT_TENANT_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
+    /**
+     * Stands for "no workshop known". A database session opened without a tenant (for example
+     * by the framework at startup) uses it: no row ever has this id, so reads find nothing, and
+     * every tenant_id column has a CHECK constraint that refuses it, so writes fail.
+     */
+    public static final UUID NO_TENANT = UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff");
+
     private Tenants() {
     }
 

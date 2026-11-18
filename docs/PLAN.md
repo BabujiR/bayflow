@@ -347,9 +347,13 @@ in the page `<meta name="description">`.
       tenant only from the token. Data from before multi-tenancy belongs to the
       `default` workshop, id `00000000-0000-0000-0000-000000000001` (Flyway
       placeholder `default_tenant_id`, the same in every service).
-    - Hibernate's `@TenantId` fills and filters `tenant_id` on every entity;
-      `BayflowTenantResolver` (common-security) refuses to open a database
-      session when no tenant is known, so a missing tenant fails closed.
+    - Hibernate's `@TenantId` fills and filters `tenant_id` on every entity.
+      When no tenant is known, `BayflowTenantResolver` (common-security) uses
+      the reserved id `ffffffff-ffff-ffff-ffff-ffffffffffff`: no row has it, so
+      reads find nothing, and a CHECK on every `tenant_id` (migrations `V3_1`)
+      refuses it and the root id, so writes fail. A missing tenant fails closed.
+      (The resolver can't simply throw: Spring Data opens sessions without a
+      tenant while starting up.)
     - `TenantContext` sets the tenant where there is no user token: sign-in,
       registration and refresh (the request's workshop, always `default` until
       phase 4), SYSTEM job-card requests (`tenantId` in the body, trusted only

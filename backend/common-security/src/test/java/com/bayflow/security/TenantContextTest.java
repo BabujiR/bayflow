@@ -23,9 +23,11 @@ class TenantContextTest {
     }
 
     @Test
-    void noTokenAndNoScopeMeansNoTenantAndTheResolverRefuses() {
+    void noTokenAndNoScopeMeansNoTenantAndTheResolverUsesTheNoTenantId() {
         assertThat(TenantContext.current()).isEmpty();
-        assertThatThrownBy(resolver::resolveCurrentTenantIdentifier).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(TenantContext::require).isInstanceOf(IllegalStateException.class);
+        assertThat(resolver.resolveCurrentTenantIdentifier()).isEqualTo(Tenants.NO_TENANT);
+        assertThat(resolver.isRoot(Tenants.NO_TENANT)).isFalse();
     }
 
     @Test

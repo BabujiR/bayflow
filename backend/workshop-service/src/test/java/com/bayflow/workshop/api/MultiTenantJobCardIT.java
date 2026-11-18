@@ -49,9 +49,9 @@ class MultiTenantJobCardIT extends IntegrationTestBase {
                         .content("{\"description\":\"Pads at 2 mm\",\"severity\":\"HIGH\"}"))
                 .andExpect(status().isOk());
 
-        assertThat(jdbc.queryForObject("select tenant_id from ws_job_cards where id = ?::uuid", UUID.class, id))
+        assertThat(jdbc.queryForObject("select tenant_id from bayflow.ws_job_cards where id = ?::uuid", UUID.class, id))
                 .isEqualTo(OTHER);
-        assertThat(jdbc.queryForObject("select tenant_id from ws_inspection_findings where job_card_id = ?::uuid",
+        assertThat(jdbc.queryForObject("select tenant_id from bayflow.ws_inspection_findings where job_card_id = ?::uuid",
                 UUID.class, id)).isEqualTo(OTHER);
     }
 
@@ -72,7 +72,7 @@ class MultiTenantJobCardIT extends IntegrationTestBase {
         // The tenantId in the body is ignored for users: their token decides.
         String id = id(open(hereAdvisor, OTHER).andExpect(status().isCreated()));
 
-        assertThat(jdbc.queryForObject("select tenant_id from ws_job_cards where id = ?::uuid", UUID.class, id))
+        assertThat(jdbc.queryForObject("select tenant_id from bayflow.ws_job_cards where id = ?::uuid", UUID.class, id))
                 .isEqualTo(Tenants.DEFAULT_TENANT_ID);
     }
 
