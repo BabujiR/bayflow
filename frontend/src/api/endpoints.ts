@@ -1,6 +1,8 @@
 import { http } from './http';
 import type {
   Appointment,
+  Branding,
+  BrandingImageKind,
   AppointmentStatus,
   BookAppointmentRequest,
   CreateCustomerRequest,
@@ -24,6 +26,7 @@ import type {
   SignupRequest,
   SignupResponse,
   SlugAvailability,
+  UpdateBrandingRequest,
   UpdateVehicleRequest,
   UpdateWorkshopSettingsRequest,
   User,
@@ -130,6 +133,19 @@ export const workshopApi = {
   /** Workshop ADMIN only. */
   updateSettings: (body: UpdateWorkshopSettingsRequest) =>
     http.put<Workshop>('/api/v1/auth/tenant/settings', body),
+};
+
+/** The workshop's branding (workshop ADMIN only). Everyone sees it through tenantsApi.current. */
+export const brandingApi = {
+  get: () => http.get<Branding>('/api/v1/auth/tenant/branding'),
+  update: (body: UpdateBrandingRequest) => http.put<Branding>('/api/v1/auth/tenant/branding', body),
+  /** PNG or JPEG; logo up to 1 MB, cover up to 3 MB. The server re-encodes it. */
+  upload: ({ kind, file }: { kind: BrandingImageKind; file: File }) => {
+    const form = new FormData();
+    form.append('file', file);
+    return http.put<Branding>(`/api/v1/auth/tenant/branding/${kind}`, form);
+  },
+  remove: (kind: BrandingImageKind) => http.delete<Branding>(`/api/v1/auth/tenant/branding/${kind}`),
 };
 
 /** Public: sign up a workshop, check an address, name the workshop at this address. */

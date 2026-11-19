@@ -166,7 +166,10 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 | GET | /auth/internal/tenants/{id}/settings | SYSTEM only; nginx returns 404 for `/api/v1/auth/internal/` |
 | POST | /tenants/signup | public (CSRF header, rate-limited per IP): new workshop + its ADMIN |
 | GET | /tenants/slug-availability?slug= | public |
-| GET | /tenants/current | public: the workshop at this address (404 if none) |
+| GET | /tenants/current | public: the workshop at this address (404 if none), with its `branding` |
+| GET | /tenants/current/logo, /tenants/current/cover | public: the workshop's images (ETag; `?v=` from `/tenants/current` = cached a year) |
+| GET/PUT | /auth/tenant/branding | ADMIN: colour, announcement, "Powered by Bayflow" (PUT with `version`; 409 if stale) |
+| PUT/DELETE | /auth/tenant/branding/logo, /auth/tenant/branding/cover | ADMIN: upload (multipart `file`) or remove an image |
 
 ### appointment-service (:8081)
 | Method | Path | Who |
@@ -558,6 +561,47 @@ in the page `<meta name="description">`.
       archives it again; the booking helper sends Main's id while an organization
       has several locations, so other scenarios are unaffected.
 
+24. **Branding (white label).** A workshop's ADMIN sets, in *Workshop settings → Branding*:
+    logo, sign-in cover photo, brand colour, a one-line announcement with optional dates, and
+    whether "Powered by Bayflow" shows. Stored in auth-service (`V9`): `auth_tenant_branding`
+    (one row per workshop, `version` for optimistic locking) and `auth_tenant_assets` (the
+    images, `bytea`, with their SHA-256), both with RLS like every per-workshop table.
+    - **Images:** PNG and JPEG only, recognised by their first bytes (not the name or the
+      declared type); SVG is refused because it can carry scripts. Each upload is decoded
+      and written again with `javax.imageio` (no new dependency): metadata (EXIF, GPS) and
+      anything appended after the image data are dropped. Images claiming more than 40
+      megapixels are refused before decoding. Logo: up to 1 MB, scaled to fit 512×512 px,
+      stored as PNG (transparency kept). Cover: up to 3 MB, scaled to at most 2000 px, stored
+      as JPEG (quality 0.85; transparency becomes white). Errors: 413 `image-too-large`,
+      415 `unsupported-image`, 400 `invalid-image`.
+    - **Serving:** `GET /api/v1/tenants/current/logo|cover` by the address's workshop, without
+      a token (the sign-in page needs them). `/tenants/current` returns the image URLs with
+      `?v=<first 16 hex of the SHA-256>`; with a matching `v` the response is
+      `public, max-age=31536000, immutable`, otherwise `no-cache` with the ETag (304 on
+      `If-None-Match`). nginx has its own location for these two paths, without the
+      `Cache-Control: no-store` it adds to every other API response. Images stay on the
+      workshop's own origin, so the CSP stays
+      `img-src 'self' data: blob:` (`blob:` for the upload preview only).
+    - **Limits:** Spring multipart 3 MB per file / 4 MB per request; Tomcat swallows up to
+      8 MB so a too-large upload gets its 413; nginx allows 4 MB only under
+      `/api/v1/auth/tenant/branding/` (1 MB everywhere else).
+    - **Colour:** `#rrggbb` (stored lower case). The web app sets `--primary`, `--ring` and
+      `--primary-foreground` inline on `<html>`, so the same colour applies in the light and
+      the dark theme; the text colour on it (white or near-black) is chosen by WCAG contrast.
+      The editor warns when button text would be under 4.5:1 or links under 3:1 on either
+      theme's background; it does not refuse such colours.
+    - **Announcement:** plain text, one line (control characters become spaces), at most 200
+      characters, rendered as text (never HTML). INFO or IMPORTANT style. Optional start and
+      end (end after start); `/tenants/current` includes it only while live. Customers and
+      the sign-in page show it in full, staff as a slim line under the header.
+    - **"Powered by Bayflow"** is on by default; turning it off also drops "· Bayflow" from the
+      tab title. Bayflow's own public site (sign-up) is never branded.
+    - The browser tab shows the workshop's name and its logo as the icon.
+    - Next steps (not built): a custom domain per workshop (`book.acme-auto.com`, needs
+      certificates per domain), branded emails, a dark-mode logo variant, S3 + CDN for the
+      images on AWS (docs/SAAS-AWS-NOTES.md), plan-based limits (white label as a paid
+      feature).
+
 ---
 
 ## 10. Milestones
@@ -577,6 +621,6 @@ in the page `<meta name="description">`.
 | SaaS 3 | Per-workshop settings, money frozen on job cards | no business setting read from env at request time |
 | SaaS 4 | Sign-up and `<slug>.localhost` subdomains | a new workshop signs up and runs on its own |
 
-SaaS milestones: 1–4 done. Organizations and locations: L1 and L2 done, L3 in review.
+SaaS milestones: 1–4 done. Organizations and locations: L1–L3 done. Branding: in review.
 
 Each milestone ends with a review pause.

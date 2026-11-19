@@ -68,3 +68,26 @@ Organizations with several locations need nothing new on AWS, with one exception
   work at once.
 - Location codes and per-location time zones need no DNS changes: locations live inside their
   organization's address (`<slug>.bayflow.example`).
+
+## Branding images
+
+Locally, logos and cover photos live in PostgreSQL (`auth_tenant_assets`, at most a few MB
+per workshop) and auth-service serves them. On AWS:
+
+- **Keep it as is for a demo or a few hundred workshops.** The images are small, re-encoded
+  and served with an ETag and a one-year `immutable` cache (the URL changes when the image
+  does), so browsers rarely ask twice.
+- **At scale, move them to S3 + CloudFront:** store the re-encoded bytes under
+  `branding/<tenant id>/<kind>/<sha256>.<ext>` in a private bucket (Block Public Access on),
+  serve them through CloudFront with Origin Access Control on the same domain (a
+  `/branding-assets/*` behaviour), and return those URLs from `/tenants/current`. Keep the
+  upload going through auth-service so every image is still checked and re-encoded; never
+  hand out pre-signed upload URLs that skip that step. Then `auth_tenant_assets` keeps only
+  the key and hash.
+- **Upload size at the edge:** nginx allows 4 MB only under `/api/v1/auth/tenant/branding/`.
+  If an ALB or CloudFront sits in front, keep its body limit at least that high for this
+  path (ALB has no small limit; WAF body inspection only looks at the first 8–64 KB, so
+  don't add a WAF rule that blocks large bodies there).
+- If images move to another domain (a CDN host), add it to `img-src` in
+  `infra/nginx/snippets/security-headers.conf`.
+

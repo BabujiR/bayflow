@@ -2,6 +2,9 @@ server:
   port: ${PORT:8083}
   # Trust X-Forwarded-* from nginx so the client IP used for rate limiting is the real one
   forward-headers-strategy: native
+  tomcat:
+    # Read the rest of a too-large upload so the client gets the 413 instead of a reset connection.
+    max-swallow-size: 8MB
   error:
     include-message: never
     include-stacktrace: never
@@ -44,6 +47,11 @@ spring:
       default_labour_rate: ${BAYFLOW_LABOUR_RATE:95.00}
       default_currency: ${BAYFLOW_CURRENCY:USD}
       default_time_zone: ${BAYFLOW_WORKSHOP_ZONE:America/New_York}
+  servlet:
+    multipart:
+      # Branding images: logo up to 1 MB, cover up to 3 MB (BrandingImages checks each kind).
+      max-file-size: 3MB
+      max-request-size: 4MB
   data:
     web:
       pageable:

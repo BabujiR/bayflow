@@ -245,7 +245,50 @@ export interface PublicWorkshop {
   displayName: string;
   /** False while the workshop is suspended: nobody can sign in. */
   active: boolean;
+  /** The workshop's look (Branding). Missing from older servers: then Bayflow's look. */
+  branding?: PublicBranding;
 }
+
+// ---- branding (auth-service) -------------------------------------------------------------
+
+export type BannerStyle = 'INFO' | 'IMPORTANT';
+
+/** What every visitor of a workshop's address sees. The banner is present only while it is live. */
+export interface PublicBranding {
+  logoUrl: string | null;
+  coverUrl: string | null;
+  /** #rrggbb, or null for Bayflow's colours. */
+  primaryColor: string | null;
+  showPoweredBy: boolean;
+  banner: { text: string; style: BannerStyle } | null;
+}
+
+/** The workshop ADMIN's view of the branding. */
+export interface Branding {
+  primaryColor: string | null;
+  bannerText: string | null;
+  bannerStyle: BannerStyle;
+  bannerStartsAt: string | null;
+  bannerEndsAt: string | null;
+  /** The banner has text and today is within its dates. */
+  bannerLive: boolean;
+  showPoweredBy: boolean;
+  logoUrl: string | null;
+  coverUrl: string | null;
+  version: number;
+}
+
+export interface UpdateBrandingRequest {
+  primaryColor: string | null;
+  bannerText: string | null;
+  bannerStyle: BannerStyle;
+  bannerStartsAt: string | null;
+  bannerEndsAt: string | null;
+  showPoweredBy: boolean;
+  version: number;
+}
+
+export type BrandingImageKind = 'logo' | 'cover';
 
 export interface SignupRequest {
   workshopName: string;

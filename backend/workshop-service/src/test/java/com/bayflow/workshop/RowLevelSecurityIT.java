@@ -67,8 +67,9 @@ class RowLevelSecurityIT {
     @Test
     void everyPerWorkshopTableHasRowLevelSecurityAndAPolicy() throws Exception {
         List<String> tables = perWorkshopTables();
-        // 16 until phase L2 added auth_user_locations.
-        assertThat(tables).hasSize(17);
+        // 16 until phase L2 added auth_user_locations; 19 since Branding added
+        // auth_tenant_branding and auth_tenant_assets.
+        assertThat(tables).hasSize(19);
         try (Connection owner = owner(); Statement statement = owner.createStatement()) {
             for (String table : tables) {
                 try (ResultSet rs = statement.executeQuery("select c.relrowsecurity, (select count(*) from pg_policies p"

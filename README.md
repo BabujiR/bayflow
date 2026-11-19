@@ -111,6 +111,24 @@ curl -i -X POST http://localhost:8083/api/v1/auth/login \
 Nobody touches the database: the new workshop has its own users, settings and data, and a
 session from one workshop is refused at any other workshop's address.
 
+### Brand your workshop
+
+Sign in as the workshop's admin → *Workshop settings* → **Branding**:
+
+- **Logo** (PNG or JPEG, up to 1 MB) replaces the Bayflow logo in the header, on the sign-in
+  page and as the browser tab's icon.
+- **Sign-in cover photo** (PNG or JPEG, up to 3 MB) shows beside the sign-in form.
+- **Colour** becomes the app's main colour (buttons, links, highlights) in the light and dark
+  theme; text on it turns white or black automatically, and a warning shows for colours that
+  are hard to read.
+- **Announcement**: one line of plain text at the top of every page (holiday hours, an
+  offer), optionally only between two dates. Customers see it in full, staff as a slim line.
+- **"Powered by Bayflow"** at the bottom of the pages can be turned off.
+
+Images are checked by their content (not their name), re-encoded and scaled down on the
+server, which also removes metadata such as a photo's GPS location. Everything applies at
+once at the workshop's address, for everyone, signed in or not.
+
 ### Try the whole workflow in the web app
 
 At http://demo.localhost:3000 (or the dev server on :5173):
@@ -229,6 +247,7 @@ videos plus a trace for any failure.
 | `06-resilience` | Stops `workshop-service`, checks in, starts it again: the job card arrives from the outbox, exactly once. Needs the Docker CLI; skip with `E2E_SKIP_CHAOS=1` |
 | `07-workshops` | Two workshops sign up through the public site, configure themselves, and reuse the same admin username independently; taken and reserved addresses refused; a token from one workshop refused at the other's address (401); an unknown address shows *Workshop not found* |
 | `08-locations` | The owner adds a location in Auckland with its own rate, hires an advisor for it; a customer books there in Auckland time; each location's advisor sees only their own; the job card charges the location's rate; the switcher shows one location or all; the location is archived again at the end |
+| `09-branding` | A new workshop's owner uploads a logo and cover photo (a fake PNG is refused), sets a colour and an announcement and turns off "Powered by Bayflow"; a customer sees all of it on the sign-in page and in the app; the images are served cached; other workshops are unchanged; removing the logo brings Bayflow's back |
 
 Pace of the videos: `E2E_SLOWMO` (ms per action, default 250) and `E2E_STEP_PAUSE` (ms per
 caption, default 900); set both to `0` for a fast run. The scenarios create their own
@@ -292,7 +311,8 @@ spaced out to stay under the 10-per-minute login limit.
 | SaaS 4 | Sign-up and workshop subdomains | ✅ done |
 | Locations 1 | Organizations have locations ("Main" for everyone) | ✅ done |
 | Locations 2 | Location-scoped roles and isolation | ✅ done |
-| Locations 3 | Locations page, switcher, booking per location | 🔍 in review |
+| Locations 3 | Locations page, switcher, booking per location | ✅ done |
+| Branding | Logo, colour, cover photo, announcement, "Powered by Bayflow" | 🔍 in review |
 
 ## Assumptions
 

@@ -3,6 +3,7 @@ import { render } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 
 import { AuthProvider } from '@/auth/AuthProvider';
+import { BrandingEffect } from '@/features/branding/BrandingEffect';
 import { ThemeProvider } from '@/lib/theme';
 import { publicRoutes, routes } from '@/routes';
 
@@ -14,6 +15,7 @@ export function renderApp(path = '/') {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <BrandingEffect />
           <RouterProvider router={router} />
         </AuthProvider>
       </QueryClientProvider>

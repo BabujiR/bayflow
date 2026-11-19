@@ -4,6 +4,10 @@ import { Link, NavLink, Outlet } from 'react-router';
 import { useAuth } from '@/auth/auth-context';
 import { effectiveRoles } from '@/auth/roles';
 import { FullPageSpinner } from '@/components/ui/spinner';
+import { BrandBanner } from '@/features/branding/BrandBanner';
+import { PoweredBy } from '@/features/branding/PoweredBy';
+import { useBranding } from '@/features/branding/use-branding';
+import { WorkshopLogo } from '@/features/branding/WorkshopLogo';
 import { CustomerProfileGate } from '@/features/customers/CustomerProfileGate';
 import { LocationSwitcher } from '@/features/locations/LocationSwitcher';
 import { useWorkshop } from '@/features/workshop/use-workshop';
@@ -11,20 +15,23 @@ import { setWorkshopZone } from '@/lib/format';
 import { navItemsFor } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 
-import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { UserMenu } from './UserMenu';
 
 /** The signed-in layout: header with role-based navigation, then the page. */
 export function AppShell() {
   const { user } = useAuth();
-  const items = navItemsFor(effectiveRoles(user?.roles ?? []));
+  const roles = effectiveRoles(user?.roles ?? []);
+  const items = navItemsFor(roles);
   const workshop = useWorkshop();
+  const { branding, displayName: brandName } = useBranding();
+  // Customers get the workshop's announcement in full; staff see it as a slim line.
+  const isCustomerOnly = roles.length > 0 && roles.every((role) => role === 'CUSTOMER');
   // Signing out (or switching user) goes back to the browser's zone until the next workshop loads.
   useEffect(() => () => setWorkshopZone(undefined), []);
 
   return (
-    <div className="min-h-svh">
+    <div className="flex min-h-svh flex-col">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2"
@@ -34,8 +41,12 @@ export function AppShell() {
       <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
         {/* Wider than the page content: admins have many links next to the location switcher. */}
         <div className="mx-auto flex h-16 max-w-screen-2xl items-center gap-4 px-4">
-          <Link to="/" aria-label="Bayflow home" className="shrink-0">
-            <Logo withTagline={!workshop.data} />
+          <Link
+            to="/"
+            aria-label={branding.logoUrl && brandName ? `${brandName} home` : 'Bayflow home'}
+            className="shrink-0"
+          >
+            <WorkshopLogo withTagline={!workshop.data} />
           </Link>
           {workshop.data && (
             <span
@@ -71,8 +82,9 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
+        <BrandBanner variant={isCustomerOnly ? 'full' : 'slim'} />
       </header>
-      <main id="main" className="mx-auto max-w-7xl px-4 py-8">
+      <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
         {workshop.isPending ? (
           // Wait for the workshop so the first dates already use its time zone.
           // If it fails, pages still work in the browser's zone.
@@ -83,6 +95,7 @@ export function AppShell() {
           </CustomerProfileGate>
         )}
       </main>
+      <PoweredBy />
     </div>
   );
 }

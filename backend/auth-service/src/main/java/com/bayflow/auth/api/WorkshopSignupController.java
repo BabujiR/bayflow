@@ -4,6 +4,9 @@ import static com.bayflow.auth.api.AuthDtos.USERNAME_MESSAGE;
 import static com.bayflow.auth.api.AuthDtos.USERNAME_PATTERN;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,8 +19,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,12 +33,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.bayflow.auth.application.ApiException;
+import com.bayflow.auth.application.BrandingService;
+import com.bayflow.auth.application.BrandingService.BrandingView;
 import com.bayflow.auth.application.SignupRateLimiter;
 import com.bayflow.auth.application.SignupService;
 import com.bayflow.auth.application.SignupService.Availability;
 import com.bayflow.auth.application.SignupService.Created;
 import com.bayflow.auth.application.TenantSettingsService;
 import com.bayflow.auth.domain.Tenant;
+import com.bayflow.auth.domain.TenantAsset;
+import com.bayflow.auth.domain.TenantBranding;
+import com.bayflow.auth.domain.TenantBranding.BannerStyle;
 import com.bayflow.security.TenantContext;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -61,20 +75,33 @@ public class WorkshopSignupController {
     }
 
     /** What the sign-in page of a workshop's address shows. */
-    public record PublicWorkshop(String slug, String name, String displayName, boolean active) {
+    public record PublicWorkshop(String slug, String name, String displayName, boolean active,
+            PublicBranding branding) {
+    }
+
+    /** The workshop's look, for everyone at its address. The banner is only present while it is live. */
+    public record PublicBranding(String logoUrl, String coverUrl, String primaryColor, boolean showPoweredBy,
+            PublicBanner banner) {
+    }
+
+    public record PublicBanner(String text, BannerStyle style) {
     }
 
     private final SignupService signups;
     private final SignupRateLimiter rateLimiter;
     private final RequestTenants requestTenants;
     private final TenantSettingsService settings;
+    private final BrandingService branding;
+    private final Clock clock;
 
     public WorkshopSignupController(SignupService signups, SignupRateLimiter rateLimiter,
-            RequestTenants requestTenants, TenantSettingsService settings) {
+            RequestTenants requestTenants, TenantSettingsService settings, BrandingService branding, Clock clock) {
         this.signups = signups;
         this.rateLimiter = rateLimiter;
         this.requestTenants = requestTenants;
         this.settings = settings;
+        this.branding = branding;
+        this.clock = clock;
     }
 
     @PostMapping("/signup")
@@ -112,6 +139,40 @@ public class WorkshopSignupController {
     public PublicWorkshop current(HttpServletRequest httpRequest) {
         Tenant tenant = requestTenants.workshopOf(httpRequest);
         String displayName = TenantContext.call(tenant.getId(), () -> settings.current().settings().getDisplayName());
-        return new PublicWorkshop(tenant.getSlug(), tenant.getName(), displayName, tenant.isActive());
+        BrandingView view = TenantContext.call(tenant.getId(), branding::current);
+        return new PublicWorkshop(tenant.getSlug(), tenant.getName(), displayName, tenant.isActive(),
+                publicBranding(view, clock.instant()));
+    }
+
+    @GetMapping("/current/{kind:logo|cover}")
+    @Operation(summary = "The logo or sign-in cover photo of the workshop at this address (404 when none)",
+            description = "Cached by the browser: forever with the ?v= of /current, otherwise revalidated "
+                    + "with the ETag.")
+    public ResponseEntity<byte[]> image(@PathVariable String kind, @RequestParam(required = false) String v,
+            HttpServletRequest httpRequest) {
+        Tenant tenant = requestTenants.workshopOf(httpRequest);
+        TenantAsset asset = TenantContext.call(tenant.getId(), () -> branding.image(BrandingController.kindOf(kind)))
+                .orElseThrow(() -> ApiException.notFound("The image"));
+        String etag = "\"" + asset.getSha256() + "\"";
+        CacheControl cache = BrandingController.version(asset.getSha256()).equals(v)
+                ? CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable()
+                : CacheControl.noCache().cachePublic();
+        if (etag.equals(httpRequest.getHeader(HttpHeaders.IF_NONE_MATCH))) {
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).eTag(etag).cacheControl(cache).build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(asset.getContentType()))
+                .eTag(etag)
+                .cacheControl(cache)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
+                .body(asset.getContent());
+    }
+
+    static PublicBranding publicBranding(BrandingView view, Instant now) {
+        TenantBranding b = view.branding();
+        PublicBanner banner = b.isBannerLive(now) ? new PublicBanner(b.getBannerText(), b.getBannerStyle()) : null;
+        return new PublicBranding(BrandingController.imageUrl(TenantAsset.Kind.LOGO, view.logoSha256()),
+                BrandingController.imageUrl(TenantAsset.Kind.COVER, view.coverSha256()), b.getPrimaryColor(),
+                b.isShowPoweredBy(), banner);
     }
 }

@@ -7,6 +7,7 @@ import { RouterProvider } from 'react-router/dom';
 import { ApiError } from '@/api/errors';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { AppToaster } from '@/components/layout/AppToaster';
+import { BrandingEffect } from '@/features/branding/BrandingEffect';
 import { currentSite } from '@/lib/site';
 import { ThemeProvider } from '@/lib/theme';
 import { publicRoutes, routes } from '@/routes';
@@ -38,6 +39,7 @@ createRoot(document.getElementById('root')!).render(
           </>
         ) : (
           <AuthProvider>
+            <BrandingEffect />
             <RouterProvider router={createBrowserRouter(routes)} />
             <AppToaster />
           </AuthProvider>

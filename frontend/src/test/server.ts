@@ -3,6 +3,9 @@ import { setupServer } from 'msw/node';
 
 import type {
   Appointment,
+  Branding,
+  PublicBranding,
+  PublicWorkshop,
   Customer,
   JobCard,
   PageResponse,
@@ -25,14 +28,8 @@ export function pageOf<T>(content: T[]): PageResponse<T> {
 const defaults = [
   http.get('*/api/v1/auth/tenant', () => HttpResponse.json(workshop())),
   http.get('*/api/v1/auth/locations', () => HttpResponse.json([location()])),
-  http.get('*/api/v1/tenants/current', () =>
-    HttpResponse.json({
-      slug: 'demo',
-      name: 'Bayflow Workshop',
-      displayName: 'Bayflow Downtown',
-      active: true,
-    }),
-  ),
+  http.get('*/api/v1/tenants/current', () => HttpResponse.json(publicWorkshop())),
+  http.get('*/api/v1/auth/tenant/branding', () => HttpResponse.json(branding())),
   http.get('*/api/v1/customers/me', () => HttpResponse.json(customer())),
   http.get('*/api/v1/vehicles', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/appointments', () => HttpResponse.json(pageOf([]))),
@@ -159,6 +156,45 @@ export function jobCard(overrides: Partial<JobCard> = {}): JobCard {
 }
 
 /** The signed-in user's workshop (default workshop, New York, USD). */
+/** The workshop at this address, as its sign-in page sees it (Bayflow's look by default). */
+export function publicWorkshop(
+  overrides: Partial<Omit<PublicWorkshop, 'branding'>> & { branding?: Partial<PublicBranding> } = {},
+): PublicWorkshop {
+  const { branding: brandingOverrides, ...rest } = overrides;
+  return {
+    slug: 'demo',
+    name: 'Bayflow Workshop',
+    displayName: 'Bayflow Downtown',
+    active: true,
+    ...rest,
+    branding: {
+      logoUrl: null,
+      coverUrl: null,
+      primaryColor: null,
+      showPoweredBy: true,
+      banner: null,
+      ...brandingOverrides,
+    },
+  };
+}
+
+/** The admin's view of the branding (none set by default). */
+export function branding(overrides: Partial<Branding> = {}): Branding {
+  return {
+    primaryColor: null,
+    bannerText: null,
+    bannerStyle: 'INFO',
+    bannerStartsAt: null,
+    bannerEndsAt: null,
+    bannerLive: false,
+    showPoweredBy: true,
+    logoUrl: null,
+    coverUrl: null,
+    version: 0,
+    ...overrides,
+  };
+}
+
 export function workshop(overrides: Partial<Workshop> = {}): Workshop {
   return {
     id: '00000000-0000-0000-0000-000000000001',

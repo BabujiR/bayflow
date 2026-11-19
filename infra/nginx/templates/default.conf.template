@@ -34,8 +34,24 @@ server {
         return 404 '{"type":"urn:bayflow:problem:not-found","title":"Not Found","status":404}';
     }
 
+    # Branding image uploads (logo up to 1 MB, cover up to 3 MB, plus multipart overhead).
+    # auth-service checks each image's own limit; everything else stays at 1 MB.
+    location /api/v1/auth/tenant/branding/ {
+        client_max_body_size 4m;
+        include /etc/nginx/snippets/proxy.conf;
+        proxy_pass http://${AUTH_UPSTREAM};
+    }
+
     location /api/v1/auth/ {
         include /etc/nginx/snippets/proxy.conf;
+        proxy_pass http://${AUTH_UPSTREAM};
+    }
+
+    # A workshop's logo and sign-in cover photo: public and cacheable (auth-service sets
+    # Cache-Control and ETag), unlike every other API response.
+    location ~ ^/api/v1/tenants/current/(logo|cover)$ {
+        include /etc/nginx/snippets/proxy-pass.conf;
+        include /etc/nginx/snippets/security-headers.conf;
         proxy_pass http://${AUTH_UPSTREAM};
     }
 
