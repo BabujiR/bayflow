@@ -86,7 +86,10 @@ describe('the notification bell', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Mark all read' }));
 
     await vi.waitFor(() => expect(markedAll).toBe(true));
+    // The panel stays open (the rest of the page is hidden from assistive tech meanwhile); close it.
+    await userEvent.keyboard('{Escape}');
     expect(await screen.findByRole('button', { name: 'Notifications' })).toBeInTheDocument();
+    expect(screen.queryByTestId('notification-count')).not.toBeInTheDocument();
   });
 
   it('says when there is nothing yet', async () => {
