@@ -17,7 +17,8 @@ RUN pnpm build
 FROM nginxinc/nginx-unprivileged:stable-alpine
 ENV AUTH_UPSTREAM=auth-service:8083 \
     APPOINTMENT_UPSTREAM=appointment-service:8081 \
-    WORKSHOP_UPSTREAM=workshop-service:8082
+    WORKSHOP_UPSTREAM=workshop-service:8082 \
+    NOTIFICATION_UPSTREAM=notification-service:8084
 COPY infra/nginx/snippets/ /etc/nginx/snippets/
 COPY infra/nginx/templates/ /etc/nginx/templates/
 COPY --from=build /app/dist /usr/share/nginx/html

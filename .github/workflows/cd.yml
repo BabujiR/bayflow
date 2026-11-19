@@ -33,6 +33,9 @@ jobs:
           - image: bayflow-workshop
             context: backend
             dockerfile: backend/workshop-service/Dockerfile
+          - image: bayflow-notification
+            context: backend
+            dockerfile: backend/notification-service/Dockerfile
           - image: bayflow-web
             context: .
             dockerfile: frontend/Dockerfile

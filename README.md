@@ -21,13 +21,17 @@ recorded in the vehicle's service history.
 - **appointment-service** creates the job card in **workshop-service** at
   check-in, using a SYSTEM token. The call is idempotent and retried from an
   outbox if workshop-service is down.
+- **notification-service** stores each user's in-app notifications. The other
+  two services send it events (booking changes, check-in, estimate, decision,
+  finished work) through their outboxes, so none are lost while it is down; it
+  asks auth-service who works at the location.
 - All services share one PostgreSQL schema, but each reads and writes **only
-  its own tables** (`auth_*`, `apt_*`, `ws_*`).
+  its own tables** (`auth_*`, `apt_*`, `ws_*`, `ntf_*`).
 
 | Component | Tech |
 |---|---|
 | Backend | Java 21, Spring Boot 4.1, Spring Security (JWT), Spring Data JPA, Flyway |
-| Database | PostgreSQL 16, one schema, table prefix per service (`auth_`, `apt_`, `ws_`) |
+| Database | PostgreSQL 16, one schema, table prefix per service (`auth_`, `apt_`, `ws_`, `ntf_`) |
 | Frontend | React 19, TypeScript, Vite, TanStack Query, Tailwind CSS + shadcn/ui |
 | Tests | JUnit 5, AssertJ, Testcontainers, WireMock, Vitest, Playwright |
 | Delivery | Docker Compose, GitHub Actions, GitHub Container Registry |
@@ -46,7 +50,7 @@ recorded in the vehicle's service history.
 # Optional: copy the environment template and adjust ports or secrets
 cp .env.example .env                 # PowerShell: Copy-Item .env.example .env
 
-# Build and start everything: PostgreSQL, the three services and the web app
+# Build and start everything: PostgreSQL, the four services and the web app
 docker compose up -d --build
 docker compose ps                    # all five should become "healthy"
 ```
@@ -70,6 +74,7 @@ Chrome, Edge and Firefox resolve `*.localhost` to your own machine, so no hosts-
 | Auth API docs (Swagger UI; signs in to "demo") | http://localhost:8083/swagger-ui.html |
 | Appointment API docs (Swagger UI) | http://localhost:8081/swagger-ui.html |
 | Workshop API docs (Swagger UI) | http://localhost:8082/swagger-ui.html |
+| Notification API docs (Swagger UI) | http://localhost:8084/swagger-ui.html |
 | Public signing key (JWKS) | http://localhost:8083/.well-known/jwks.json |
 
 For frontend development with hot reload, keep the stack running and start the
@@ -128,6 +133,24 @@ Sign in as the workshop's admin → *Workshop settings* → **Branding**:
 Images are checked by their content (not their name), re-encoded and scaled down on the
 server, which also removes metadata such as a photo's GPS location. Everything applies at
 once at the workshop's address, for everyone, signed in or not.
+
+### Notifications
+
+Everyone signed in has a **bell** in the header. It shows how many notifications are unread
+(checked every 30 seconds and when you come back to the tab); clicking it lists the latest,
+and clicking one opens the booking or job card. *See all notifications* (`/notifications`)
+has the full history for 90 days.
+
+| When | Who is told |
+|---|---|
+| A customer books, moves or cancels | The location's advisors and managers |
+| The workshop books, confirms, moves or cancels | The customer |
+| The car is checked in | The customer, and the location's mechanics |
+| The estimate is sent | The customer |
+| The customer decides | The location's advisors and managers, and its mechanics if work was approved |
+| The work is complete | The customer |
+
+Nobody is told about their own action, and staff only hear about the locations they work at.
 
 ### Try the whole workflow in the web app
 
@@ -248,6 +271,7 @@ videos plus a trace for any failure.
 | `07-workshops` | Two workshops sign up through the public site, configure themselves, and reuse the same admin username independently; taken and reserved addresses refused; a token from one workshop refused at the other's address (401); an unknown address shows *Workshop not found* |
 | `08-locations` | The owner adds a location in Auckland with its own rate, hires an advisor for it; a customer books there in Auckland time; each location's advisor sees only their own; the job card charges the location's rate; the switcher shows one location or all; the location is archived again at the end |
 | `09-branding` | A new workshop's owner uploads a logo and cover photo (a fake PNG is refused), sets a colour and an announcement and turns off "Powered by Bayflow"; a customer sees all of it on the sign-in page and in the app; the images are served cached; other workshops are unchanged; removing the logo brings Bayflow's back |
+| `10-notifications` | A customer books and the advisor's bell shows it; confirmation and check-in reach the customer, the check-in the mechanic; the estimate reaches the customer, who opens the job card from it; the decision reaches the advisor and mechanic; "ready to collect" reaches the customer; another customer hears nothing |
 
 Pace of the videos: `E2E_SLOWMO` (ms per action, default 250) and `E2E_STEP_PAUSE` (ms per
 caption, default 900); set both to `0` for a fast run. The scenarios create their own
@@ -312,7 +336,8 @@ spaced out to stay under the 10-per-minute login limit.
 | Locations 1 | Organizations have locations ("Main" for everyone) | ✅ done |
 | Locations 2 | Location-scoped roles and isolation | ✅ done |
 | Locations 3 | Locations page, switcher, booking per location | ✅ done |
-| Branding | Logo, colour, cover photo, announcement, "Powered by Bayflow" | 🔍 in review |
+| Branding | Logo, colour, cover photo, announcement, "Powered by Bayflow" | ✅ done |
+| Notifications 1 | In-app notifications: bell, panel, Notifications page | 🔍 in review |
 
 ## Assumptions
 

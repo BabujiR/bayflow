@@ -57,6 +57,13 @@ bayflow:
     client-id: workshop-service
     client-secret: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:dev-workshop-secret}
     settings-cache-ttl: 5m
+    # Estimate ready / decided / work complete → notification-service, through the outbox.
+    notifications:
+      enabled: true
+      url: ${BAYFLOW_NOTIFICATION_URL:http://localhost:8084}
+      send-immediately: true
+      dispatcher-enabled: true
+      interval-ms: 10000
 
 management:
   endpoints:

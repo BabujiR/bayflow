@@ -12,6 +12,7 @@ import { JobCardDetailPage } from '@/features/jobcards/JobCardDetailPage';
 import { LocationsPage } from '@/features/locations/LocationsPage';
 import { JobCardsPage } from '@/features/jobcards/JobCardsPage';
 import { MyJobsPage } from '@/features/jobcards/MyJobsPage';
+import { NotificationsPage } from '@/features/notifications/NotificationsPage';
 import { LandingPage } from '@/features/site/LandingPage';
 import { SignupPage } from '@/features/site/SignupPage';
 import { SiteLayout } from '@/features/site/SiteLayout';
@@ -48,6 +49,8 @@ export const routes: RouteObject[] = [
         element: <AppShell />,
         children: [
           { index: true, element: <HomePage /> },
+          // Every signed-in user has their own notifications.
+          { path: '/notifications', element: <NotificationsPage /> },
           {
             element: <RequireRole roles={['SERVICE_ADVISOR']} />,
             children: [{ path: '/board', element: <BoardPage /> }],

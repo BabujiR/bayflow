@@ -54,6 +54,7 @@ bayflow:
   integration:
     auth-url: ${BAYFLOW_AUTH_URL:http://localhost:8083}
     workshop-url: ${BAYFLOW_WORKSHOP_URL:http://localhost:8082}
+    notification-url: ${BAYFLOW_NOTIFICATION_URL:http://localhost:8084}
     client-id: appointment-service
     client-secret: ${BAYFLOW_SYSTEM_CLIENT_SECRET:dev-system-secret}
     connect-timeout: 2s
@@ -64,6 +65,9 @@ bayflow:
       batch-size: 20
       initial-backoff: 10s
       max-backoff: 5m
+    notifications:
+      enabled: true
+      send-immediately: true
 
 management:
   endpoints:

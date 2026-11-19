@@ -22,6 +22,8 @@ import org.hibernate.annotations.TenantId;
 public class OutboxMessage {
 
     public static final String CREATE_JOB_CARD = "CREATE_JOB_CARD";
+    /** An event for notification-service (who is told what). */
+    public static final String NOTIFY = "NOTIFY";
 
     @Id
     private UUID id;

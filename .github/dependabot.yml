@@ -29,6 +29,7 @@ updates:
       - /backend/auth-service
       - /backend/appointment-service
       - /backend/workshop-service
+      - /backend/notification-service
       - /frontend
     schedule:
       interval: weekly

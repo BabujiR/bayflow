@@ -90,6 +90,10 @@ bayflow:
       workshop-service:
         secret: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:dev-workshop-secret}
         roles: [SYSTEM]
+      # Asks who works at a location, to send them notifications.
+      notification-service:
+        secret: ${BAYFLOW_NOTIFICATION_CLIENT_SECRET:dev-notification-secret}
+        roles: [SYSTEM]
     # Starting settings of a new workshop (each workshop then edits its own in the app).
     tenant-defaults:
       labour-rate: ${BAYFLOW_LABOUR_RATE:95.00}

@@ -8,6 +8,10 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +21,10 @@ import com.bayflow.appointment.domain.OutboxMessage;
 import com.bayflow.appointment.infrastructure.AppointmentRepository;
 import com.bayflow.appointment.infrastructure.OutboxRepository;
 import com.bayflow.appointment.infrastructure.OutboxRepository.DueMessage;
+import com.bayflow.appointment.integration.NotificationPayload;
 import com.bayflow.appointment.integration.OpenJobCardPayload;
+import com.bayflow.security.CurrentUser;
+import com.bayflow.security.TenantContext;
 
 import tools.jackson.databind.json.JsonMapper;
 
@@ -31,14 +38,16 @@ public class OutboxService {
     private final AppointmentRepository appointments;
     private final IntegrationProperties properties;
     private final JsonMapper json;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public OutboxService(OutboxRepository outbox, AppointmentRepository appointments,
-            IntegrationProperties properties, JsonMapper json, Clock clock) {
+            IntegrationProperties properties, JsonMapper json, ApplicationEventPublisher events, Clock clock) {
         this.outbox = outbox;
         this.appointments = appointments;
         this.properties = properties;
         this.json = json;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -51,6 +60,56 @@ public class OutboxService {
                 appointment.getArrivalMileage(), appointment.getTenantId(), appointment.getLocationId());
         outbox.save(OutboxMessage.create(appointment.getId(), OutboxMessage.CREATE_JOB_CARD,
                 json.writeValueAsString(payload), clock.instant()));
+    }
+
+    /** A notification event was queued; sent right after the transaction commits (see the dispatcher). */
+    public record NotificationQueued(UUID tenantId, UUID appointmentId) {
+    }
+
+    /**
+     * Queues an event for notification-service in the caller's transaction, so it is sent if
+     * (and only if) the change commits. The actor is whoever is signed in.
+     */
+    @Transactional
+    public void enqueueNotification(Appointment appointment, String type, Instant previousScheduledAt) {
+        if (!properties.getNotifications().isEnabled()) {
+            return;
+        }
+        CurrentUser actor = currentActor();
+        UUID tenant = TenantContext.require();
+        NotificationPayload payload = new NotificationPayload(null, tenant,
+                appointment.getLocationId(), type, actor == null ? null : parseId(actor.subject()),
+                actor != null && actor.isCustomer(), appointment.getCustomer().getUserId(), appointment.getId(),
+                appointment.getVehicle().getRegistration(), appointment.getScheduledAt(), previousScheduledAt);
+        outbox.save(OutboxMessage.create(appointment.getId(), OutboxMessage.NOTIFY,
+                json.writeValueAsString(payload), clock.instant()));
+        events.publishEvent(new NotificationQueued(tenant, appointment.getId()));
+    }
+
+    public NotificationPayload notificationPayload(OutboxMessage message) {
+        return json.readValue(message.getPayload(), NotificationPayload.class).withEventId(message.getId());
+    }
+
+    /** Settles a delivered message that has nothing to link (notifications). Repeats are harmless. */
+    @Transactional
+    public void markSent(UUID messageId) {
+        OutboxMessage message = outbox.findById(messageId).orElseThrow();
+        if (!message.isProcessed()) {
+            message.markDelivered(clock.instant());
+        }
+    }
+
+    private static CurrentUser currentActor() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication instanceof JwtAuthenticationToken ? CurrentUser.from(authentication) : null;
+    }
+
+    private static UUID parseId(String subject) {
+        try {
+            return subject == null ? null : UUID.fromString(subject);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     @Transactional(readOnly = true)

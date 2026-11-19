@@ -10,6 +10,7 @@ import { useBranding } from '@/features/branding/use-branding';
 import { WorkshopLogo } from '@/features/branding/WorkshopLogo';
 import { CustomerProfileGate } from '@/features/customers/CustomerProfileGate';
 import { LocationSwitcher } from '@/features/locations/LocationSwitcher';
+import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { useWorkshop } from '@/features/workshop/use-workshop';
 import { setWorkshopZone } from '@/lib/format';
 import { navItemsFor } from '@/lib/navigation';
@@ -71,6 +72,7 @@ export function AppShell() {
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1 lg:ml-0">
             <LocationSwitcher />
+            <NotificationBell />
             <ThemeToggle />
             <UserMenu />
           </div>

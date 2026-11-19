@@ -63,6 +63,18 @@ public class AppointmentService {
         this.clock = clock;
     }
 
+    /** Event types for notification-service (names as it knows them). */
+    static final class Events {
+        static final String BOOKED = "APPOINTMENT_BOOKED";
+        static final String RESCHEDULED = "APPOINTMENT_RESCHEDULED";
+        static final String CANCELLED = "APPOINTMENT_CANCELLED";
+        static final String CONFIRMED = "APPOINTMENT_CONFIRMED";
+        static final String CHECKED_IN = "VEHICLE_CHECKED_IN";
+
+        private Events() {
+        }
+    }
+
     @Transactional
     public Appointment book(CurrentUser user, UUID vehicleId, UUID locationId, Instant scheduledAt,
             Integer durationMinutes, ServiceType serviceType, String notes) {
@@ -83,7 +95,9 @@ public class AppointmentService {
         requireFreeSlot(vehicle.getId(), UUID.randomUUID(), scheduledAt, minutes);
         Appointment appointment = Appointment.book(customer, vehicle, location, scheduledAt, minutes, serviceType,
                 notes, now);
-        return appointments.saveAndFlush(appointment);
+        Appointment saved = appointments.saveAndFlush(appointment);
+        outbox.enqueueNotification(saved, Events.BOOKED, null);
+        return saved;
     }
 
     /**
@@ -125,6 +139,7 @@ public class AppointmentService {
     public Appointment confirm(UUID id) {
         Appointment appointment = find(id);
         appointment.confirm(clock.instant());
+        outbox.enqueueNotification(appointment, Events.CONFIRMED, null);
         return appointment;
     }
 
@@ -146,6 +161,7 @@ public class AppointmentService {
         appointment.checkIn(mileage, clock.instant());
         // Saved in this transaction: if the check-in commits, the job-card request will be delivered.
         outbox.enqueueJobCard(appointment);
+        outbox.enqueueNotification(appointment, Events.CHECKED_IN, null);
         return appointment;
     }
 
@@ -166,6 +182,7 @@ public class AppointmentService {
     public Appointment cancel(CurrentUser user, UUID id) {
         Appointment appointment = get(user, id);
         appointment.cancel(clock.instant());
+        outbox.enqueueNotification(appointment, Events.CANCELLED, null);
         return appointment;
     }
 
@@ -181,7 +198,9 @@ public class AppointmentService {
         }
         requireFuture(scheduledAt, now);
         requireFreeSlot(appointment.getVehicle().getId(), appointment.getId(), scheduledAt, minutes);
+        Instant previous = appointment.getScheduledAt();
         appointment.reschedule(scheduledAt, minutes, now);
+        outbox.enqueueNotification(appointment, Events.RESCHEDULED, previous);
         return appointments.saveAndFlush(appointment);
     }
 

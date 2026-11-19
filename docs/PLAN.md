@@ -167,6 +167,7 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 | POST | /tenants/signup | public (CSRF header, rate-limited per IP): new workshop + its ADMIN |
 | GET | /tenants/slug-availability?slug= | public |
 | GET | /tenants/current | public: the workshop at this address (404 if none), with its `branding` |
+| GET | /auth/internal/tenants/{tid}/locations/{lid}/staff?roles= | SYSTEM only: enabled staff with those roles at the location |
 | GET | /tenants/current/logo, /tenants/current/cover | public: the workshop's images (ETag; `?v=` from `/tenants/current` = cached a year) |
 | GET/PUT | /auth/tenant/branding | ADMIN: colour, announcement, "Powered by Bayflow" (PUT with `version`; 409 if stale) |
 | PUT/DELETE | /auth/tenant/branding/logo, /auth/tenant/branding/cover | ADMIN: upload (multipart `file`) or remove an image |
@@ -613,6 +614,47 @@ in the page `<meta name="description">`.
       images on AWS (docs/SAAS-AWS-NOTES.md), plan-based limits (white label as a paid
       feature).
 
+25. **Notifications, phase N1: in-app notification centre.** A fourth service,
+    **notification-service** (:8084, tables `ntf_*`), stores each user's notifications.
+    - **Events:** appointment-service queues a `NOTIFY` message in its existing outbox
+      (`apt_outbox`) on booking, confirm, reschedule, cancel and check-in; workshop-service
+      has its own outbox (`ws_outbox`, V8, same design and owner-run `ws_due_outbox`) for
+      estimate sent (only when there is something to approve), last item decided, and work
+      complete. Each message is stored in the same transaction as the change, sent in the
+      background right after commit, and retried every 10 s with backoff while
+      notification-service is down. The event id is the outbox message id; notification-
+      service stores an event once (`ntf_received_events`). Events carry ids, the
+      registration, times and counts, never prices, notes or contact details.
+    - **Recipients** are decided when the event arrives (later location changes don't move
+      old notifications). Customer actions on bookings → the location's SERVICE_ADVISORs and
+      MANAGERs; workshop actions → the customer; check-in → the customer and the location's
+      MECHANICs; estimate → customer; decision → advisors and managers, plus mechanics when
+      something was approved; complete → customer. The actor is never told about their own
+      action. ADMINs are not notified in N1. Walk-in customers without a login are skipped.
+      Staff come from auth-service's new SYSTEM-only
+      `GET /api/v1/auth/internal/tenants/{tid}/locations/{lid}/staff?roles=…` (enabled users
+      with those location-scoped roles at that location; ADMIN/CUSTOMER refused), cached
+      1 minute; while auth-service can't answer, the event gets 503 and is retried.
+    - **Texts** are English and plain text, written when the event arrives, with times in
+      the location's time zone (from auth-service's locations, cached 5 minutes).
+      Links are app paths only (checked in the database and in the web app).
+    - **Isolation:** besides `app.tenant`, each transaction sets `app.recipient`: the
+      signed-in user's id (only their own rows), `*` for the service storing an event, or
+      nothing (no rows). Policies check both; the API also filters by recipient; another
+      user's notification is 404.
+    - **API:** `GET /api/v1/notifications` (paged, newest first), `GET …/unread-count`,
+      `POST …/{id}/read`, `POST …/read-all`, SYSTEM-only
+      `POST /api/v1/internal/notification-events` (not routed by nginx).
+    - **Retention:** a nightly job (03:17) deletes notifications and received events older
+      than 90 days, through the owner-run `ntf_delete_before`.
+    - **Web app:** a bell for every signed-in user with the unread count (polled every 30 s
+      and on returning to the tab), a panel with the latest 20 and "Mark all read", and a
+      Notifications page. Times in the location's zone; the location's name when the
+      organization has several.
+    - Next steps: email (N2: Mailpit locally, SES on AWS, per-user preferences), reminders
+      the day before and admin announcements (N3), live updates with server-sent events,
+      translations, SMS/WhatsApp (needs a paid provider).
+
 ---
 
 ## 10. Milestones
@@ -632,6 +674,6 @@ in the page `<meta name="description">`.
 | SaaS 3 | Per-workshop settings, money frozen on job cards | no business setting read from env at request time |
 | SaaS 4 | Sign-up and `<slug>.localhost` subdomains | a new workshop signs up and runs on its own |
 
-SaaS milestones: 1–4 done. Organizations and locations: L1–L3 done. Branding: in review.
+SaaS milestones: 1–4 done. Organizations and locations: L1–L3 done. Branding: done. Notifications N1: in review.
 
 Each milestone ends with a review pause.

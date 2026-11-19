@@ -348,3 +348,28 @@ export interface LocationRequest {
   labourRate?: number;
   version?: number;
 }
+
+// ---- notifications (notification-service, phase N1) --------------------------------------
+
+export type NotificationType =
+  | 'APPOINTMENT_BOOKED'
+  | 'APPOINTMENT_RESCHEDULED'
+  | 'APPOINTMENT_CANCELLED'
+  | 'APPOINTMENT_CONFIRMED'
+  | 'VEHICLE_CHECKED_IN'
+  | 'ESTIMATE_READY'
+  | 'ESTIMATE_DECIDED'
+  | 'WORK_COMPLETED';
+
+/** One message to the signed-in user. Title and body are plain text. */
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  /** A path in this app, e.g. /job-cards/<id>. */
+  link: string | null;
+  locationId: string | null;
+  createdAt: string;
+  read: boolean;
+}

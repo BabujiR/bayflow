@@ -24,6 +24,7 @@
         <module>auth-service</module>
         <module>appointment-service</module>
         <module>workshop-service</module>
+        <module>notification-service</module>
     </modules>
 
     <properties>
