@@ -1,3 +1,5 @@
+import { locationHeader } from '@/features/locations/selection';
+
 import { ApiError, toApiError } from './errors';
 
 /**
@@ -82,19 +84,30 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
   // X-Bayflow-Client: auth-service's CSRF check for the cookie endpoints (/refresh, /logout).
   // A cross-site page cannot add custom headers without a CORS preflight, which Bayflow refuses.
   const headers: Record<string, string> = { Accept: 'application/json', 'X-Bayflow-Client': 'web' };
-  if (options.body !== undefined) {
+  // FormData (file uploads) sets its own multipart Content-Type with the boundary.
+  const isForm = options.body instanceof FormData;
+  if (options.body !== undefined && !isForm) {
     headers['Content-Type'] = 'application/json';
   }
   if (options.auth !== false && accessToken) {
     headers.Authorization = `Bearer ${accessToken}`;
   }
+  // The location switcher (organizations with several locations): the services show only it.
+  const location = locationHeader();
+  if (options.auth !== false && accessToken && location) {
+    headers['X-Bayflow-Location'] = location;
+  }
   return fetch(url, {
     method: options.method ?? 'GET',
     headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body: isForm ? (options.body as FormData) : jsonBody(options.body),
     credentials: 'same-origin',
     signal: options.signal,
   });
+}
+
+function jsonBody(body: unknown): string | undefined {
+  return body !== undefined ? JSON.stringify(body) : undefined;
 }
 
 async function parse<T>(response: Response): Promise<T> {
@@ -113,6 +126,7 @@ export const http = {
   post: <T>(path: string, body?: unknown) => request<T>(path, { method: 'POST', body }),
   put: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PUT', body }),
   patch: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PATCH', body }),
+  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 };
 
 export { ApiError };

@@ -5,18 +5,24 @@ import java.time.Clock;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bayflow.security.CurrentUser;
-import com.bayflow.workshop.config.WorkshopProperties;
+import com.bayflow.security.LocationContext;
+import com.bayflow.security.TenantContext;
 import com.bayflow.workshop.domain.JobCard;
 import com.bayflow.workshop.domain.JobCardStatus;
 import com.bayflow.workshop.domain.Severity;
 import com.bayflow.workshop.infrastructure.JobCardRepository;
+import com.bayflow.workshop.integration.WorkshopSettingsClient;
+import com.bayflow.workshop.integration.WorkshopSettingsClient.WorkshopSettings;
 
 /**
  * Job cards from creation through the customer's decision. Role checks happen on the API;
@@ -26,7 +32,8 @@ import com.bayflow.workshop.infrastructure.JobCardRepository;
 public class JobCardService {
 
     /** What appointment-service (or an advisor) sends when a vehicle is checked in. */
-    public record OpenCommand(UUID appointmentId, UUID vehicleId, String vin, String registration,
+    /** locationId null = the organization's first location, "Main" (id = tenant id). */
+    public record OpenCommand(UUID appointmentId, UUID locationId, UUID vehicleId, String vin, String registration,
             UUID customerUserId, String customerName, int mileage) {
     }
 
@@ -36,28 +43,52 @@ public class JobCardService {
 
     private final JobCardRepository jobCards;
     private final ServiceHistoryService history;
-    private final WorkshopProperties properties;
+    private static final Logger log = LoggerFactory.getLogger(JobCardService.class);
+
+    private final WorkshopSettingsClient settings;
     private final Clock clock;
 
-    public JobCardService(JobCardRepository jobCards, ServiceHistoryService history, WorkshopProperties properties,
-            Clock clock) {
+    public JobCardService(JobCardRepository jobCards, ServiceHistoryService history,
+            WorkshopSettingsClient settings, Clock clock) {
         this.jobCards = jobCards;
         this.history = history;
-        this.properties = properties;
+        this.settings = settings;
         this.clock = clock;
     }
 
-    /** Idempotent on appointmentId: a repeated call returns the existing card. */
+    /**
+     * Idempotent on appointmentId: a repeated call returns the existing card. A new card freezes
+     * its location's current labour rate and the organization's currency; without them it is not
+     * opened (503), so the caller's outbox retries later.
+     */
     @Transactional
     public OpenResult open(OpenCommand command) {
         Optional<JobCard> existing = jobCards.findByAppointmentId(command.appointmentId());
         if (existing.isPresent()) {
             return new OpenResult(loaded(existing.get()), false);
         }
-        JobCard card = JobCard.open(command.appointmentId(), command.vehicleId(), command.vin(),
+        UUID location = command.locationId() != null ? command.locationId() : TenantContext.require();
+        if (!LocationContext.current().allows(location)) {
+            throw ApiException.notFound("Location");
+        }
+        WorkshopSettings money = workshopSettings(location);
+        JobCard card = JobCard.open(command.appointmentId(), location, command.vehicleId(), command.vin(),
                 command.registration(), command.customerUserId(), command.customerName(), command.mileage(),
-                clock.instant());
+                money.labourRate(), money.currency(), clock.instant());
         return new OpenResult(jobCards.saveAndFlush(card), true);
+    }
+
+    private WorkshopSettings workshopSettings(UUID locationId) {
+        UUID tenantId = TenantContext.require();
+        try {
+            return settings.get(tenantId, locationId);
+        } catch (WorkshopSettingsClient.UnknownLocationException e) {
+            throw ApiException.badRequest("invalid-location", "That location does not belong to this workshop.");
+        } catch (RuntimeException e) {
+            log.warn("Workshop settings for {} unavailable; not opening the job card: {}", tenantId, e.toString());
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "settings-unavailable", "Service Unavailable",
+                    "The workshop's labour rate could not be confirmed. Try again shortly.");
+        }
     }
 
     /** Used after a concurrent create lost the race on the unique appointment id. */
@@ -151,12 +182,12 @@ public class JobCardService {
         return loaded(card);
     }
 
-    /** {@code hourlyRate} defaults to the workshop rate when not given. */
+    /** {@code hourlyRate} defaults to the rate frozen on the card when it opened. */
     @Transactional
     public JobCard addLabour(CurrentUser user, UUID id, UUID recommendationId, BigDecimal hours,
             BigDecimal hourlyRate) {
         JobCard card = find(id);
-        BigDecimal rate = hourlyRate != null ? hourlyRate : properties.getLabourRate();
+        BigDecimal rate = hourlyRate != null ? hourlyRate : card.getLabourRate();
         card.addLabour(recommendationId, user.username(), hours, rate, clock.instant());
         return loaded(card);
     }
@@ -170,8 +201,16 @@ public class JobCardService {
         return loaded(card);
     }
 
+    /**
+     * A job card of a location the caller works at. Row-level security already hides the others;
+     * this check makes sure a misconfigured database can't change that (404).
+     */
     private JobCard find(UUID id) {
-        return jobCards.findById(id).orElseThrow(() -> ApiException.notFound("Job card"));
+        JobCard card = jobCards.findById(id).orElseThrow(() -> ApiException.notFound("Job card"));
+        if (!LocationContext.current().allows(card.getLocationId())) {
+            throw ApiException.notFound("Job card");
+        }
+        return card;
     }
 
     private static JobCard visible(CurrentUser user, JobCard card) {

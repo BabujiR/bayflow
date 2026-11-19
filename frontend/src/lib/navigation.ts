@@ -51,6 +51,18 @@ export const NAV_ITEMS: NavItem[] = [
     description: 'Create staff accounts and enable or disable users.',
     roles: ['ADMIN'],
   },
+  {
+    to: '/locations',
+    label: 'Locations',
+    description: 'Your shops, with their own time zone and labour rate.',
+    roles: ['ADMIN'],
+  },
+  {
+    to: '/settings',
+    label: 'Workshop settings',
+    description: 'Name, contact details, labour rate, currency and time zone.',
+    roles: ['ADMIN'],
+  },
 ];
 
 export function navItemsFor(roles: Role[]): NavItem[] {

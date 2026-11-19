@@ -14,6 +14,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import org.hibernate.annotations.TenantId;
+
 /** Work the advisor recommends, with an estimate, which the customer approves or declines. */
 @Entity
 @Table(name = "ws_recommended_items")
@@ -21,6 +23,15 @@ public class RecommendedWorkItem {
 
     @Id
     private UUID id;
+
+    /** The workshop this item belongs to. Hibernate fills it and filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
+
+    /** The job card's location, copied so row-level security can check this table on its own. */
+    @Column(name = "location_id", nullable = false, updatable = false)
+    private UUID locationId;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "job_card_id", nullable = false)
@@ -60,6 +71,7 @@ public class RecommendedWorkItem {
         }
         this.id = UUID.randomUUID();
         this.jobCard = jobCard;
+        this.locationId = jobCard.getLocationId();
         this.description = description.trim();
         this.estimatedPartsCost = estimatedPartsCost.setScale(2, RoundingMode.HALF_UP);
         this.estimatedLabourHours = estimatedLabourHours.setScale(2, RoundingMode.HALF_UP);
@@ -96,6 +108,8 @@ public class RecommendedWorkItem {
     }
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
+    public UUID getLocationId() { return locationId; }
     public String getDescription() { return description; }
     public BigDecimal getEstimatedPartsCost() { return estimatedPartsCost; }
     public BigDecimal getEstimatedLabourHours() { return estimatedLabourHours; }

@@ -6,16 +6,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
 class UserTest {
 
+    private static final UUID TENANT = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
     private static final Instant NOW = Instant.parse("2026-11-09T10:00:00Z");
     private static final Duration LOCK = Duration.ofMinutes(15);
 
     private User user() {
-        return User.create("  Customer1 ", " Customer1@Example.COM ", "{bcrypt}hash", Set.of(Role.CUSTOMER), NOW);
+        return User.create(TENANT, "  Customer1 ", " Customer1@Example.COM ", "{bcrypt}hash", Set.of(Role.CUSTOMER), NOW);
     }
 
     @Test
@@ -32,7 +35,7 @@ class UserTest {
 
     @Test
     void createRequiresARole() {
-        assertThatThrownBy(() -> User.create("a", "a@b.c", "h", Set.of(), NOW))
+        assertThatThrownBy(() -> User.create(TENANT, "a", "a@b.c", "h", Set.of(), NOW))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

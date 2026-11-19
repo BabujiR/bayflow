@@ -97,8 +97,10 @@ public final class AppointmentDtos {
 
     // ---- appointments ---------------------------------------------------------------
 
+    /** locationId: optional while the organization has one location, required once it has several. */
     public record BookAppointmentRequest(
             @NotNull UUID vehicleId,
+            UUID locationId,
             @NotNull Instant scheduledAt,
             @Min(Appointment.MIN_DURATION_MINUTES) @Max(Appointment.MAX_DURATION_MINUTES) Integer durationMinutes,
             @NotNull ServiceType serviceType,
@@ -121,13 +123,15 @@ public final class AppointmentDtos {
         }
     }
 
-    public record AppointmentResponse(UUID id, UUID customerId, String customerName, VehicleSummary vehicle,
+    public record AppointmentResponse(UUID id, UUID locationId, UUID customerId, String customerName,
+            VehicleSummary vehicle,
             Instant scheduledAt, Instant endsAt, int durationMinutes, ServiceType serviceType, String notes,
             AppointmentStatus status, Integer arrivalMileage, Instant confirmedAt, Instant arrivedAt,
             Instant checkedInAt, Instant cancelledAt, UUID jobCardId, Instant createdAt, Instant updatedAt) {
 
         public static AppointmentResponse from(Appointment a) {
-            return new AppointmentResponse(a.getId(), a.getCustomer().getId(), a.getCustomer().getName(),
+            return new AppointmentResponse(a.getId(), a.getLocationId(), a.getCustomer().getId(),
+                    a.getCustomer().getName(),
                     VehicleSummary.from(a.getVehicle()), a.getScheduledAt(), a.getEndsAt(), a.getDurationMinutes(),
                     a.getServiceType(), a.getNotes(), a.getStatus(), a.getArrivalMileage(), a.getConfirmedAt(),
                     a.getArrivedAt(), a.getCheckedInAt(), a.getCancelledAt(), a.getJobCardId(), a.getCreatedAt(),

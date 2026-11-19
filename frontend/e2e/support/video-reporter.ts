@@ -72,7 +72,9 @@ export default class VideoReporter implements Reporter {
       spec,
       project,
       status: result.status,
-      error: result.error?.message ? stripVTControlCharacters(result.error.message).slice(0, 1500) : undefined,
+      error: result.error?.message
+        ? stripVTControlCharacters(result.error.message).slice(0, 1500)
+        : undefined,
       durationMs: timeline.durationMs,
       videos,
       steps: timeline.steps,
@@ -81,7 +83,10 @@ export default class VideoReporter implements Reporter {
 
   onEnd(): void {
     writeFileSync(join(this.outDir, 'scenarios.json'), JSON.stringify(this.entries, null, 2));
-    writeFileSync(join(this.outDir, 'index.html'), PLAYER.replace('__DATA__', JSON.stringify(this.entries).replace(/</g, '\\u003c')));
+    writeFileSync(
+      join(this.outDir, 'index.html'),
+      PLAYER.replace('__DATA__', JSON.stringify(this.entries).replace(/</g, '\\u003c')),
+    );
     console.log(`\nScenario videos: ${join(this.outDir, 'index.html')}`);
   }
 }

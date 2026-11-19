@@ -10,8 +10,9 @@ spring:
     name: appointment-service
   datasource:
     url: ${BAYFLOW_DB_URL:jdbc:postgresql://localhost:5432/bayflow}
-    username: ${BAYFLOW_DB_USER:bayflow}
-    password: ${BAYFLOW_DB_PASSWORD:bayflow}
+    # Runtime login: not the table owner, so row-level security applies (RowLevelSecurityGuard checks).
+    username: ${BAYFLOW_DB_USER:bayflow_app}
+    password: ${BAYFLOW_DB_PASSWORD:bayflow_app}
   jpa:
     open-in-view: false
     hibernate:
@@ -19,6 +20,8 @@ spring:
     properties:
       hibernate:
         default_schema: bayflow
+        # Multi-tenancy: fills and filters tenant_id on every @TenantId entity (fails closed).
+        tenant_identifier_resolver: com.bayflow.security.BayflowTenantResolver
   flyway:
     # Shared schema "bayflow"; this service owns the apt_* tables and its own history table.
     schemas: bayflow
@@ -27,8 +30,19 @@ spring:
     baseline-on-migrate: true
     baseline-version: "0"
     locations: classpath:db/migration
+    # Migrations run as the table owner; the services themselves connect as the app role.
+    user: ${BAYFLOW_DB_OWNER_USER:bayflow}
+    password: ${BAYFLOW_DB_OWNER_PASSWORD:bayflow}
+    placeholders:
+      # Same fixed value in every service: the workshop pre-multi-tenancy data belongs to.
+      default_tenant_id: 00000000-0000-0000-0000-000000000001
+      # The runtime login that migrations grant access to (row-level security applies to it).
+      app_role: ${BAYFLOW_DB_USER:bayflow_app}
 
 bayflow:
+  # A user token only works at its own workshop's address, <slug>.<base domain>.
+  tenancy:
+    base-domain: ${BAYFLOW_BASE_DOMAIN:localhost}
   security:
     jwt:
       jwk-set-uri: ${BAYFLOW_JWKS_URI:http://localhost:8083/.well-known/jwks.json}

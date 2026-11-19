@@ -9,6 +9,8 @@ import {
   type TestInfo,
 } from '@playwright/test';
 
+import './localhost-dns';
+
 /**
  * Shared harness for the recorded end-to-end scenarios.
  *
@@ -37,22 +39,47 @@ export function randomVin(): string {
 }
 
 export interface Slot {
-  /** Local day, YYYY-MM-DD (the board and list filters). */
+  /** The workshop's day, YYYY-MM-DD (the board and list filters). */
   date: string;
-  /** Value for a datetime-local input. */
+  /** Value for a datetime-local input, in workshop time. */
   local: string;
   /** For the API. */
   iso: string;
 }
 
-/** A time `daysAhead` days from today, in the browser's (and this machine's) time zone. */
+/**
+ * The demo workshop's time zone (its setting, seeded from BAYFLOW_WORKSHOP_ZONE). The web app
+ * shows and reads times in it, whatever zone this machine or CI runner is in.
+ */
+export const WORKSHOP_ZONE = process.env.E2E_WORKSHOP_ZONE ?? 'America/New_York';
+
+function wallClock(instant: number) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: WORKSHOP_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(instant));
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return { y: get('year'), m: get('month'), d: get('day'), h: get('hour') % 24, mi: get('minute') };
+}
+
+/** A time `daysAhead` days from the workshop's today, at `hour:minute` workshop time. */
 export function slot(daysAhead: number, hour: number, minute = 0): Slot {
-  const d = new Date();
-  d.setDate(d.getDate() + daysAhead);
-  d.setHours(hour, minute, 0, 0);
+  const today = wallClock(Date.now());
+  const day = new Date(Date.UTC(today.y, today.m - 1, today.d + daysAhead));
   const pad = (n: number) => String(n).padStart(2, '0');
-  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  return { date, local: `${date}T${pad(hour)}:${pad(minute)}`, iso: d.toISOString() };
+  const date = `${day.getUTCFullYear()}-${pad(day.getUTCMonth() + 1)}-${pad(day.getUTCDate())}`;
+  const asUtc = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), hour, minute);
+  const offsetAt = (instant: number) => {
+    const w = wallClock(instant);
+    return Date.UTC(w.y, w.m - 1, w.d, w.h, w.mi) - instant;
+  };
+  const instant = asUtc - offsetAt(asUtc - offsetAt(asUtc));
+  return { date, local: `${date}T${pad(hour)}:${pad(minute)}`, iso: new Date(instant).toISOString() };
 }
 
 /** Spreads scenarios over different days so boards stay readable. */
@@ -120,7 +147,11 @@ export class Api {
     } catch {
       // not JSON
     }
-    return { status: response.status(), code: problem.type?.replace('urn:bayflow:problem:', ''), detail: problem.detail };
+    return {
+      status: response.status(),
+      code: problem.type?.replace('urn:bayflow:problem:', ''),
+      detail: problem.detail,
+    };
   }
 
   get = <T = unknown>(path: string) => this.call<T>('GET', path);
@@ -239,8 +270,12 @@ export class Actor {
   check = (text: string) => this.say(text, 'check');
 
   async signIn(username: string, password = DEMO_PASSWORD): Promise<void> {
-    await throttleLogin(username);
-    await this.page.goto('/login');
+    // The sign-in page of the address this browser is at now: after a workshop sign-up that is
+    // the new workshop, not the public site the browser started on.
+    const current = this.page.url();
+    await this.page.goto(current.startsWith('http') ? new URL('/login', current).href : '/login');
+    // Login limits are per workshop: key the throttle by this address.
+    await throttleLogin(`${new URL(this.page.url()).origin}|${username}`);
     await this.page.getByLabel('Username').fill(username);
     await this.page.getByLabel('Password').fill(password);
     await this.page.getByRole('button', { name: 'Sign in' }).click();
@@ -290,16 +325,32 @@ export class Cast {
     this.steps.push({ t: Date.now() - this.startedAt, actor, text, kind });
   }
 
-  private get baseURL(): string {
-    return (this.testInfo.project.use.baseURL as string | undefined) ?? 'http://localhost:3000';
+  /** This run's workshop address, e.g. http://demo.localhost:3000 (see playwright.config.ts). */
+  get baseURL(): string {
+    return (this.testInfo.project.use.baseURL as string | undefined) ?? 'http://demo.localhost:3000';
   }
 
-  /** A new person at their own browser, recorded on video. */
-  async actor(name: string): Promise<Actor> {
+  /** The public site (sign-up), e.g. http://localhost:3000. */
+  get siteURL(): string {
+    const url = new URL(this.baseURL);
+    return `${url.protocol}//${url.host.split('.').slice(1).join('.')}`;
+  }
+
+  /** Another workshop's address on the same site. */
+  workshopURL(slug: string): string {
+    const url = new URL(this.siteURL);
+    return `${url.protocol}//${slug}.${url.host}`;
+  }
+
+  /**
+   * A new person at their own browser, recorded on video. They start at this run's workshop
+   * (its sign-in page), or at `options.at` (another address, e.g. the public sign-up site).
+   */
+  async actor(name: string, options: { at?: string } = {}): Promise<Actor> {
     const use = this.testInfo.project.use;
     const viewport = use.viewport ?? { width: 1280, height: 800 };
     const context = await this.browser.newContext({
-      baseURL: this.baseURL,
+      baseURL: options.at ?? this.baseURL,
       viewport,
       isMobile: use.isMobile,
       hasTouch: use.hasTouch,
@@ -313,15 +364,15 @@ export class Cast {
     const page = await context.newPage();
     const actor = new Actor(name, context, page, this);
     this.actors.push({ actor, offsetMs: Date.now() - this.startedAt });
-    await page.goto('/login');
+    await page.goto(options.at ? '/' : '/login');
     await actor.say('joins the scenario');
     return actor;
   }
 
   /** A signed-in API client, for arranging data without clicking through the UI. */
-  async api(username: string, password = DEMO_PASSWORD): Promise<Api> {
-    await throttleLogin(username);
-    const http = await playwrightRequest.newContext({ baseURL: this.baseURL });
+  async api(username: string, password = DEMO_PASSWORD, at: string = this.baseURL): Promise<Api> {
+    await throttleLogin(`${new URL(at).origin}|${username}`);
+    const http = await playwrightRequest.newContext({ baseURL: at });
     this.apis.push(http);
     const response = await http.post('/api/v1/auth/login', { data: { username, password } });
     expect(response.ok(), `API login for ${username}`).toBeTruthy();
@@ -330,8 +381,8 @@ export class Cast {
   }
 
   /** An unauthenticated API client. */
-  async anonymousApi(): Promise<APIRequestContext> {
-    const http = await playwrightRequest.newContext({ baseURL: this.baseURL });
+  async anonymousApi(at: string = this.baseURL): Promise<APIRequestContext> {
+    const http = await playwrightRequest.newContext({ baseURL: at });
     this.apis.push(http);
     return http;
   }
@@ -339,7 +390,9 @@ export class Cast {
   /** A caption that is not tied to one browser (e.g. an API-level check). */
   async note(text: string, kind: StepKind = 'check'): Promise<void> {
     this.record('API', text, kind);
-    await Promise.all(this.actors.map(({ actor }) => actor.show(`API · ${text}`, kind).catch(() => undefined)));
+    await Promise.all(
+      this.actors.map(({ actor }) => actor.show(`API · ${text}`, kind).catch(() => undefined)),
+    );
   }
 
   /** Closes every browser, attaches each video and the timeline to the report. */
@@ -376,6 +429,17 @@ export { expect };
 
 // ---- Arranging data through the API -----------------------------------------------------------
 
+/**
+ * "Main" (the organization's first location) when the organization has several active locations,
+ * otherwise nothing (the API picks the only one). Keeps the scenarios working while a scenario
+ * that adds a location is running, or after one stopped halfway.
+ */
+async function mainLocationIfSeveral(api: Api): Promise<string | undefined> {
+  const locations = await api.get<{ id: string; code: string; status: string }[]>('/api/v1/auth/locations');
+  const active = locations.filter((l) => l.status === 'ACTIVE');
+  return active.length > 1 ? (active.find((l) => l.code === 'main') ?? active[0])?.id : undefined;
+}
+
 export interface SeededCustomer {
   username: string;
   password: string;
@@ -396,7 +460,10 @@ export async function seedCustomer(cast: Cast, options: { mileage?: number } = {
   });
   expect(registered.ok(), 'register customer').toBeTruthy();
   const api = await cast.api(username, NEW_PASSWORD);
-  const customer = await api.post<{ id: string }>('/api/v1/customers/me', { name, email: `${username}@example.com` });
+  const customer = await api.post<{ id: string }>('/api/v1/customers/me', {
+    name,
+    email: `${username}@example.com`,
+  });
   const mileage = options.mileage ?? 20_000;
   const registration = `E2E ${id}`;
   const vin = randomVin();
@@ -422,10 +489,12 @@ export async function book(
   api: Api,
   vehicleId: string,
   at: Slot,
-  options: { durationMinutes?: number; serviceType?: string; notes?: string } = {},
+  options: { durationMinutes?: number; serviceType?: string; notes?: string; locationId?: string } = {},
 ): Promise<{ id: string }> {
   return api.post<{ id: string }>('/api/v1/appointments', {
     vehicleId,
+    // Organizations with several locations need one; the scenarios use "Main" unless they say.
+    locationId: options.locationId ?? (await mainLocationIfSeveral(api)),
     scheduledAt: at.iso,
     durationMinutes: options.durationMinutes ?? 60,
     serviceType: options.serviceType ?? 'ROUTINE_SERVICE',
@@ -442,7 +511,9 @@ export async function checkInViaApi(advisor: Api, appointmentId: string, mileage
   await expect
     .poll(
       async () => {
-        const appointment = await advisor.get<{ jobCardId?: string | null }>(`/api/v1/appointments/${appointmentId}`);
+        const appointment = await advisor.get<{ jobCardId?: string | null }>(
+          `/api/v1/appointments/${appointmentId}`,
+        );
         jobCardId = appointment.jobCardId ?? undefined;
         return jobCardId;
       },
@@ -458,7 +529,10 @@ export async function inspectViaApi(
   jobCardId: string,
   items: { description: string; parts: number; hours: number }[],
 ): Promise<{ id: string; description: string }[]> {
-  await advisor.post(`/api/v1/job-cards/${jobCardId}/findings`, { description: 'Inspection notes', severity: 'MEDIUM' });
+  await advisor.post(`/api/v1/job-cards/${jobCardId}/findings`, {
+    description: 'Inspection notes',
+    severity: 'MEDIUM',
+  });
   let card: { recommendations: { id: string; description: string }[] } = { recommendations: [] };
   for (const item of items) {
     card = await advisor.post<typeof card>(`/api/v1/job-cards/${jobCardId}/recommendations`, {
@@ -494,7 +568,9 @@ export async function openJobCardFromRow(actor: Actor, date: string, registratio
     if (!(await link.isVisible())) {
       await page.reload();
     }
-    await expect((await appointmentRow(actor, date, registration)).getByRole('link', { name: 'Job card' })).toBeVisible({
+    await expect(
+      (await appointmentRow(actor, date, registration)).getByRole('link', { name: 'Job card' }),
+    ).toBeVisible({
       timeout: 3_000,
     });
   }).toPass({ timeout, intervals: [2_000, 5_000] });

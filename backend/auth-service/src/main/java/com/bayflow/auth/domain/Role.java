@@ -5,11 +5,18 @@ public enum Role {
     CUSTOMER,
     SERVICE_ADVISOR,
     MECHANIC,
-    /** Manages user accounts. */
+    /** A location's general manager: everything an advisor may do, at their locations. */
+    MANAGER,
+    /** Manages user accounts; the organization's owner, at every location. */
     ADMIN;
 
     /** Staff accounts are created by an ADMIN, never by self-registration. */
     public boolean isStaff() {
-        return this == SERVICE_ADVISOR || this == MECHANIC || this == ADMIN;
+        return this != CUSTOMER;
+    }
+
+    /** Staff who work at particular locations (ADMIN and CUSTOMER cover every location). */
+    public boolean isLocationScoped() {
+        return this == MANAGER || this == SERVICE_ADVISOR || this == MECHANIC;
     }
 }

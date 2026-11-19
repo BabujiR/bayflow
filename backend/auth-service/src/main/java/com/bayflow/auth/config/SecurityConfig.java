@@ -21,6 +21,7 @@ import com.bayflow.security.BayflowSecurity;
 import com.bayflow.security.BayflowTokenValidators;
 import com.bayflow.security.ProblemDetailsSecurityHandlers;
 import com.bayflow.security.RolesClaimAuthenticationConverter;
+import com.bayflow.security.WorkshopHosts;
 
 @Configuration
 @EnableMethodSecurity
@@ -32,7 +33,12 @@ public class SecurityConfig {
             "/api/v1/auth/login",
             "/api/v1/auth/refresh",
             "/api/v1/auth/logout",
-            "/api/v1/auth/token");
+            "/api/v1/auth/token",
+            "/api/v1/tenants/signup");
+
+    /** Public workshop lookups (sign-in page name, sign-up address check). */
+    static final String[] PUBLIC_WORKSHOP_GETS = { "/api/v1/tenants/current", "/api/v1/tenants/slug-availability",
+        "/api/v1/tenants/current/logo", "/api/v1/tenants/current/cover" };
 
     @Bean
     Clock clock() {
@@ -55,12 +61,13 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, RolesClaimAuthenticationConverter converter,
-            ProblemDetailsSecurityHandlers handlers) throws Exception {
-        BayflowSecurity.statelessJwt(http, converter, handlers)
+            ProblemDetailsSecurityHandlers handlers, WorkshopHosts hosts) throws Exception {
+        BayflowSecurity.statelessJwt(http, converter, handlers, hosts)
                 .oauth2ResourceServer(o -> o.bearerTokenResolver(bearerTokenResolver()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, PUBLIC_POST_PATHS.toArray(String[]::new)).permitAll()
                         .requestMatchers(HttpMethod.GET, "/.well-known/jwks.json").permitAll()
+                        .requestMatchers(HttpMethod.GET, PUBLIC_WORKSHOP_GETS).permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
                         .permitAll()
@@ -71,8 +78,16 @@ public class SecurityConfig {
 
     private static BearerTokenResolver bearerTokenResolver() {
         DefaultBearerTokenResolver defaultResolver = new DefaultBearerTokenResolver();
-        return request -> "POST".equals(request.getMethod()) && PUBLIC_POST_PATHS.contains(request.getRequestURI())
-                ? null
-                : defaultResolver.resolve(request);
+        // Public endpoints ignore any (possibly stale) bearer token instead of failing with 401.
+        return request -> isPublic(request) ? null : defaultResolver.resolve(request);
+    }
+
+    private static boolean isPublic(jakarta.servlet.http.HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return switch (request.getMethod()) {
+            case "POST" -> PUBLIC_POST_PATHS.contains(uri);
+            case "GET" -> java.util.Arrays.asList(PUBLIC_WORKSHOP_GETS).contains(uri);
+            default -> false;
+        };
     }
 }

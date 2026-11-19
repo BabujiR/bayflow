@@ -34,12 +34,19 @@ export function JobCardStatusBadge({ status }: { status: JobCardStatus }) {
 
 export function ApprovalBadge({ status }: { status: ApprovalStatus }) {
   const variant: Variant = status === 'APPROVED' ? 'success' : status === 'DECLINED' ? 'outline' : 'warning';
-  const label = status === 'PENDING' ? 'Waiting for decision' : status === 'APPROVED' ? 'Approved' : 'Declined';
+  const label =
+    status === 'PENDING' ? 'Waiting for decision' : status === 'APPROVED' ? 'Approved' : 'Declined';
   return <Badge variant={variant}>{label}</Badge>;
 }
 
 export function SeverityBadge({ severity }: { severity: Severity }) {
   const variant: Variant =
-    severity === 'CRITICAL' ? 'destructive' : severity === 'HIGH' ? 'warning' : severity === 'MEDIUM' ? 'default' : 'secondary';
+    severity === 'CRITICAL'
+      ? 'destructive'
+      : severity === 'HIGH'
+        ? 'warning'
+        : severity === 'MEDIUM'
+          ? 'default'
+          : 'secondary';
   return <Badge variant={variant}>{SEVERITY_LABELS[severity]}</Badge>;
 }

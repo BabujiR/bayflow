@@ -1,6 +1,7 @@
 package com.bayflow.auth.application;
 
 import java.time.Clock;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -21,23 +22,48 @@ public class UserAdminService {
     private final AuthService authService;
     private final UserRepository users;
     private final RefreshTokenRepository refreshTokens;
+    private final UserLocationService userLocations;
     private final Clock clock;
 
     public UserAdminService(AuthService authService, UserRepository users, RefreshTokenRepository refreshTokens,
-            Clock clock) {
+            UserLocationService userLocations, Clock clock) {
         this.authService = authService;
         this.users = users;
         this.refreshTokens = refreshTokens;
+        this.userLocations = userLocations;
         this.clock = clock;
     }
 
+    /** A staff account with its locations (MANAGER, SERVICE_ADVISOR, MECHANIC) in one transaction. */
     @Transactional
-    public User createStaff(String username, String email, String password, Role role) {
+    public User createStaff(String username, String email, String password, Role role, List<UUID> locationIds) {
         if (role == null || !role.isStaff()) {
             throw ApiException.badRequest("invalid-role",
-                    "Staff accounts must have role SERVICE_ADVISOR, MECHANIC or ADMIN.");
+                    "Staff accounts must have role MANAGER, SERVICE_ADVISOR, MECHANIC or ADMIN.");
         }
-        return authService.createUser(username, email, password, Set.of(role));
+        User user = authService.createUser(username, email, password, Set.of(role));
+        userLocations.assign(user, locationIds);
+        return user;
+    }
+
+    /** Changes where a staff member works; applies to their next token (within 15 minutes). */
+    @Transactional
+    public User setLocations(UUID userId, List<UUID> locationIds) {
+        User user = users.findById(userId).orElseThrow(() -> ApiException.notFound("User"));
+        if (!UserLocationService.isLocationScoped(user)) {
+            throw ApiException.badRequest("not-location-scoped",
+                    "Admins and customers work with every location; they take no location list.");
+        }
+        userLocations.assign(user, locationIds);
+        return user;
+    }
+
+    public LocationAccess accessOf(User user) {
+        return userLocations.accessOf(user);
+    }
+
+    public java.util.Map<UUID, LocationAccess> accessOf(java.util.Collection<User> list) {
+        return userLocations.accessOf(list);
     }
 
     @Transactional(readOnly = true)
@@ -78,7 +104,10 @@ public class UserAdminService {
     @Transactional
     public void ensureUser(String username, String email, String password, Role role) {
         if (!users.existsByUsername(User.normalizeUsername(username))) {
-            authService.createUser(username, email, password, Set.of(role));
+            User user = authService.createUser(username, email, password, Set.of(role));
+            if (role.isLocationScoped()) {
+                userLocations.assign(user, List.of());
+            }
         }
     }
 }

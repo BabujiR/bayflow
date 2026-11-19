@@ -51,18 +51,29 @@ docker compose up -d --build
 docker compose ps                    # all five should become "healthy"
 ```
 
-Open **http://localhost:3000** and sign in with a demo user below.
+Open **http://demo.localhost:3000** and sign in with a demo user below. Every workshop
+has its own address, `<workshop>.localhost:3000`; the dev profile seeds two, **demo** and
+**acme**. **http://localhost:3000** itself is the public site where new workshops sign up.
+Chrome, Edge and Firefox resolve `*.localhost` to your own machine, so no hosts-file edits.
+
+> **Upgrading an existing local database** (created before SaaS phase 2): the
+> services now connect as a separate `bayflow_app` login so that row-level
+> security applies to them. Create it once, keeping your data:
+> `./scripts/upgrade-local-db.ps1` (or `.sh`), then `docker compose up -d --build`.
+> Or start from an empty database with `docker compose down -v` (deletes local data).
 
 | What | URL |
 |---|---|
-| **Web app** (nginx, the whole stack on one origin) | http://localhost:3000 |
-| Auth API docs (Swagger UI) | http://localhost:8083/swagger-ui.html |
+| **Workshop "demo"** (all data from before SaaS phase 4) | http://demo.localhost:3000 |
+| **Workshop "acme"** (second demo workshop) | http://acme.localhost:3000 |
+| **Public site** (landing page and workshop sign-up) | http://localhost:3000 |
+| Auth API docs (Swagger UI; signs in to "demo") | http://localhost:8083/swagger-ui.html |
 | Appointment API docs (Swagger UI) | http://localhost:8081/swagger-ui.html |
 | Workshop API docs (Swagger UI) | http://localhost:8082/swagger-ui.html |
 | Public signing key (JWKS) | http://localhost:8083/.well-known/jwks.json |
 
 For frontend development with hot reload, keep the stack running and start the
-Vite dev server instead (http://localhost:5173):
+Vite dev server instead (http://demo.localhost:5173, sign-up at http://localhost:5173):
 
 ```bash
 cd frontend
@@ -71,6 +82,8 @@ pnpm dev
 ```
 
 ### Demo users (`dev` profile only)
+
+The same four users exist in both demo workshops, **demo** and **acme**, as separate accounts:
 
 | Username | Password | Role |
 |---|---|---|
@@ -87,9 +100,38 @@ curl -i -X POST http://localhost:8083/api/v1/auth/login \
   -d '{"username":"advisor1","password":"Bayflow!2026"}'
 ```
 
+### Set up a new workshop
+
+1. Open http://localhost:3000 → *Set up your workshop*: name, address (checked live; taken
+   and reserved addresses are refused), currency, time zone and your admin account.
+2. You land on `http://<address>.localhost:3000/login`: sign in as that admin, check
+   *Workshop settings*, add staff under *User accounts*, and share the address with
+   customers so they can register.
+
+Nobody touches the database: the new workshop has its own users, settings and data, and a
+session from one workshop is refused at any other workshop's address.
+
+### Brand your workshop
+
+Sign in as the workshop's admin → *Workshop settings* → **Branding**:
+
+- **Logo** (PNG or JPEG, up to 1 MB) replaces the Bayflow logo in the header, on the sign-in
+  page and as the browser tab's icon.
+- **Sign-in cover photo** (PNG or JPEG, up to 3 MB) shows beside the sign-in form.
+- **Colour** becomes the app's main colour (buttons, links, highlights) in the light and dark
+  theme; text on it turns white or black automatically, and a warning shows for colours that
+  are hard to read.
+- **Announcement**: one line of plain text at the top of every page (holiday hours, an
+  offer), optionally only between two dates. Customers see it in full, staff as a slim line.
+- **"Powered by Bayflow"** at the bottom of the pages can be turned off.
+
+Images are checked by their content (not their name), re-encoded and scaled down on the
+server, which also removes metadata such as a photo's GPS location. Everything applies at
+once at the workshop's address, for everyone, signed in or not.
+
 ### Try the whole workflow in the web app
 
-At http://localhost:3000 (or the dev server on :5173):
+At http://demo.localhost:3000 (or the dev server on :5173):
 
 1. **customer1** — complete the profile on first sign-in, add a vehicle under
    *My vehicles*, then *Book a service*.
@@ -103,7 +145,8 @@ At http://localhost:3000 (or the dev server on :5173):
 6. **mechanic1** — *Start work*, log work (plus parts and labour) for each
    approved item, then *Complete job*.
 7. **customer1** — *My vehicles* → the vehicle → its service history.
-8. **admin1** — *User accounts* to create staff; read-only views elsewhere.
+8. **admin1** — *User accounts* to create staff; *Workshop settings* for the
+   workshop's name, labour rate, currency and time zone; read-only views elsewhere.
 
 ### Using the APIs directly
 
@@ -115,7 +158,35 @@ service's Swagger UI and paste it.
 
 - **auth-service** stores users (BCrypt passwords) and signs **access tokens**:
   RS256 JWTs valid for 15 minutes with claims `sub` (user id), `username`,
-  `roles`, `iss=bayflow-auth`, `aud=bayflow`.
+  `roles`, `tid` (the user's workshop), `iss=bayflow-auth`, `aud=bayflow`.
+- **Workshops (multi-tenancy):** every row belongs to a workshop (`tenant_id`),
+  and every service scopes all queries to the workshop in the caller's token.
+  Details: [docs/PLAN.md § 9, items 17–20](docs/PLAN.md#9-assumptions); moving to AWS:
+  [docs/SAAS-AWS-NOTES.md](docs/SAAS-AWS-NOTES.md).
+- **Row-level security:** PostgreSQL itself hides other workshops' rows. The
+  services connect as `bayflow_app` (not the table owner, so the policies apply
+  to it) and name their workshop per transaction; Flyway migrates as the owner.
+  A service refuses to start with a login that RLS would not apply to.
+- **Workshop addresses:** a workshop is at `<slug>.<BAYFLOW_BASE_DOMAIN>`
+  (`demo.localhost`). Sign-in, registration and refresh find the workshop from that address
+  (nginx passes it in `X-Forwarded-Host`); after that it comes only from the token, which also
+  names the address (`tsl`). Every service refuses a token at another workshop's address (401).
+  Unknown addresses show *Workshop not found*; a suspended workshop can't sign in.
+- **Locations:** a workshop (organization) has one or more locations (shops). Every
+  organization starts with "Main"; appointments, job cards and history belong to a
+  location, and a location may override the organization's time zone and labour rate.
+  Staff (MANAGER, SERVICE_ADVISOR, MECHANIC) see only the locations they work at,
+  enforced by the services and by row-level security; ADMIN sees all of them.
+  Admins manage locations under *Locations* and assign staff under *User accounts*;
+  staff with several locations get a switcher in the header; customers choose a
+  location when booking. Organizations with one location see none of this.
+  Details: PLAN items 21–23 and `docs/prompts/organizations-locations.md`.
+- **Workshop settings:** each workshop's labour rate, currency and time zone
+  live in auth-service and are edited by its ADMIN. The other services read
+  them with SYSTEM tokens. A job card keeps the rate and currency it opened
+  with; the web app shows times in the workshop's zone. The `BAYFLOW_LABOUR_RATE`,
+  `BAYFLOW_CURRENCY` and `BAYFLOW_WORKSHOP_ZONE` variables are now only defaults
+  for new workshops (details: PLAN item 19).
 - The **refresh token** is a random value sent only as the `bayflow_rt` cookie
   (`HttpOnly`, `SameSite=Strict`, path `/api/v1/auth`), valid 7 days. Only its
   hash is stored. Every `/auth/refresh` rotates it; replaying an old one ends
@@ -152,11 +223,12 @@ service's Swagger UI and paste it.
 ## End-to-end scenarios
 
 ```bash
-docker compose up -d --build --wait     # the stack on http://localhost:3000
+docker compose up -d --build --wait     # the stack: demo.localhost:3000, acme.localhost:3000
 cd frontend
 pnpm e2e:install                        # once: Playwright's Chromium
-pnpm e2e                                # all scenarios, desktop + phone (~25–35 min)
-pnpm e2e --project=desktop -g "double booking"   # one scenario
+pnpm e2e                                # every scenario in both workshops, desktop + phone
+E2E_WORKSHOPS=demo pnpm e2e             # one workshop only (about half the time)
+pnpm e2e --project=desktop-demo -g "double booking"   # one scenario
 ```
 
 Afterwards open **`frontend/e2e-videos/index.html`**: pick a scenario and every person in it
@@ -173,6 +245,9 @@ videos plus a trace for any failure.
 | `04-check-in` | Two advisors on the same booking (409 on the stale screen); odometer validation and "never backwards"; no-show only after the start time; no check-in before arrival; no second check-in |
 | `05-job-card` | Decline everything → inspection only; no work needed; customer and advisor decide the same item at once; only approved items can be worked on; every approved item needs work before completing; completed cards are locked; who can do what |
 | `06-resilience` | Stops `workshop-service`, checks in, starts it again: the job card arrives from the outbox, exactly once. Needs the Docker CLI; skip with `E2E_SKIP_CHAOS=1` |
+| `07-workshops` | Two workshops sign up through the public site, configure themselves, and reuse the same admin username independently; taken and reserved addresses refused; a token from one workshop refused at the other's address (401); an unknown address shows *Workshop not found* |
+| `08-locations` | The owner adds a location in Auckland with its own rate, hires an advisor for it; a customer books there in Auckland time; each location's advisor sees only their own; the job card charges the location's rate; the switcher shows one location or all; the location is archived again at the end |
+| `09-branding` | A new workshop's owner uploads a logo and cover photo (a fake PNG is refused), sets a colour and an announcement and turns off "Powered by Bayflow"; a customer sees all of it on the sign-in page and in the app; the images are served cached; other workshops are unchanged; removing the logo brings Bayflow's back |
 
 Pace of the videos: `E2E_SLOWMO` (ms per action, default 250) and `E2E_STEP_PAUSE` (ms per
 caption, default 900); set both to `0` for a fast run. The scenarios create their own
@@ -197,7 +272,9 @@ spaced out to stay under the 10-per-minute login limit.
 
 - Set `SPRING_PROFILES_ACTIVE` to something other than `dev` (no demo users), set
   `BAYFLOW_BOOTSTRAP_ADMIN_PASSWORD` for the first admin, and change
-  `BAYFLOW_SYSTEM_CLIENT_SECRET` and the database password.
+  `BAYFLOW_SYSTEM_CLIENT_SECRET`, `BAYFLOW_WORKSHOP_CLIENT_SECRET` and the database password.
+- Set `BAYFLOW_BASE_DOMAIN` to your domain (wildcard DNS and certificate for `*.<domain>`),
+  leave `BAYFLOW_FALLBACK_WORKSHOP` empty, and see [docs/SAAS-AWS-NOTES.md](docs/SAAS-AWS-NOTES.md).
 - Generate a real signing key (`scripts/generate-dev-keys.*` shows how), mount it,
   and set `BAYFLOW_JWT_ALLOW_EPHEMERAL=false`.
 - Serve the web app over HTTPS (e.g. a load balancer in front of `bayflow-web`) and set
@@ -228,6 +305,14 @@ spaced out to stay under the 10-per-minute login limit.
 | 6 | Frontend foundation | ✅ done |
 | 7 | Frontend screens per role | ✅ done |
 | 8 | nginx, full compose, Playwright e2e, CD | ✅ done |
+| SaaS 1 | Tenant foundation (`tenant_id`, `tid` claim) | ✅ done |
+| SaaS 2 | Row-level security and isolation tests | ✅ done |
+| SaaS 3 | Per-workshop settings, money frozen on job cards | ✅ done |
+| SaaS 4 | Sign-up and workshop subdomains | ✅ done |
+| Locations 1 | Organizations have locations ("Main" for everyone) | ✅ done |
+| Locations 2 | Location-scoped roles and isolation | ✅ done |
+| Locations 3 | Locations page, switcher, booking per location | ✅ done |
+| Branding | Logo, colour, cover photo, announcement, "Powered by Bayflow" | 🔍 in review |
 
 ## Assumptions
 

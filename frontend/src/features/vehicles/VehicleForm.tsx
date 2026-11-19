@@ -14,7 +14,11 @@ const detailsSchema = z.object({
   registration: z.string().trim().min(1, 'Enter the registration').max(20, 'At most 20 characters'),
   make: z.string().trim().min(1, 'Enter the make').max(50, 'At most 50 characters'),
   model: z.string().trim().min(1, 'Enter the model').max(50, 'At most 50 characters'),
-  year: z.coerce.number<string>().int('Enter a year').min(1900, 'Enter a year from 1900').max(currentYear + 1, 'Too far ahead'),
+  year: z.coerce
+    .number<string>()
+    .int('Enter a year')
+    .min(1900, 'Enter a year from 1900')
+    .max(currentYear + 1, 'Too far ahead'),
   mileage: z.coerce.number<string>().int('Whole miles only').min(0, 'Cannot be negative'),
 });
 
@@ -105,7 +109,11 @@ export function VehicleForm({
     <form noValidate onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
       {!editing && (
         <div className="sm:col-span-2">
-          <Field label="VIN" error={errors.vin?.message} hint="17 characters, on the windscreen or door frame.">
+          <Field
+            label="VIN"
+            error={errors.vin?.message}
+            hint="17 characters, on the windscreen or door frame."
+          >
             <Input autoComplete="off" className="uppercase" {...register('vin')} />
           </Field>
         </div>

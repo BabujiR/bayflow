@@ -22,8 +22,19 @@ export function VehicleDetailPage() {
   const [editing, setEditing] = useState(false);
   const vehicle = useQuery({ queryKey: ['vehicle', id], queryFn: () => vehiclesApi.get(id) });
   const update = useAction(
-    ({ registration, make, model, year, mileage }: { registration: string; make: string; model: string; year: number; mileage: number }) =>
-      vehiclesApi.update(id, { registration, make, model, year, mileage }),
+    ({
+      registration,
+      make,
+      model,
+      year,
+      mileage,
+    }: {
+      registration: string;
+      make: string;
+      model: string;
+      year: number;
+      mileage: number;
+    }) => vehiclesApi.update(id, { registration, make, model, year, mileage }),
     {
       success: 'Vehicle updated',
       invalidate: [['vehicle', id], ['vehicles']],
@@ -43,7 +54,9 @@ export function VehicleDetailPage() {
               <>
                 {canBook && (
                   <Button asChild>
-                    <Link to={`/appointments/new?vehicleId=${v.id}&customerId=${v.customerId}`}>Book a service</Link>
+                    <Link to={`/appointments/new?vehicleId=${v.id}&customerId=${v.customerId}`}>
+                      Book a service
+                    </Link>
                   </Button>
                 )}
                 {canEdit && !editing && (
@@ -61,7 +74,11 @@ export function VehicleDetailPage() {
             <CardContent>
               {editing ? (
                 <div className="grid gap-4">
-                  <VehicleForm vehicle={v} submitLabel="Save changes" onSubmit={(values) => update.mutateAsync(values)} />
+                  <VehicleForm
+                    vehicle={v}
+                    submitLabel="Save changes"
+                    onSubmit={(values) => update.mutateAsync(values)}
+                  />
                   <Button variant="ghost" className="justify-self-start" onClick={() => setEditing(false)}>
                     Cancel
                   </Button>

@@ -14,6 +14,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import org.hibernate.annotations.TenantId;
+
 /**
  * A service booking for one vehicle. Status changes go through the methods below, which
  * enforce the state machine in {@link AppointmentAction}.
@@ -28,6 +30,15 @@ public class Appointment {
 
     @Id
     private UUID id;
+
+    /** The workshop this appointment belongs to. Hibernate fills it and filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
+
+    /** The location (shop) of the organization where the work is done. Never changes. */
+    @Column(name = "location_id", nullable = false, updatable = false)
+    private UUID locationId;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "customer_id", nullable = false)
@@ -90,15 +101,19 @@ public class Appointment {
         // for JPA
     }
 
-    public static Appointment book(Customer customer, Vehicle vehicle, Instant scheduledAt, int durationMinutes,
-            ServiceType serviceType, String notes, Instant now) {
+    public static Appointment book(Customer customer, Vehicle vehicle, UUID locationId, Instant scheduledAt,
+            int durationMinutes, ServiceType serviceType, String notes, Instant now) {
         if (!vehicle.getOwner().getId().equals(customer.getId())) {
             throw new IllegalArgumentException("The vehicle does not belong to the customer");
+        }
+        if (locationId == null) {
+            throw new IllegalArgumentException("An appointment needs a location");
         }
         Appointment appointment = new Appointment();
         appointment.id = UUID.randomUUID();
         appointment.customer = customer;
         appointment.vehicle = vehicle;
+        appointment.locationId = locationId;
         appointment.serviceType = serviceType;
         appointment.notes = notes == null || notes.isBlank() ? null : notes.trim();
         appointment.status = AppointmentStatus.BOOKED;
@@ -189,6 +204,8 @@ public class Appointment {
     // ---- getters ----------------------------------------------------------------
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
+    public UUID getLocationId() { return locationId; }
     public Customer getCustomer() { return customer; }
     public Vehicle getVehicle() { return vehicle; }
     public Instant getScheduledAt() { return scheduledAt; }

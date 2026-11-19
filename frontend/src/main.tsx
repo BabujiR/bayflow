@@ -7,8 +7,10 @@ import { RouterProvider } from 'react-router/dom';
 import { ApiError } from '@/api/errors';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { AppToaster } from '@/components/layout/AppToaster';
+import { BrandingEffect } from '@/features/branding/BrandingEffect';
+import { currentSite } from '@/lib/site';
 import { ThemeProvider } from '@/lib/theme';
-import { routes } from '@/routes';
+import { publicRoutes, routes } from '@/routes';
 
 import './index.css';
 
@@ -22,16 +24,26 @@ const queryClient = new QueryClient({
   },
 });
 
-const router = createBrowserRouter(routes);
+// The bare base domain is the public site (sign-up, no sessions); <slug>.<base domain> is a
+// workshop's app. Each address keeps its own refresh cookie, so sessions never cross workshops.
+const site = currentSite();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <RouterProvider router={router} />
-          <AppToaster />
-        </AuthProvider>
+        {site.kind === 'public' ? (
+          <>
+            <RouterProvider router={createBrowserRouter(publicRoutes)} />
+            <AppToaster />
+          </>
+        ) : (
+          <AuthProvider>
+            <BrandingEffect />
+            <RouterProvider router={createBrowserRouter(routes)} />
+            <AppToaster />
+          </AuthProvider>
+        )}
       </QueryClientProvider>
     </ThemeProvider>
   </StrictMode>,

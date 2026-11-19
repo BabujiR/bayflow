@@ -161,6 +161,15 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 | POST/GET | /auth/users | ADMIN |
 | PATCH | /auth/users/{id} | ADMIN (enable/disable) |
 | GET | /.well-known/jwks.json | public |
+| GET | /auth/tenant | any signed-in user (their workshop and its settings) |
+| PUT | /auth/tenant/settings | ADMIN (with the `version` read; 409 if stale) |
+| GET | /auth/internal/tenants/{id}/settings | SYSTEM only; nginx returns 404 for `/api/v1/auth/internal/` |
+| POST | /tenants/signup | public (CSRF header, rate-limited per IP): new workshop + its ADMIN |
+| GET | /tenants/slug-availability?slug= | public |
+| GET | /tenants/current | public: the workshop at this address (404 if none), with its `branding` |
+| GET | /tenants/current/logo, /tenants/current/cover | public: the workshop's images (ETag; `?v=` from `/tenants/current` = cached a year) |
+| GET/PUT | /auth/tenant/branding | ADMIN: colour, announcement, "Powered by Bayflow" (PUT with `version`; 409 if stale) |
+| PUT/DELETE | /auth/tenant/branding/logo, /auth/tenant/branding/cover | ADMIN: upload (multipart `file`) or remove an image |
 
 ### appointment-service (:8081)
 | Method | Path | Who |
@@ -341,6 +350,268 @@ in the page `<meta name="description">`.
 16. **Job-card delivery** is at-least-once: the immediate attempt after check-in
     and the scheduled retry may both send the same request; workshop-service is
     idempotent on the appointment id, so only one job card ever exists.
+17. **Multi-tenancy (SaaS), phase 1** (see `docs/prompts/saas-local.md`): every
+    business row carries a `tenant_id` and every user token a `tid` claim.
+    - Tenants live in auth-service (`auth_tenants`); other services learn the
+      tenant only from the token. Data from before multi-tenancy belongs to the
+      `default` workshop, id `00000000-0000-0000-0000-000000000001` (Flyway
+      placeholder `default_tenant_id`, the same in every service).
+    - Hibernate's `@TenantId` fills and filters `tenant_id` on every entity.
+      When no tenant is known, `BayflowTenantResolver` (common-security) uses
+      the reserved id `ffffffff-ffff-ffff-ffff-ffffffffffff`: no row has it, so
+      reads find nothing, and a CHECK on every `tenant_id` (migrations `V3_1`)
+      refuses it and the root id, so writes fail. A missing tenant fails closed.
+      (The resolver can't simply throw: Spring Data opens sessions without a
+      tenant while starting up.)
+    - `TenantContext` sets the tenant where there is no user token: sign-in,
+      registration and refresh (the request's workshop, always `default` until
+      phase 4), SYSTEM job-card requests (`tenantId` in the body, trusted only
+      from SYSTEM), and the outbox retry job (each message in its own workshop).
+      Only service clients and finding due outbox rows run across tenants.
+    - Usernames, emails and VINs are unique per workshop, not globally.
+    - `auth_user_roles.tenant_id` is filled by a trigger from the user, because
+      the JPA element collection inserts only `(user_id, role)`.
+    - A user token without `tid` gets 401, so sessions from before this change
+      must sign in again once. SYSTEM tokens carry no `tid`.
+    - Deferred to phase 4 (needs one address per workshop): seeding the `demo`
+      and `acme` workshops and the two-workshop Playwright scenario.
+18. **Multi-tenancy (SaaS), phase 2: row-level security.**
+    - Two database logins. The table owner (`bayflow`, `POSTGRES_USER`) is used
+      only by Flyway (`spring.flyway.user`). The services run as `bayflow_app`:
+      no superuser, no BYPASSRLS, owns nothing. It is created by
+      `infra/postgres/init/02-create-app-role.sh` (new volumes) or
+      `scripts/upgrade-local-db.*` (existing ones); each service's `V4`
+      migration grants it access to that service's tables (placeholder `app_role`).
+    - Every table with a `tenant_id` has RLS enabled and a policy
+      `tenant_id = NULLIF(current_setting('app.tenant', true), '')::uuid` for
+      reads and writes. `TenantAwareJpaTransactionManager` runs
+      `set_config('app.tenant', <tenant>, true)` as each transaction starts;
+      the setting is transaction-local, so pooled connections never carry it.
+      No tenant set means no rows.
+    - RLS is enabled, not forced: the owner is exempt, so migrations and the
+      owner-run `SECURITY DEFINER` function `apt_due_outbox` see all rows (on
+      AWS RDS the owner is not a superuser, so FORCE would break both).
+      `RowLevelSecurityGuard` refuses to start a service whose login is a
+      superuser, has BYPASSRLS, or owns tables.
+    - The outbox retry job is the only cross-workshop read: `apt_due_outbox`
+      returns ids and workshops of due messages; each is then handled inside
+      its own workshop. `GET /job-cards/by-appointment` no longer accepts SYSTEM
+      tokens (nothing used it; it would have needed another cross-workshop read).
+    - Tests run as `bayflow_app` too; checks that must see every workshop use
+      an owner connection.
+19. **Multi-tenancy (SaaS), phase 3: per-workshop settings.**
+    - auth-service owns `auth_tenant_settings` (one row per workshop, RLS like
+      every other table): display name, phone, email, address, labour rate,
+      currency (ISO 4217) and time zone (IANA). `V5` creates a row for every
+      existing workshop from `BAYFLOW_LABOUR_RATE` / `BAYFLOW_CURRENCY` /
+      `BAYFLOW_WORKSHOP_ZONE`; a workshop without a row gets one from the same
+      defaults on first read. Updates carry the `version` read (optimistic
+      locking, 409 `concurrent-update`); unknown currencies and zones are 400s.
+    - appointment-service and workshop-service read settings through
+      `GET /api/v1/auth/internal/tenants/{id}/settings` with their own SYSTEM
+      logins (`appointment-service`, and the new `workshop-service` client with
+      `BAYFLOW_WORKSHOP_CLIENT_SECRET`), cached 5 minutes per workshop.
+    - **Time zone:** appointment-service uses the workshop's zone for "today"
+      and date filters. If auth-service can't be reached it falls back to
+      `BAYFLOW_WORKSHOP_ZONE`, so lists keep working.
+    - **Money is frozen:** `ws_job_cards.labour_rate` and `currency` are set
+      when the card opens and never change; history entries copy the currency.
+      Changing the settings affects new job cards only. workshop-service
+      refuses to open a card without confirmed settings (503
+      `settings-unavailable`); the check-in outbox retries it. `V5` fills
+      existing cards and history from the old env values.
+    - The web app loads the workshop once after sign-in: its name in the
+      header, every date and time shown and entered in its zone, amounts in the
+      card's currency. ADMINs edit it under *Workshop settings*.
+    - Still from env after phase 3: only the defaults for new workshops and the
+      appointment-service fallback zone; no business setting is read from env
+      at request time while auth-service is up.
+20. **Multi-tenancy (SaaS), phase 4: sign-up and workshop addresses.**
+    - A workshop lives at `<slug>.<BAYFLOW_BASE_DOMAIN>` (`demo.localhost:3000`);
+      the bare base domain is the public site (landing page, sign-up) and never
+      holds a session. Browsers resolve `*.localhost` themselves; nginx and the
+      Vite dev server serve every host and pass it on in `X-Forwarded-Host`.
+    - `V6` renames the original `default` workshop to `demo` (same id and data).
+      Slugs never change, because tokens and addresses refer to them. The dev
+      profile also seeds `acme` (fixed id) with the same four demo users.
+    - auth-service finds the workshop of sign-in, registration, refresh and
+      sign-out from the address (`RequestTenants`): unknown → 404
+      `workshop-not-found`; SUSPENDED → 403 `workshop-suspended` (sign-out still
+      works; issued access tokens run out within 15 minutes). Addresses with no
+      workshop label (Swagger UI on :8083, scripts) use
+      `BAYFLOW_FALLBACK_WORKSHOP` (`demo` in dev, empty otherwise → 404).
+    - Tokens add `tsl` (the slug). `WorkshopHostFilter` (common-security, all
+      three services) refuses a user token at another workshop's address with
+      401 `workshop-mismatch`, and a token without `tsl` at any workshop address.
+      Addresses without a workshop label and SYSTEM tokens are not checked; the
+      `tid` claim remains the only source of the tenant.
+    - `POST /api/v1/tenants/signup` (public, CSRF header required, 10 per IP per
+      hour by default, 30 in local compose for repeated e2e runs, in memory per
+      instance) creates the workshop, its settings and its first ADMIN in one
+      transaction, inside the new workshop's tenant context so row-level
+      security accepts the rows. Slug rules: 3–30 of `a-z`, `0-9` and single
+      hyphens, no hyphen at either end, unique, not reserved (www, api, admin,
+      auth, default, status, mail, help, …). `GET /api/v1/tenants/slug-availability`
+      checks live; `GET /api/v1/tenants/current` names the workshop for its
+      sign-in page. Losing a race on the slug is a 409, not a 500.
+    - Login rate limits are per workshop, username and IP (the same username in
+      two workshops is two people).
+    - Refresh cookies keep no `Domain` attribute, so each workshop address has
+      its own session and the public site has none.
+    - Not built (see docs/SAAS-AWS-NOTES.md): a platform-admin UI to suspend or
+      delete workshops (SQL for now), email verification of sign-ups, custom
+      domains per workshop, a shared rate-limit store.
+21. **Organizations and locations, phase L1: locations exist** (prompt:
+    `docs/prompts/organizations-locations.md`). A tenant is now an
+    *organization* with one or more *locations* (shops); nothing visible changes
+    while an organization has one.
+    - auth `V7`: `auth_locations` (code unique per organization, contact details,
+      optional time-zone and labour-rate overrides, ACTIVE/ARCHIVED; RLS like
+      every per-tenant table). Every existing organization got **"Main" (code
+      `main`) whose id is the tenant id**. That is deliberate: the other services
+      fill in `location_id = tenant_id` on their own rows (appointment `V5`,
+      workshop `V6`) without reading auth tables. Sign-up and the dev seeding create
+      Main the same way; an organization without a location gets it on first use.
+    - Effective settings: a location's own time zone / labour rate, else the
+      organization's. Currency is organization-wide only.
+    - `location_id` (NOT NULL, indexed after `tenant_id`) on `apt_appointments`,
+      `ws_job_cards` and `ws_service_history`; it is copied from the appointment
+      through the check-in outbox payload to the job card and its history entry.
+      Payloads queued before L1 fall back to the tenant id (= Main). Customers and
+      vehicles stay organization-wide; the "no overlapping bookings" rule stays per
+      vehicle across all locations (a car is in one shop at a time).
+    - Booking: `locationId` optional while the organization has one active location,
+      otherwise 400 `location-required`; unknown, archived or another organization's
+      location → 400 `invalid-location`. If auth-service is down, only Main takes
+      bookings (others: 503 `locations-unavailable`).
+    - Lists: `date` and "today" use the location in `locationId` (which also limits
+      the list), else the organization's default location (Main); fallback zone
+      `BAYFLOW_WORKSHOP_ZONE` while auth-service is down.
+    - Job cards freeze **their location's** effective labour rate plus the
+      organization's currency (`locationId` in the open request; none = Main; a
+      location that is not the organization's → 400 `invalid-location`; settings
+      unavailable → 503, the outbox retries).
+    - New endpoints: `GET /api/v1/auth/locations` (any signed-in user) and SYSTEM-only
+      `GET /api/v1/auth/internal/tenants/{tid}/locations` and
+      `…/locations/{lid}/settings`. appointment-service's `LocationsClient`
+      replaces its workshop-settings client; workshop-service's settings client now
+      reads per location. Both cache for 5 minutes.
+    - Responses add `locationId` (appointments, job cards, job-card summaries,
+      service history); location names come from `/auth/locations` in the UI (L3).
+22. **Organizations and locations, phase L2: scoped access.**
+    - Roles: ADMIN (owner) and CUSTOMER work with every location; MANAGER (new:
+      a location's manager, or a regional manager of several), SERVICE_ADVISOR
+      and MECHANIC work at the locations in `auth_user_locations` (auth `V8`;
+      existing advisors and mechanics were given "Main"). A MANAGER also gets the
+      SERVICE_ADVISOR authority (token converter, and `effectiveRoles` in the web
+      app), so every advisor permission applies to managers.
+    - Tokens carry `lsc`: `["*"]` or the location ids (at most 200). Location
+      changes apply from the next token (≤ 15 minutes). Staff without a location
+      can't sign in (403 `no-locations`); a staff token without `lsc` is refused
+      (401), like one without `tid`.
+    - `POST /api/v1/auth/users` takes `locationIds` (none = the organization's only
+      active location, else 400 `locations-required`); `PUT
+      /api/v1/auth/users/{id}/locations` (ADMIN) changes them. Unknown or archived
+      locations → 400 `invalid-location`; ADMIN accounts take none (400
+      `not-location-scoped`). There is no role-change endpoint, so "an admin can't
+      remove their own ADMIN role" holds trivially.
+    - common-security: `LocationScope` / `LocationContext`; `LocationScopeFilter`
+      reads `X-Bayflow-Location: <id>|all` and only narrows (403
+      `location-not-allowed`); `TenantAwareJpaTransactionManager` sets
+      `app.locations` (`*`, id list, or empty) per transaction with `app.tenant`.
+      SYSTEM tokens and background work inside an explicit tenant use `*`.
+    - RLS: `apt_appointments` (appointment `V6`) and `ws_job_cards`, its child
+      tables and `ws_service_history` (workshop `V7`) check
+      `tenant_id AND (app.locations = '*' OR location_id = ANY(...))` (a CASE keeps
+      the `*` from being cast). The job card's child tables got their own
+      `location_id`, kept equal to the card's by a composite foreign key
+      `(job_card_id, location_id) → ws_job_cards (id, location_id)`. Customers,
+      vehicles and the outbox stay organization-wide.
+    - Services also check the location of every appointment and job card they load
+      (404 outside the scope), and bookings / job-card opening refuse locations
+      outside it (404). Without a location, a one-location scope books there.
+23. **Organizations and locations, phase L3: multi-location in the web app.**
+    - ADMIN manages locations (`POST /api/v1/auth/locations`, `PUT …/{id}` with
+      `version`, `POST …/{id}/archive` and `/reactivate`): code unique per
+      organization, optional time-zone and labour-rate overrides (empty = the
+      workshop's). Archiving is refused for the last active location (409
+      `last-location`) and while appointment-service reports upcoming (booked,
+      confirmed or arrived) appointments there (409 `location-has-appointments`;
+      503 if it can't be asked). auth-service calls appointment-service's
+      SYSTEM-only `GET /api/v1/internal/tenants/{tid}/locations/{lid}/upcoming`
+      with a SYSTEM token it signs itself (`BAYFLOW_APPOINTMENT_URL`); nginx does
+      not route `/api/v1/internal/`. Customers only see active locations.
+    - appointment-service fetches the locations again once when asked for one it
+      doesn't know (a location added since its 5-minute cache), so new locations
+      take bookings at once. Likewise, before answering `location-required` (no location
+      given and not exactly one to choose), it fetches them again once, so a location
+      archived within the last 5 minutes no longer makes customers choose. Rate and
+      time-zone edits reach it within 5 minutes.
+    - Web app:
+      - *Locations* page (ADMIN): list, add, edit, archive, reactivate.
+      - *User accounts*: Manager role; a "Works at" checklist when the
+        organization has several locations; *Locations* per staff member.
+      - Location switcher in the header for staff with more than one location
+        ("All locations" or one), remembered per user in the browser and sent as
+        `X-Bayflow-Location` on every API call.
+      - Times are shown in each record's location's zone; booking and
+        rescheduling read the time in the location's zone; booking offers a
+        location choice (preselected: the switcher's, else the first by name).
+      - Lists over all locations filter a day by each booking's own location's day
+        (an Auckland booking on the 23rd shows under the 23rd, even while it is the 22nd in
+        New York); a mechanic's "today" likewise. One location: that location's day.
+      - The board always shows one location (the switcher's, or a picker on the
+        page when "All" is selected), because a day belongs to one time zone.
+      - With one location, none of this appears.
+    - e2e: `08-locations.spec.ts` adds a location, staffs it, books there and
+      archives it again; the booking helper sends Main's id while an organization
+      has several locations, so other scenarios are unaffected.
+
+24. **Branding (white label).** A workshop's ADMIN sets, in *Workshop settings → Branding*:
+    logo, sign-in cover photo, brand colour, a one-line announcement with optional dates, and
+    whether "Powered by Bayflow" shows. Stored in auth-service (`V9`): `auth_tenant_branding`
+    (one row per workshop, `version` for optimistic locking) and `auth_tenant_assets` (the
+    images, `bytea`, with their SHA-256), both with RLS like every per-workshop table.
+    - **Images:** PNG and JPEG only, recognised by their first bytes (not the name or the
+      declared type); SVG is refused because it can carry scripts. Each upload is decoded
+      and written again with `javax.imageio` (no new dependency): metadata (EXIF, GPS) and
+      anything appended after the image data are dropped. Images claiming more than 40
+      megapixels are refused before decoding. Logo: up to 1 MB, scaled to fit 512×512 px,
+      stored as PNG (transparency kept). Cover: up to 3 MB, scaled to at most 2000 px, stored
+      as JPEG (quality 0.85; transparency becomes white). Errors: 413 `image-too-large`,
+      415 `unsupported-image`, 400 `invalid-image`.
+    - **Serving:** `GET /api/v1/tenants/current/logo|cover` by the address's workshop, without
+      a token (the sign-in page needs them). `/tenants/current` returns the image URLs with
+      `?v=<first 16 hex of the SHA-256>`; with a matching `v` the response is
+      `public, max-age=31536000, immutable`, otherwise `no-cache` with the ETag (304 on
+      `If-None-Match`). nginx has its own location for these two paths, without the
+      `Cache-Control: no-store` it adds to every other API response. Images stay on the
+      workshop's own origin, so the CSP stays
+      `img-src 'self' data: blob:` (`blob:` for the upload preview only).
+    - **Limits:** Spring multipart 3 MB per file / 4 MB per request; Tomcat swallows up to
+      8 MB so a too-large upload gets its 413; nginx allows 4 MB only under
+      `/api/v1/auth/tenant/branding/` (1 MB everywhere else).
+    - **Colour:** `#rrggbb` (stored lower case). The web app adds one stylesheet rule,
+      `html:root { --primary; --primary-foreground; --ring }`, which outranks both the light
+      (`:root`) and dark (`.dark`) palettes, so the same colour applies in both themes; the
+      text colour on it (white or near-black) is chosen by WCAG contrast. The editor warns
+      when button text would be under 4.5:1, links under 3:1 on the light page, or the colour
+      under 2:1 on the dark page (mid-tones such as Bayflow blue, 2.6:1, are accepted there,
+      because the workshop's colour is kept as it is); it does not refuse such colours.
+    - **Announcement:** plain text, one line (control characters become spaces), at most 200
+      characters, rendered as text (never HTML). INFO or IMPORTANT style. Optional start and
+      end (end after start); `/tenants/current` includes it only while live. Customers and
+      the sign-in page show it in full, staff as a slim line under the header.
+    - **"Powered by Bayflow"** is on by default; turning it off also drops "· Bayflow" from the
+      tab title. Bayflow's own public site (sign-up) is never branded.
+    - The browser tab shows the workshop's name and its logo as the icon.
+    - With a logo, the app header shows the logo alone (its alt text is the workshop's name);
+      the name beside it is only shown next to Bayflow's logo. The sign-in page keeps the
+      name under the logo.
+    - Next steps (not built): a custom domain per workshop (`book.acme-auto.com`, needs
+      certificates per domain), branded emails, a dark-mode logo variant, S3 + CDN for the
+      images on AWS (docs/SAAS-AWS-NOTES.md), plan-based limits (white label as a paid
+      feature).
 
 ---
 
@@ -356,5 +627,11 @@ in the page `<meta name="description">`.
 | 6 | Frontend foundation: auth flow, layout, routing, API clients | login works against the backend |
 | 7 | Frontend screens for all three roles | full workflow possible in the UI |
 | 8 | nginx hardening, full compose, Playwright e2e, CD workflow, README | `docker compose up --build` + e2e green |
+| SaaS 1 | Tenant foundation: `tenant_id` everywhere, `tid` claim, Hibernate tenant filter | every row has a tenant, every user token a `tid`, all suites green |
+| SaaS 2 | Row-level security, separate DB roles, isolation suite | cross-tenant access impossible at the database |
+| SaaS 3 | Per-workshop settings, money frozen on job cards | no business setting read from env at request time |
+| SaaS 4 | Sign-up and `<slug>.localhost` subdomains | a new workshop signs up and runs on its own |
+
+SaaS milestones: 1–4 done. Organizations and locations: L1–L3 done. Branding: in review.
 
 Each milestone ends with a review pause.

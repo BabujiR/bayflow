@@ -1,6 +1,8 @@
 import { http } from './http';
 import type {
   Appointment,
+  Branding,
+  BrandingImageKind,
   AppointmentStatus,
   BookAppointmentRequest,
   CreateCustomerRequest,
@@ -11,17 +13,26 @@ import type {
   JobCard,
   JobCardStatus,
   JobCardSummary,
+  Location,
+  LocationRequest,
   LabourRequest,
   PageResponse,
   PartRequest,
+  PublicWorkshop,
   ProfileRequest,
   RecommendationRequest,
   RescheduleRequest,
   ServiceHistoryEntry,
+  SignupRequest,
+  SignupResponse,
+  SlugAvailability,
+  UpdateBrandingRequest,
   UpdateVehicleRequest,
+  UpdateWorkshopSettingsRequest,
   User,
   Vehicle,
   WorkLogRequest,
+  Workshop,
 } from './types';
 
 export interface Paging {
@@ -36,7 +47,8 @@ export const customersApi = {
   createMe: (body: ProfileRequest) => http.post<Customer>('/api/v1/customers/me', body),
   updateMe: (body: ProfileRequest) => http.put<Customer>('/api/v1/customers/me', body),
   create: (body: CreateCustomerRequest) => http.post<Customer>('/api/v1/customers', body),
-  list: (params: Paging & { q?: string }) => http.get<PageResponse<Customer>>('/api/v1/customers', { ...params }),
+  list: (params: Paging & { q?: string }) =>
+    http.get<PageResponse<Customer>>('/api/v1/customers', { ...params }),
   get: (id: string) => http.get<Customer>(`/api/v1/customers/${id}`),
 };
 
@@ -54,6 +66,8 @@ export interface AppointmentFilters extends Paging {
   status?: AppointmentStatus;
   vehicleId?: string;
   customerId?: string;
+  /** One location; its day is the one `date` means (organizations with several locations). */
+  locationId?: string;
 }
 
 export const appointmentsApi = {
@@ -77,15 +91,18 @@ export const jobCardsApi = {
   list: (params: Paging & { status?: JobCardStatus }) =>
     http.get<PageResponse<JobCardSummary>>('/api/v1/job-cards', { ...params }),
   get: (id: string) => http.get<JobCard>(`/api/v1/job-cards/${id}`),
-  byAppointment: (appointmentId: string) => http.get<JobCard>(`/api/v1/job-cards/by-appointment/${appointmentId}`),
-  addFinding: (id: string, body: FindingRequest) => http.post<JobCard>(`/api/v1/job-cards/${id}/findings`, body),
+  byAppointment: (appointmentId: string) =>
+    http.get<JobCard>(`/api/v1/job-cards/by-appointment/${appointmentId}`),
+  addFinding: (id: string, body: FindingRequest) =>
+    http.post<JobCard>(`/api/v1/job-cards/${id}/findings`, body),
   addRecommendation: (id: string, body: RecommendationRequest) =>
     http.post<JobCard>(`/api/v1/job-cards/${id}/recommendations`, body),
   submit: (id: string) => http.post<JobCard>(`/api/v1/job-cards/${id}/submit-for-approval`),
   decide: (id: string, itemId: string, decision: 'approve' | 'decline') =>
     http.post<JobCard>(`/api/v1/job-cards/${id}/recommendations/${itemId}/${decision}`),
   start: (id: string) => http.post<JobCard>(`/api/v1/job-cards/${id}/start`),
-  logWork: (id: string, body: WorkLogRequest) => http.post<JobCard>(`/api/v1/job-cards/${id}/work-logs`, body),
+  logWork: (id: string, body: WorkLogRequest) =>
+    http.post<JobCard>(`/api/v1/job-cards/${id}/work-logs`, body),
   addPart: (id: string, body: PartRequest) => http.post<JobCard>(`/api/v1/job-cards/${id}/parts`, body),
   addLabour: (id: string, body: LabourRequest) => http.post<JobCard>(`/api/v1/job-cards/${id}/labour`, body),
   complete: (id: string) => http.post<JobCard>(`/api/v1/job-cards/${id}/complete`),
@@ -93,13 +110,58 @@ export const jobCardsApi = {
 
 export const historyApi = {
   forVehicle: (vehicleId: string, params: Paging = {}) =>
-    http.get<PageResponse<ServiceHistoryEntry>>(`/api/v1/service-history/vehicles/${vehicleId}`, { ...params }),
+    http.get<PageResponse<ServiceHistoryEntry>>(`/api/v1/service-history/vehicles/${vehicleId}`, {
+      ...params,
+    }),
 };
 
 // ---- auth-service ----------------------------------------------------------------------------
 
 export const usersApi = {
-  list: (params: Paging & { sort?: string }) => http.get<PageResponse<User>>('/api/v1/auth/users', { ...params }),
+  list: (params: Paging & { sort?: string }) =>
+    http.get<PageResponse<User>>('/api/v1/auth/users', { ...params }),
   create: (body: CreateStaffRequest) => http.post<User>('/api/v1/auth/users', body),
   setEnabled: (id: string, enabled: boolean) => http.patch<User>(`/api/v1/auth/users/${id}`, { enabled }),
+  /** Where a MANAGER, SERVICE_ADVISOR or MECHANIC works (at least one location). */
+  setLocations: (id: string, locationIds: string[]) =>
+    http.put<User>(`/api/v1/auth/users/${id}/locations`, { locationIds }),
+};
+
+export const workshopApi = {
+  /** The signed-in user's workshop and its settings (every role). */
+  current: () => http.get<Workshop>('/api/v1/auth/tenant'),
+  /** Workshop ADMIN only. */
+  updateSettings: (body: UpdateWorkshopSettingsRequest) =>
+    http.put<Workshop>('/api/v1/auth/tenant/settings', body),
+};
+
+/** The workshop's branding (workshop ADMIN only). Everyone sees it through tenantsApi.current. */
+export const brandingApi = {
+  get: () => http.get<Branding>('/api/v1/auth/tenant/branding'),
+  update: (body: UpdateBrandingRequest) => http.put<Branding>('/api/v1/auth/tenant/branding', body),
+  /** PNG or JPEG; logo up to 1 MB, cover up to 3 MB. The server re-encodes it. */
+  upload: ({ kind, file }: { kind: BrandingImageKind; file: File }) => {
+    const form = new FormData();
+    form.append('file', file);
+    return http.put<Branding>(`/api/v1/auth/tenant/branding/${kind}`, form);
+  },
+  remove: (kind: BrandingImageKind) => http.delete<Branding>(`/api/v1/auth/tenant/branding/${kind}`),
+};
+
+/** Public: sign up a workshop, check an address, name the workshop at this address. */
+export const tenantsApi = {
+  current: () => http.get<PublicWorkshop>('/api/v1/tenants/current'),
+  availability: (slug: string) => http.get<SlugAvailability>('/api/v1/tenants/slug-availability', { slug }),
+  signup: (body: SignupRequest) => http.post<SignupResponse>('/api/v1/tenants/signup', body),
+};
+
+/** The organization's locations (every signed-in user). Shown in the app from phase L3. */
+export const locationsApi = {
+  list: () => http.get<Location[]>('/api/v1/auth/locations'),
+  /** ADMIN only. Empty timeZone / labourRate = use the organization's. */
+  create: (body: LocationRequest) => http.post<Location>('/api/v1/auth/locations', body),
+  update: (id: string, body: LocationRequest & { version: number }) =>
+    http.put<Location>(`/api/v1/auth/locations/${id}`, body),
+  archive: (id: string) => http.post<Location>(`/api/v1/auth/locations/${id}/archive`),
+  reactivate: (id: string) => http.post<Location>(`/api/v1/auth/locations/${id}/reactivate`),
 };

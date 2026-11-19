@@ -20,7 +20,10 @@ final class TestJwts {
         return builder.build();
     }
 
+    static final String TENANT = "00000000-0000-0000-0000-000000000001";
+
     static Jwt userJwt(String subject, String username, List<String> roles) {
-        return jwt(Map.of("sub", subject, "username", username, "roles", roles, "aud", List.of("bayflow")));
+        return jwt(Map.of("sub", subject, "username", username, "roles", roles, "aud", List.of("bayflow"),
+                "tid", TENANT, "lsc", List.of("*")));
     }
 }

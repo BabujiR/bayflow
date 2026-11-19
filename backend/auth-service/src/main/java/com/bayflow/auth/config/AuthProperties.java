@@ -24,6 +24,15 @@ public class AuthProperties {
     private final CookieSettings cookie = new CookieSettings();
     private final Login login = new Login();
     private final BootstrapAdmin bootstrapAdmin = new BootstrapAdmin();
+    private final TenantDefaults tenantDefaults = new TenantDefaults();
+    private final Signup signup = new Signup();
+    /** appointment-service, asked before a location is archived whether it has upcoming bookings. */
+    private String appointmentUrl = "http://localhost:8081";
+    /**
+     * Workshop for sign-in at an address without a workshop label (Swagger UI on the service's
+     * own port, API scripts). Empty: such requests get 404 workshop-not-found.
+     */
+    private String fallbackWorkshop = "";
     /** Service-to-service clients, keyed by client id. */
     private Map<String, Client> clients = new LinkedHashMap<>();
 
@@ -41,6 +50,35 @@ public class AuthProperties {
     public CookieSettings getCookie() { return cookie; }
     public Login getLogin() { return login; }
     public BootstrapAdmin getBootstrapAdmin() { return bootstrapAdmin; }
+    public TenantDefaults getTenantDefaults() { return tenantDefaults; }
+    public Signup getSignup() { return signup; }
+    public String getAppointmentUrl() { return appointmentUrl; }
+    public void setAppointmentUrl(String appointmentUrl) { this.appointmentUrl = appointmentUrl; }
+    public String getFallbackWorkshop() { return fallbackWorkshop; }
+    public void setFallbackWorkshop(String fallbackWorkshop) { this.fallbackWorkshop = fallbackWorkshop; }
+
+    /** Self-service workshop sign-up. */
+    public static class Signup {
+        /** Sign-ups allowed per client IP per hour. */
+        private int maxPerHourPerIp = 10;
+
+        public int getMaxPerHourPerIp() { return maxPerHourPerIp; }
+        public void setMaxPerHourPerIp(int maxPerHourPerIp) { this.maxPerHourPerIp = maxPerHourPerIp; }
+    }
+
+    /** Starting settings of a new workshop; each workshop then changes its own. */
+    public static class TenantDefaults {
+        private java.math.BigDecimal labourRate = new java.math.BigDecimal("95.00");
+        private String currency = "USD";
+        private String timeZone = "America/New_York";
+
+        public java.math.BigDecimal getLabourRate() { return labourRate; }
+        public void setLabourRate(java.math.BigDecimal labourRate) { this.labourRate = labourRate; }
+        public String getCurrency() { return currency; }
+        public void setCurrency(String currency) { this.currency = currency; }
+        public String getTimeZone() { return timeZone; }
+        public void setTimeZone(String timeZone) { this.timeZone = timeZone; }
+    }
     public Map<String, Client> getClients() { return clients; }
     public void setClients(Map<String, Client> clients) { this.clients = clients; }
 

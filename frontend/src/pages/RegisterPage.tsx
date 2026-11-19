@@ -79,7 +79,9 @@ export function RegisterPage() {
     <Card>
       <CardHeader>
         <CardTitle>Create your account</CardTitle>
-        <CardDescription>Book services, approve work and keep your vehicle's history in one place.</CardDescription>
+        <CardDescription>
+          Book services, approve work and keep your vehicle's history in one place.
+        </CardDescription>
       </CardHeader>
       <form onSubmit={onSubmit} noValidate>
         <CardContent className="grid gap-4">

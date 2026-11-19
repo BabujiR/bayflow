@@ -13,7 +13,9 @@ describe('customer profile', () => {
     server.use(
       sessionFor(user('CUSTOMER', 'newbie')),
       http.get('*/api/v1/customers/me', () =>
-        created ? HttpResponse.json(customer({ name: 'New Bie' })) : problem(404, 'not-found', 'Customer profile was not found.'),
+        created
+          ? HttpResponse.json(customer({ name: 'New Bie' }))
+          : problem(404, 'not-found', 'Customer profile was not found.'),
       ),
       http.post('*/api/v1/customers/me', async ({ request }) => {
         sent = await request.json();
@@ -35,7 +37,7 @@ describe('customer profile', () => {
 });
 
 describe('booking an appointment', () => {
-  it('checks the form, then sends the booking in UTC and returns to the list', async () => {
+  it('checks the form, then sends the booking in UTC from workshop time and returns to the list', async () => {
     let booked: Record<string, unknown> | undefined;
     server.use(
       sessionFor(user('CUSTOMER')),
@@ -63,7 +65,8 @@ describe('booking an appointment', () => {
     expect(router.state.location.pathname).toBe('/appointments');
     expect(booked).toEqual({
       vehicleId: 'v0000000-0000-0000-0000-000000000001',
-      scheduledAt: new Date('2030-01-15T10:30').toISOString(),
+      // 10:30 in the workshop's zone (New York, EST in January), whatever the browser's zone.
+      scheduledAt: '2030-01-15T15:30:00.000Z',
       durationMinutes: 60,
       serviceType: 'BRAKES',
       notes: 'Squeal when braking',
@@ -75,7 +78,11 @@ describe('booking an appointment', () => {
       sessionFor(user('CUSTOMER')),
       http.get('*/api/v1/vehicles', () => HttpResponse.json(pageOf([vehicle()]))),
       http.post('*/api/v1/appointments', () =>
-        problem(409, 'double-booking', 'This vehicle already has an appointment that overlaps the requested time.'),
+        problem(
+          409,
+          'double-booking',
+          'This vehicle already has an appointment that overlaps the requested time.',
+        ),
       ),
     );
     renderApp('/appointments/new');

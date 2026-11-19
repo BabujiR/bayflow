@@ -10,6 +10,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import org.hibernate.annotations.TenantId;
+
 /**
  * A request to another service, saved in the same transaction as the change that caused it
  * (transactional outbox). It is delivered right away and, if that fails, retried with
@@ -23,6 +25,11 @@ public class OutboxMessage {
 
     @Id
     private UUID id;
+
+    /** The workshop this message belongs to. Hibernate fills it and filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
 
     @Column(name = "appointment_id", nullable = false)
     private UUID appointmentId;
@@ -90,6 +97,7 @@ public class OutboxMessage {
     }
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
     public UUID getAppointmentId() { return appointmentId; }
     public String getType() { return type; }
     public String getPayload() { return payload; }

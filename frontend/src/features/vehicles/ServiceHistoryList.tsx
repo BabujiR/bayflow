@@ -5,6 +5,7 @@ import { historyApi } from '@/api/endpoints';
 import { EmptyState } from '@/components/common/EmptyState';
 import { QueryState } from '@/components/common/QueryState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useLocationLookup } from '@/features/locations/use-locations';
 import { formatDate, formatMileage, formatMoney } from '@/lib/format';
 
 /** A vehicle's completed jobs, newest first, each with the work, parts and labour. */
@@ -13,6 +14,8 @@ export function ServiceHistoryList({ vehicleId }: { vehicleId: string }) {
     queryKey: ['history', vehicleId],
     queryFn: () => historyApi.forVehicle(vehicleId, { size: 50 }),
   });
+
+  const locations = useLocationLookup();
 
   return (
     <QueryState query={history}>
@@ -28,8 +31,11 @@ export function ServiceHistoryList({ vehicleId }: { vehicleId: string }) {
               <li key={entry.id}>
                 <Card>
                   <CardHeader className="flex-row flex-wrap items-baseline justify-between gap-2">
-                    <CardTitle>{formatDate(entry.serviceDate)}</CardTitle>
+                    <CardTitle>{formatDate(entry.serviceDate, locations.zoneOf(entry.locationId))}</CardTitle>
                     <span className="text-sm text-muted-foreground">
+                      {locations.hasSeveral && entry.locationId
+                        ? `${locations.nameOf(entry.locationId)} · `
+                        : ''}
                       {formatMileage(entry.mileage)} · {formatMoney(entry.totalCost, entry.currency)}
                     </span>
                   </CardHeader>
@@ -42,7 +48,10 @@ export function ServiceHistoryList({ vehicleId }: { vehicleId: string }) {
                             <li key={work.recommendation}>
                               <span className="font-medium">{work.recommendation}</span>
                               {work.workPerformed && work.workPerformed.length > 0 && (
-                                <span className="text-muted-foreground"> — {work.workPerformed.join('; ')}</span>
+                                <span className="text-muted-foreground">
+                                  {' '}
+                                  — {work.workPerformed.join('; ')}
+                                </span>
                               )}
                             </li>
                           ))}
@@ -65,14 +74,19 @@ export function ServiceHistoryList({ vehicleId }: { vehicleId: string }) {
                       </div>
                     )}
                     {(entry.details?.declined ?? []).length > 0 && (
-                      <p className="text-muted-foreground">Declined: {(entry.details?.declined ?? []).join(', ')}</p>
+                      <p className="text-muted-foreground">
+                        Declined: {(entry.details?.declined ?? []).join(', ')}
+                      </p>
                     )}
                     <div className="flex flex-wrap justify-between gap-2 border-t pt-3">
                       <span>
                         Parts {formatMoney(entry.partsTotal, entry.currency)} · Labour{' '}
                         {formatMoney(entry.labourTotal, entry.currency)}
                       </span>
-                      <Link to={`/job-cards/${entry.jobCardId}`} className="font-medium text-primary hover:underline">
+                      <Link
+                        to={`/job-cards/${entry.jobCardId}`}
+                        className="font-medium text-primary hover:underline"
+                      >
                         View job card
                       </Link>
                     </div>

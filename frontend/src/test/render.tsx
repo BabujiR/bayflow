@@ -3,8 +3,9 @@ import { render } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 
 import { AuthProvider } from '@/auth/AuthProvider';
+import { BrandingEffect } from '@/features/branding/BrandingEffect';
 import { ThemeProvider } from '@/lib/theme';
-import { routes } from '@/routes';
+import { publicRoutes, routes } from '@/routes';
 
 /** Renders the whole app (real routes, auth and providers) at the given path. */
 export function renderApp(path = '/') {
@@ -14,8 +15,23 @@ export function renderApp(path = '/') {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <BrandingEffect />
           <RouterProvider router={router} />
         </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>,
+  );
+  return { ...view, router };
+}
+
+/** Renders the public site (landing page and sign-up, at the base domain) at the given path. */
+export function renderSite(path = '/') {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const router = createMemoryRouter(publicRoutes, { initialEntries: [path] });
+  const view = render(
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
       </QueryClientProvider>
     </ThemeProvider>,
   );

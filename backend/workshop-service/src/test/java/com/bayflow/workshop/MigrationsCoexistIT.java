@@ -10,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.output.MigrateResult;
@@ -42,7 +43,7 @@ class MigrationsCoexistIT {
 
         List<String> tables = tables(url);
         assertThat(tables).contains(
-                "auth_users", "auth_user_roles", "auth_refresh_tokens", "auth_clients",
+                "auth_tenants", "auth_users", "auth_user_roles", "auth_refresh_tokens", "auth_clients",
                 "apt_customers", "apt_vehicles", "apt_appointments", "apt_outbox",
                 "ws_job_cards", "ws_inspection_findings", "ws_recommended_items", "ws_work_logs",
                 "ws_part_usages", "ws_labour_entries", "ws_service_history",
@@ -67,6 +68,10 @@ class MigrationsCoexistIT {
                 .baselineOnMigrate(true)
                 .baselineVersion("0")
                 .locations("filesystem:" + migrations)
+                .placeholders(Map.of("default_tenant_id", "00000000-0000-0000-0000-000000000001",
+                        "app_role", PostgresContainer.APP_USER,
+                        "default_labour_rate", "95.00", "default_currency", "USD",
+                        "default_time_zone", "America/New_York"))
                 .load();
     }
 

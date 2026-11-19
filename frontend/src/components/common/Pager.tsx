@@ -20,7 +20,12 @@ export function Pager({
       <span className="text-muted-foreground">
         Page {page + 1} of {totalPages}
       </span>
-      <Button variant="outline" size="sm" disabled={page + 1 >= totalPages} onClick={() => onChange(page + 1)}>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={page + 1 >= totalPages}
+        onClick={() => onChange(page + 1)}
+      >
         Next
       </Button>
     </nav>

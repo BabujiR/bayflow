@@ -37,7 +37,8 @@ export function CustomerProfileGate({ children }: { children: ReactNode }) {
         <CardHeader>
           <CardTitle>Complete your profile</CardTitle>
           <CardDescription>
-            Tell us how to reach you. You only need to do this once, before adding vehicles or booking a service.
+            Tell us how to reach you. You only need to do this once, before adding vehicles or booking a
+            service.
           </CardDescription>
         </CardHeader>
         <CardContent>

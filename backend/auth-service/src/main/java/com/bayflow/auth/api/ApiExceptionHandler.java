@@ -20,6 +20,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import com.bayflow.auth.application.ApiException;
 import com.bayflow.auth.application.TooManyRequestsException;
@@ -57,6 +60,18 @@ public class ApiExceptionHandler {
     ResponseEntity<ProblemDetail> handleUnreadable(Exception ex) {
         return respond(HttpStatus.BAD_REQUEST, problem(HttpStatus.BAD_REQUEST, "malformed-request",
                 "Bad Request", "The request could not be read. Check the JSON body and parameters."));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ProblemDetail> handleTooLarge(MaxUploadSizeExceededException ex) {
+        return respond(HttpStatus.PAYLOAD_TOO_LARGE, problem(HttpStatus.PAYLOAD_TOO_LARGE, "image-too-large",
+                "Payload Too Large", "The file is too large."));
+    }
+
+    @ExceptionHandler({ MissingServletRequestPartException.class, MultipartException.class })
+    ResponseEntity<ProblemDetail> handleMultipart(Exception ex) {
+        return respond(HttpStatus.BAD_REQUEST, problem(HttpStatus.BAD_REQUEST, "malformed-request",
+                "Bad Request", "Send the image as multipart/form-data in a part named 'file'."));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

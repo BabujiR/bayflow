@@ -1,7 +1,21 @@
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 
-import type { Appointment, Customer, JobCard, PageResponse, Role, TokenResponse, User, Vehicle } from '@/api/types';
+import type {
+  Appointment,
+  Branding,
+  PublicBranding,
+  PublicWorkshop,
+  Customer,
+  JobCard,
+  PageResponse,
+  Role,
+  TokenResponse,
+  User,
+  Location,
+  Vehicle,
+  Workshop,
+} from '@/api/types';
 
 export function pageOf<T>(content: T[]): PageResponse<T> {
   return { content, page: 0, size: 20, totalElements: content.length, totalPages: content.length ? 1 : 0 };
@@ -12,6 +26,10 @@ export function pageOf<T>(content: T[]): PageResponse<T> {
  * resetHandlers() after each test restores them.
  */
 const defaults = [
+  http.get('*/api/v1/auth/tenant', () => HttpResponse.json(workshop())),
+  http.get('*/api/v1/auth/locations', () => HttpResponse.json([location()])),
+  http.get('*/api/v1/tenants/current', () => HttpResponse.json(publicWorkshop())),
+  http.get('*/api/v1/auth/tenant/branding', () => HttpResponse.json(branding())),
   http.get('*/api/v1/customers/me', () => HttpResponse.json(customer())),
   http.get('*/api/v1/vehicles', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/appointments', () => HttpResponse.json(pageOf([]))),
@@ -36,7 +54,12 @@ export function token(u: User = user(), accessToken = 'access-1'): TokenResponse
   return { accessToken, tokenType: 'Bearer', expiresIn: 900, expiresAt: '2026-11-10T20:00:00Z', user: u };
 }
 
-export function problem(status: number, type: string, detail: string, errors?: { field: string; message: string }[]) {
+export function problem(
+  status: number,
+  type: string,
+  detail: string,
+  errors?: { field: string; message: string }[],
+) {
   return HttpResponse.json(
     { type: `urn:bayflow:problem:${type}`, title: 'Error', status, detail, errors },
     { status, headers: { 'Content-Type': 'application/problem+json' } },
@@ -83,9 +106,17 @@ export function vehicle(overrides: Partial<Vehicle> = {}): Vehicle {
 export function appointment(overrides: Partial<Appointment> = {}): Appointment {
   return {
     id: 'a0000000-0000-0000-0000-000000000001',
+    locationId: '00000000-0000-0000-0000-000000000001',
     customerId: 'c0000000-0000-0000-0000-000000000001',
     customerName: 'Jane Doe',
-    vehicle: { id: 'v1', vin: '1HGCM82633A004352', registration: 'BFL 1234', make: 'Toyota', model: 'Corolla', year: 2021 },
+    vehicle: {
+      id: 'v1',
+      vin: '1HGCM82633A004352',
+      registration: 'BFL 1234',
+      make: 'Toyota',
+      model: 'Corolla',
+      year: 2021,
+    },
     scheduledAt: '2030-01-15T15:00:00Z',
     endsAt: '2030-01-15T16:00:00Z',
     durationMinutes: 60,
@@ -101,6 +132,7 @@ export function jobCard(overrides: Partial<JobCard> = {}): JobCard {
   return {
     id: 'j0000000-0000-0000-0000-000000000001',
     appointmentId: 'a0000000-0000-0000-0000-000000000001',
+    locationId: '00000000-0000-0000-0000-000000000001',
     vehicleId: 'v0000000-0000-0000-0000-000000000001',
     vin: '1HGCM82633A004352',
     registration: 'BFL 1234',
@@ -119,6 +151,80 @@ export function jobCard(overrides: Partial<JobCard> = {}): JobCard {
     approvedEstimate: 0,
     createdAt: '2026-11-10T14:00:00Z',
     updatedAt: '2026-11-10T14:00:00Z',
+    ...overrides,
+  };
+}
+
+/** The signed-in user's workshop (default workshop, New York, USD). */
+/** The workshop at this address, as its sign-in page sees it (Bayflow's look by default). */
+export function publicWorkshop(
+  overrides: Partial<Omit<PublicWorkshop, 'branding'>> & { branding?: Partial<PublicBranding> } = {},
+): PublicWorkshop {
+  const { branding: brandingOverrides, ...rest } = overrides;
+  return {
+    slug: 'demo',
+    name: 'Bayflow Workshop',
+    displayName: 'Bayflow Downtown',
+    active: true,
+    ...rest,
+    branding: {
+      logoUrl: null,
+      coverUrl: null,
+      primaryColor: null,
+      showPoweredBy: true,
+      banner: null,
+      ...brandingOverrides,
+    },
+  };
+}
+
+/** The admin's view of the branding (none set by default). */
+export function branding(overrides: Partial<Branding> = {}): Branding {
+  return {
+    primaryColor: null,
+    bannerText: null,
+    bannerStyle: 'INFO',
+    bannerStartsAt: null,
+    bannerEndsAt: null,
+    bannerLive: false,
+    showPoweredBy: true,
+    logoUrl: null,
+    coverUrl: null,
+    version: 0,
+    ...overrides,
+  };
+}
+
+export function workshop(overrides: Partial<Workshop> = {}): Workshop {
+  return {
+    id: '00000000-0000-0000-0000-000000000001',
+    slug: 'default',
+    name: 'Bayflow Workshop',
+    displayName: 'Bayflow Downtown',
+    phone: '+1 555 0100',
+    email: 'desk@bayflow.local',
+    address: '1 Main St',
+    labourRate: 95,
+    currency: 'USD',
+    timeZone: 'America/New_York',
+    version: 0,
+    ...overrides,
+  };
+}
+
+/** A location of the organization; by default its first one, "Main" (id = the tenant id). */
+export function location(overrides: Partial<Location> = {}): Location {
+  return {
+    id: '00000000-0000-0000-0000-000000000001',
+    code: 'main',
+    name: 'Main',
+    status: 'ACTIVE',
+    timeZone: 'America/New_York',
+    labourRate: 95,
+    currency: 'USD',
+    ownTimeZone: null,
+    ownLabourRate: null,
+    version: 0,
     ...overrides,
   };
 }

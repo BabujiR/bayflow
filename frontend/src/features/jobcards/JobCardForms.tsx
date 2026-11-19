@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { SEVERITY_LABELS } from '@/lib/format';
+import { currencySymbol, formatMoney, SEVERITY_LABELS } from '@/lib/format';
 
 const SEVERITIES = Object.keys(SEVERITY_LABELS) as [Severity, ...Severity[]];
 const money = z.coerce.number<string>().min(0, 'Cannot be negative').multipleOf(0.01, 'Use whole cents');
@@ -22,7 +22,11 @@ const findingSchema = z.object({
 });
 
 export function FindingForm({ onSubmit }: { onSubmit: Submit<z.output<typeof findingSchema>> }) {
-  const { register, handleSubmit, reset, formState } = useForm<z.input<typeof findingSchema>, unknown, z.output<typeof findingSchema>>({
+  const { register, handleSubmit, reset, formState } = useForm<
+    z.input<typeof findingSchema>,
+    unknown,
+    z.output<typeof findingSchema>
+  >({
     resolver: zodResolver(findingSchema),
     defaultValues: { description: '', severity: 'MEDIUM' },
   });
@@ -32,7 +36,9 @@ export function FindingForm({ onSubmit }: { onSubmit: Submit<z.output<typeof fin
       aria-label="Add finding"
       className="grid gap-3 sm:grid-cols-[1fr_10rem_auto] sm:items-start"
       onSubmit={handleSubmit(async (values) => {
-        await onSubmit(values).then(() => reset()).catch(() => undefined);
+        await onSubmit(values)
+          .then(() => reset())
+          .catch(() => undefined);
       })}
     >
       <Field label="Finding" error={formState.errors.description?.message}>
@@ -62,9 +68,12 @@ const recommendationSchema = z.object({
 
 export function RecommendationForm({
   labourRate,
+  currency,
   onSubmit,
 }: {
   labourRate: number;
+  /** The job card's currency (ISO code). */
+  currency: string;
   onSubmit: Submit<z.output<typeof recommendationSchema>>;
 }) {
   const { register, handleSubmit, reset, formState } = useForm<
@@ -81,16 +90,25 @@ export function RecommendationForm({
       aria-label="Add recommendation"
       className="grid gap-3 sm:grid-cols-[1fr_9rem_9rem_auto] sm:items-start"
       onSubmit={handleSubmit(async (values) => {
-        await onSubmit(values).then(() => reset()).catch(() => undefined);
+        await onSubmit(values)
+          .then(() => reset())
+          .catch(() => undefined);
       })}
     >
       <Field label="Recommended work" error={formState.errors.description?.message}>
         <Input placeholder="e.g. Replace front brake pads" {...register('description')} />
       </Field>
-      <Field label="Parts ($)" error={formState.errors.estimatedPartsCost?.message}>
+      <Field
+        label={`Parts (${currencySymbol(currency)})`}
+        error={formState.errors.estimatedPartsCost?.message}
+      >
         <Input inputMode="decimal" {...register('estimatedPartsCost')} />
       </Field>
-      <Field label="Labour (hours)" error={formState.errors.estimatedLabourHours?.message} hint={`at $${labourRate}/h`}>
+      <Field
+        label="Labour (hours)"
+        error={formState.errors.estimatedLabourHours?.message}
+        hint={`at ${formatMoney(labourRate, currency)}/h`}
+      >
         <Input inputMode="decimal" {...register('estimatedLabourHours')} />
       </Field>
       <Button type="submit" className="sm:mt-5" disabled={formState.isSubmitting}>
@@ -116,7 +134,9 @@ const partSchema = z.object({
 const labourSchema = z.object({
   recommendationId: z.string().min(1, 'Choose the item'),
   hours: z.coerce.number<string>().min(0.01, 'More than zero').max(24, 'At most 24 hours'),
-  hourlyRate: z.string().refine((v) => v === '' || (!Number.isNaN(Number(v)) && Number(v) >= 0), 'Enter a rate'),
+  hourlyRate: z
+    .string()
+    .refine((v) => v === '' || (!Number.isNaN(Number(v)) && Number(v) >= 0), 'Enter a rate'),
 });
 
 function ItemSelect({ items, ...props }: { items: Recommendation[] } & ComponentProps<'select'>) {
@@ -136,12 +156,15 @@ function ItemSelect({ items, ...props }: { items: Recommendation[] } & Component
 export function WorkForms({
   items,
   labourRate,
+  currency,
   onWork,
   onPart,
   onLabour,
 }: {
   items: Recommendation[];
   labourRate: number;
+  /** The job card's currency (ISO code). */
+  currency: string;
   onWork: Submit<z.output<typeof workSchema>>;
   onPart: Submit<z.output<typeof partSchema>>;
   onLabour: Submit<{ recommendationId: string; hours: number; hourlyRate?: number }>;
@@ -195,7 +218,13 @@ export function WorkForms({
         onSubmit={part.handleSubmit(async (values) => {
           await onPart(values)
             .then(() =>
-              part.reset({ recommendationId: values.recommendationId, partNumber: '', name: '', quantity: '1', unitPrice: '' }),
+              part.reset({
+                recommendationId: values.recommendationId,
+                partNumber: '',
+                name: '',
+                quantity: '1',
+                unitPrice: '',
+              }),
             )
             .catch(() => undefined);
         })}
@@ -212,7 +241,10 @@ export function WorkForms({
         <Field label="Qty" error={part.formState.errors.quantity?.message}>
           <Input inputMode="numeric" {...part.register('quantity')} />
         </Field>
-        <Field label="Unit price ($)" error={part.formState.errors.unitPrice?.message}>
+        <Field
+          label={`Unit price (${currencySymbol(currency)})`}
+          error={part.formState.errors.unitPrice?.message}
+        >
           <Input inputMode="decimal" {...part.register('unitPrice')} />
         </Field>
         <Button type="submit" className="sm:mt-5" disabled={part.formState.isSubmitting}>
@@ -225,7 +257,11 @@ export function WorkForms({
         aria-label="Add labour"
         className="grid gap-3 sm:grid-cols-[14rem_7rem_9rem_auto] sm:items-start"
         onSubmit={labour.handleSubmit(async ({ recommendationId, hours, hourlyRate }) => {
-          await onLabour({ recommendationId, hours, hourlyRate: hourlyRate === '' ? undefined : Number(hourlyRate) })
+          await onLabour({
+            recommendationId,
+            hours,
+            hourlyRate: hourlyRate === '' ? undefined : Number(hourlyRate),
+          })
             .then(() => labour.reset({ recommendationId, hours: '', hourlyRate: '' }))
             .catch(() => undefined);
         })}
@@ -236,7 +272,11 @@ export function WorkForms({
         <Field label="Hours" error={labour.formState.errors.hours?.message}>
           <Input inputMode="decimal" {...labour.register('hours')} />
         </Field>
-        <Field label="Rate ($/h)" error={labour.formState.errors.hourlyRate?.message} hint={`Default $${labourRate}`}>
+        <Field
+          label={`Rate (${currencySymbol(currency)}/h)`}
+          error={labour.formState.errors.hourlyRate?.message}
+          hint={`Default ${formatMoney(labourRate, currency)}`}
+        >
           <Input inputMode="decimal" {...labour.register('hourlyRate')} />
         </Field>
         <Button type="submit" className="sm:mt-5" disabled={labour.formState.isSubmitting}>

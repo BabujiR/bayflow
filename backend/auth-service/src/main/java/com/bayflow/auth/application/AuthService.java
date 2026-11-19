@@ -19,9 +19,16 @@ import com.bayflow.auth.domain.RefreshToken;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.User;
 import com.bayflow.auth.infrastructure.RefreshTokenRepository;
+import com.bayflow.auth.infrastructure.TenantRepository;
 import com.bayflow.auth.infrastructure.UserRepository;
+import com.bayflow.security.TenantContext;
 
-/** Registration, login, refresh-token rotation and logout. */
+/**
+ * Registration, login, refresh-token rotation and logout.
+ * <p>
+ * Every method works inside one workshop: callers set it with {@link TenantContext} (the
+ * workshop the request is for), and Hibernate scopes all user and token queries to it.
+ */
 @Service
 public class AuthService {
 
@@ -29,10 +36,12 @@ public class AuthService {
 
     /** A signed-in session: short-lived access token plus the raw refresh token for the cookie. */
     public record Session(IssuedToken accessToken, String refreshToken, Instant refreshExpiresAt, User user,
-            Instant issuedAt) {
+            Instant issuedAt, LocationAccess access) {
     }
 
     private final UserRepository users;
+    private final TenantRepository tenants;
+    private final UserLocationService userLocations;
     private final RefreshTokenRepository refreshTokens;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
@@ -42,9 +51,12 @@ public class AuthService {
     /** Compared against when the username is unknown, so response time does not reveal which users exist. */
     private final String dummyHash;
 
-    public AuthService(UserRepository users, RefreshTokenRepository refreshTokens, PasswordEncoder passwordEncoder,
-            TokenService tokenService, LoginRateLimiter rateLimiter, AuthProperties properties, Clock clock) {
+    public AuthService(UserRepository users, TenantRepository tenants, UserLocationService userLocations,
+            RefreshTokenRepository refreshTokens, PasswordEncoder passwordEncoder, TokenService tokenService,
+            LoginRateLimiter rateLimiter, AuthProperties properties, Clock clock) {
         this.users = users;
+        this.tenants = tenants;
+        this.userLocations = userLocations;
         this.refreshTokens = refreshTokens;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
@@ -70,15 +82,16 @@ public class AuthService {
         if (users.existsByEmail(normalizedEmail)) {
             throw ApiException.conflict("email-taken", "An account with that email already exists.");
         }
-        User user = User.create(normalizedUsername, normalizedEmail, passwordEncoder.encode(password), roles,
-                clock.instant());
+        User user = User.create(TenantContext.require(), normalizedUsername, normalizedEmail,
+                passwordEncoder.encode(password), roles, clock.instant());
         return users.save(user);
     }
 
     @Transactional(noRollbackFor = AuthenticationFailedException.class)
     public Session login(String username, String password, String clientIp) {
         String normalized = User.normalizeUsername(username);
-        rateLimiter.check(normalized + "|" + clientIp);
+        // Per workshop: the same username in two workshops is two different people.
+        rateLimiter.check(TenantContext.require() + "|" + normalized + "|" + clientIp);
         Instant now = clock.instant();
 
         Optional<User> found = users.findByUsername(normalized);
@@ -100,8 +113,10 @@ public class AuthService {
         if (!user.isEnabled()) {
             throw AuthenticationFailedException.accountDisabled();
         }
+        // Staff without a location can't work anywhere yet: refuse before counting the login.
+        LocationAccess access = userLocations.forToken(user);
         user.registerSuccessfulLogin(now);
-        return startSession(user, now);
+        return startSession(user, access, now);
     }
 
     @Transactional(noRollbackFor = AuthenticationFailedException.class)
@@ -129,10 +144,13 @@ public class AuthService {
             throw AuthenticationFailedException.invalidRefreshToken();
         }
 
+        // Location changes take effect here, at the next refresh.
+        LocationAccess access = userLocations.forToken(user);
         String raw = SecureTokens.newToken();
         Instant expiresAt = now.plus(properties.getRefreshTokenTtl());
         refreshTokens.save(current.rotate(SecureTokens.sha256(raw), expiresAt, now));
-        return new Session(tokenService.forUser(user), raw, expiresAt, user, now);
+        return new Session(tokenService.forUser(user, slugOf(user), access.claim()), raw, expiresAt, user, now,
+                access);
     }
 
     /** Ends the session the refresh token belongs to. Unknown or missing tokens are ignored. */
@@ -145,15 +163,28 @@ public class AuthService {
                 .ifPresent(token -> refreshTokens.revokeFamily(token.getFamilyId()));
     }
 
+    /** Where the user works (every location, or their locations). */
+    public LocationAccess accessOf(User user) {
+        return userLocations.accessOf(user);
+    }
+
     @Transactional(readOnly = true)
     public User getUser(UUID id) {
         return users.findById(id).orElseThrow(() -> ApiException.notFound("User"));
     }
 
-    private Session startSession(User user, Instant now) {
+    private Session startSession(User user, LocationAccess access, Instant now) {
         String raw = SecureTokens.newToken();
         Instant expiresAt = now.plus(properties.getRefreshTokenTtl());
-        refreshTokens.save(RefreshToken.newFamily(user.getId(), SecureTokens.sha256(raw), expiresAt, now));
-        return new Session(tokenService.forUser(user), raw, expiresAt, user, now);
+        refreshTokens.save(RefreshToken.newFamily(user.getTenantId(), user.getId(), SecureTokens.sha256(raw),
+                expiresAt, now));
+        return new Session(tokenService.forUser(user, slugOf(user), access.claim()), raw, expiresAt, user, now,
+                access);
+    }
+
+    private String slugOf(User user) {
+        return tenants.findById(user.getTenantId())
+                .orElseThrow(() -> new IllegalStateException("User " + user.getId() + " has no workshop"))
+                .getSlug();
     }
 }

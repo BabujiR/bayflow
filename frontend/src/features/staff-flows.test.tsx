@@ -9,7 +9,15 @@ import { appointment, jobCard, pageOf, server, sessionFor, user } from '@/test/s
 
 const awaiting: Partial<JobCard> = {
   status: 'AWAITING_APPROVAL',
-  findings: [{ id: 'f1', description: 'Front pads at 2 mm', severity: 'HIGH', recordedBy: 'mechanic1', createdAt: '2026-11-10T14:10:00Z' }],
+  findings: [
+    {
+      id: 'f1',
+      description: 'Front pads at 2 mm',
+      severity: 'HIGH',
+      recordedBy: 'mechanic1',
+      createdAt: '2026-11-10T14:10:00Z',
+    },
+  ],
   recommendations: [
     {
       id: 'r1',
@@ -41,7 +49,18 @@ describe("advisor's board", () => {
         HttpResponse.json(
           pageOf([
             appointment({ id: 'a-booked', status: 'BOOKED' }),
-            appointment({ id: 'a-arrived', status: 'ARRIVED', vehicle: { id: 'v2', vin: 'X', registration: 'ARR 001', make: 'Ford', model: 'Focus', year: 2019 } }),
+            appointment({
+              id: 'a-arrived',
+              status: 'ARRIVED',
+              vehicle: {
+                id: 'v2',
+                vin: 'X',
+                registration: 'ARR 001',
+                make: 'Ford',
+                model: 'Focus',
+                year: 2019,
+              },
+            }),
           ]),
         ),
       ),
@@ -80,7 +99,9 @@ describe('job card actions by role', () => {
             ...awaiting,
             status: 'APPROVED',
             approvedEstimate: 263,
-            recommendations: [{ ...awaiting.recommendations![0]!, approvalStatus: 'APPROVED', decidedBy: 'customer1' }],
+            recommendations: [
+              { ...awaiting.recommendations![0]!, approvalStatus: 'APPROVED', decidedBy: 'customer1' },
+            ],
           }),
         );
       }),
@@ -96,7 +117,10 @@ describe('job card actions by role', () => {
   });
 
   it('shows the mechanic "Start work" on an approved card but no approval buttons', async () => {
-    server.use(sessionFor(user('MECHANIC', 'mechanic1')), serveCard(jobCard({ ...awaiting, status: 'APPROVED' })));
+    server.use(
+      sessionFor(user('MECHANIC', 'mechanic1')),
+      serveCard(jobCard({ ...awaiting, status: 'APPROVED' })),
+    );
     renderApp(CARD_PATH);
 
     expect(await screen.findByRole('button', { name: 'Start work' })).toBeInTheDocument();
@@ -147,7 +171,9 @@ describe('job card actions by role', () => {
     await userEvent.type(within(form).getByLabelText('Work done'), 'Fitted new pads');
     await userEvent.click(within(form).getByRole('button', { name: 'Log work' }));
 
-    await vi.waitFor(() => expect(logged).toEqual({ recommendationId: 'r1', description: 'Fitted new pads' }));
+    await vi.waitFor(() =>
+      expect(logged).toEqual({ recommendationId: 'r1', description: 'Fitted new pads' }),
+    );
   });
 });
 

@@ -21,6 +21,8 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import org.hibernate.annotations.TenantId;
+
 /**
  * The workshop's record for one checked-in vehicle. It is created from an appointment
  * (exactly one job card per appointment) and moves through inspection, customer approval,
@@ -34,6 +36,11 @@ public class JobCard {
 
     @Id
     private UUID id;
+
+    /** The workshop this job card belongs to. Hibernate fills it and filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
 
     @Column(name = "appointment_id", nullable = false, unique = true)
     private UUID appointmentId;
@@ -57,6 +64,18 @@ public class JobCard {
     /** Odometer reading at check-in. */
     @Column(nullable = false)
     private int mileage;
+
+    /** The location (shop) where the work is done; copied from the appointment, never changes. */
+    @Column(name = "location_id", nullable = false, updatable = false)
+    private UUID locationId;
+
+    /** The location's hourly labour rate when the card opened; frozen for this job. */
+    @Column(name = "labour_rate", nullable = false, precision = 10, scale = 2)
+    private BigDecimal labourRate;
+
+    /** ISO 4217 code of every amount on this card; frozen when it opened. */
+    @Column(nullable = false, length = 3)
+    private String currency;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -117,20 +136,33 @@ public class JobCard {
         // for JPA
     }
 
-    public static JobCard open(UUID appointmentId, UUID vehicleId, String vin, String registration,
-            UUID customerUserId, String customerName, int mileage, Instant now) {
+    public static JobCard open(UUID appointmentId, UUID locationId, UUID vehicleId, String vin,
+            String registration, UUID customerUserId, String customerName, int mileage, BigDecimal labourRate,
+            String currency, Instant now) {
+        if (locationId == null) {
+            throw new IllegalArgumentException("A job card needs a location");
+        }
         if (mileage < 0) {
             throw new IllegalArgumentException("Mileage cannot be negative");
+        }
+        if (labourRate == null || labourRate.signum() < 0) {
+            throw new IllegalArgumentException("A job card needs a labour rate of zero or more");
+        }
+        if (currency == null || !currency.matches("[A-Z]{3}")) {
+            throw new IllegalArgumentException("A job card needs a three-letter currency code");
         }
         JobCard card = new JobCard();
         card.id = UUID.randomUUID();
         card.appointmentId = appointmentId;
+        card.locationId = locationId;
         card.vehicleId = vehicleId;
         card.vin = vin;
         card.registration = registration;
         card.customerUserId = customerUserId;
         card.customerName = customerName;
         card.mileage = mileage;
+        card.labourRate = labourRate;
+        card.currency = currency;
         card.status = JobCardStatus.OPEN;
         card.createdAt = now;
         card.updatedAt = now;
@@ -313,6 +345,7 @@ public class JobCard {
     // ---- getters ------------------------------------------------------------------------
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
     public UUID getAppointmentId() { return appointmentId; }
     public UUID getVehicleId() { return vehicleId; }
     public String getVin() { return vin; }
@@ -320,6 +353,9 @@ public class JobCard {
     public UUID getCustomerUserId() { return customerUserId; }
     public String getCustomerName() { return customerName; }
     public int getMileage() { return mileage; }
+    public UUID getLocationId() { return locationId; }
+    public BigDecimal getLabourRate() { return labourRate; }
+    public String getCurrency() { return currency; }
     public JobCardStatus getStatus() { return status; }
     public List<InspectionFinding> getFindings() { return Collections.unmodifiableList(findings); }
     public List<RecommendedWorkItem> getRecommendations() { return Collections.unmodifiableList(recommendations); }

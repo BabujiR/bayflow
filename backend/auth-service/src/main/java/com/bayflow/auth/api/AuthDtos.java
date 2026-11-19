@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import com.bayflow.auth.application.LocationAccess;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.User;
 
@@ -45,19 +46,29 @@ public final class AuthDtos {
             String username,
             @NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(min = 8, max = 100) String password,
-            @NotNull Role role) {
+            @NotNull Role role,
+            /** For MANAGER, SERVICE_ADVISOR and MECHANIC; none = the organization's only location. */
+            @Size(max = 200) List<UUID> locationIds) {
+    }
+
+    /** The locations a MANAGER, SERVICE_ADVISOR or MECHANIC works at (at least one). */
+    public record UpdateLocationsRequest(@NotNull @Size(min = 1, max = 200) List<@NotNull UUID> locationIds) {
     }
 
     public record UpdateUserRequest(@NotNull Boolean enabled) {
     }
 
+    /**
+     * An account. {@code allLocations}: works with every location of the organization (ADMIN,
+     * CUSTOMER); otherwise {@code locationIds} lists where they work.
+     */
     public record UserResponse(UUID id, String username, String email, List<String> roles, boolean enabled,
-            Instant createdAt) {
+            Instant createdAt, boolean allLocations, List<UUID> locationIds) {
 
-        public static UserResponse from(User user) {
+        public static UserResponse from(User user, LocationAccess access) {
             List<String> roles = user.getRoles().stream().map(Role::name).sorted().toList();
             return new UserResponse(user.getId(), user.getUsername(), user.getEmail(), roles, user.isEnabled(),
-                    user.getCreatedAt());
+                    user.getCreatedAt(), access.all(), access.locationIds());
         }
     }
 

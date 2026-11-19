@@ -25,6 +25,7 @@ class CurrentUserTest {
         assertThat(user.isMechanic()).isFalse();
         assertThat(user.isSystem()).isFalse();
         assertThat(user.isAdmin()).isFalse();
+        assertThat(user.tenantId()).isEqualTo(Tenants.DEFAULT_TENANT_ID);
     }
 
     @Test

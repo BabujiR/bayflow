@@ -1,8 +1,15 @@
 package com.bayflow.auth;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -23,15 +30,67 @@ public abstract class IntegrationTestBase {
 
     static {
         POSTGRES.start();
+        createAppRole(POSTGRES);
     }
+
+    /** The services' runtime login (not the table owner), as in docker-compose. */
+    protected static final String APP_USER = "bayflow_app";
+    protected static final String APP_PASSWORD = "bayflow_app";
+
+    /** Creates the app login once per container; Flyway (as the owner) grants it table access. */
+    static void createAppRole(PostgreSQLContainer postgres) {
+        try (Connection connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(),
+                postgres.getPassword()); Statement statement = connection.createStatement()) {
+            statement.execute("""
+                    DO $$ BEGIN
+                        IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'bayflow_app') THEN
+                            CREATE ROLE bayflow_app LOGIN PASSWORD 'bayflow_app' NOSUPERUSER NOBYPASSRLS;
+                        END IF;
+                    END $$""");
+        } catch (SQLException e) {
+            throw new IllegalStateException("Could not create the app role", e);
+        }
+    }
+
+    /** The table owner: sees every workshop's rows. For test setup and checks only. */
+    protected static JdbcTemplate ownerJdbc() {
+        return new JdbcTemplate(new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(),
+                POSTGRES.getPassword()));
+    }
+
 
     @DynamicPropertySource
     static void datasource(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
+        // The service runs as the app login, subject to row-level security; Flyway as the owner.
+        registry.add("spring.datasource.username", () -> APP_USER);
+        registry.add("spring.datasource.password", () -> APP_PASSWORD);
+        registry.add("spring.flyway.user", POSTGRES::getUsername);
+        registry.add("spring.flyway.password", POSTGRES::getPassword);
     }
 
     @Autowired
     protected MockMvc mvc;
+
+    @Autowired
+    private com.bayflow.auth.application.AuthService testAuthService;
+
+    @Autowired
+    private com.bayflow.auth.application.UserLocationService testUserLocations;
+
+    /**
+     * Creates an account in {@code tenant} like an admin would: staff who work at particular
+     * locations (MANAGER, SERVICE_ADVISOR, MECHANIC) are assigned to the organization's first
+     * location, "Main" (id = tenant id), so they can sign in.
+     */
+    protected com.bayflow.auth.domain.User newUser(java.util.UUID tenant, String username, String email,
+            String password, java.util.Set<com.bayflow.auth.domain.Role> roles) {
+        return com.bayflow.security.TenantContext.call(tenant, () -> {
+            var user = testAuthService.createUser(username, email, password, roles);
+            if (com.bayflow.auth.application.UserLocationService.isLocationScoped(user)) {
+                testUserLocations.assign(user, java.util.List.of(tenant));
+            }
+            return user;
+        });
+    }
 }

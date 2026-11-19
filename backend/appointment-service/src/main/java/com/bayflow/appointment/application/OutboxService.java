@@ -3,11 +3,11 @@ package com.bayflow.appointment.application;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +16,7 @@ import com.bayflow.appointment.domain.Appointment;
 import com.bayflow.appointment.domain.OutboxMessage;
 import com.bayflow.appointment.infrastructure.AppointmentRepository;
 import com.bayflow.appointment.infrastructure.OutboxRepository;
+import com.bayflow.appointment.infrastructure.OutboxRepository.DueMessage;
 import com.bayflow.appointment.integration.OpenJobCardPayload;
 
 import tools.jackson.databind.json.JsonMapper;
@@ -47,7 +48,7 @@ public class OutboxService {
         OpenJobCardPayload payload = new OpenJobCardPayload(appointment.getId(), appointment.getVehicle().getId(),
                 appointment.getVehicle().getVin(), appointment.getVehicle().getRegistration(),
                 appointment.getCustomer().getUserId(), appointment.getCustomer().getName(),
-                appointment.getArrivalMileage());
+                appointment.getArrivalMileage(), appointment.getTenantId(), appointment.getLocationId());
         outbox.save(OutboxMessage.create(appointment.getId(), OutboxMessage.CREATE_JOB_CARD,
                 json.writeValueAsString(payload), clock.instant()));
     }
@@ -57,14 +58,24 @@ public class OutboxService {
         return outbox.findByAppointmentIdAndProcessedAtIsNull(appointmentId);
     }
 
+    /**
+     * Ids and workshops of due messages in every workshop. The caller then handles each one
+     * inside its own workshop ({@link #find(UUID)} under {@code TenantContext}).
+     */
     @Transactional(readOnly = true)
-    public List<OutboxMessage> due() {
-        return outbox.findByProcessedAtIsNullAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(clock.instant(),
-                PageRequest.of(0, properties.getDispatcher().getBatchSize()));
+    public List<DueMessage> due() {
+        return outbox.findDueAcrossTenants(clock.instant(), properties.getDispatcher().getBatchSize());
+    }
+
+    /** A message of the current workshop. */
+    @Transactional(readOnly = true)
+    public Optional<OutboxMessage> find(UUID messageId) {
+        return outbox.findById(messageId);
     }
 
     public OpenJobCardPayload payload(OutboxMessage message) {
-        return json.readValue(message.getPayload(), OpenJobCardPayload.class);
+        OpenJobCardPayload payload = json.readValue(message.getPayload(), OpenJobCardPayload.class);
+        return payload.withDefaults(message.getTenantId());
     }
 
     /** Settles the message and stores the job card id on the appointment. Repeats are harmless. */

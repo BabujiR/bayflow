@@ -27,10 +27,17 @@ export interface PageResponse<T> {
 
 // ---- auth --------------------------------------------------------------------------
 
-export type Role = A['CreateStaffRequest']['role'];
+/** MANAGER (phase L2) is hand-written until `pnpm api:update`. */
+export type Role = A['CreateStaffRequest']['role'] | 'MANAGER';
 
-export type User = Present<Omit<A['UserResponse'], 'roles'>, 'id' | 'username' | 'email' | 'enabled' | 'createdAt'> & {
+export type User = Present<
+  Omit<A['UserResponse'], 'roles'>,
+  'id' | 'username' | 'email' | 'enabled' | 'createdAt'
+> & {
   roles: Role[];
+  /** Works with every location (ADMIN, CUSTOMER); otherwise at locationIds. Hand-written (L2). */
+  allLocations?: boolean;
+  locationIds?: string[];
 };
 
 export type TokenResponse = Present<
@@ -40,7 +47,11 @@ export type TokenResponse = Present<
 
 export type LoginRequest = A['LoginRequest'];
 export type RegisterRequest = A['RegisterRequest'];
-export type CreateStaffRequest = A['CreateStaffRequest'];
+export type CreateStaffRequest = Omit<A['CreateStaffRequest'], 'role'> & {
+  role: Role;
+  /** For MANAGER, SERVICE_ADVISOR and MECHANIC; none = the organization's only location. */
+  locationIds?: string[];
+};
 
 // ---- appointments, customers, vehicles ------------------------------------------------
 
@@ -54,7 +65,10 @@ export type Vehicle = Present<
   'id' | 'customerId' | 'vin' | 'registration' | 'make' | 'model' | 'year' | 'mileage' | 'createdAt'
 >;
 
-export type VehicleSummary = Present<P['VehicleSummary'], 'id' | 'vin' | 'registration' | 'make' | 'model' | 'year'>;
+export type VehicleSummary = Present<
+  P['VehicleSummary'],
+  'id' | 'vin' | 'registration' | 'make' | 'model' | 'year'
+>;
 
 export type Appointment = Present<
   Omit<P['AppointmentResponse'], 'vehicle'>,
@@ -68,13 +82,20 @@ export type Appointment = Present<
   | 'status'
   | 'createdAt'
   | 'updatedAt'
-> & { vehicle: VehicleSummary };
+> & {
+  vehicle: VehicleSummary;
+  /** The location (shop) of the organization; hand-written until `pnpm api:update`. */
+  locationId: string;
+};
 
 export type ProfileRequest = P['ProfileRequest'];
 export type CreateCustomerRequest = P['CreateCustomerRequest'];
 export type CreateVehicleRequest = P['CreateVehicleRequest'];
 export type UpdateVehicleRequest = P['UpdateVehicleRequest'];
-export type BookAppointmentRequest = P['BookAppointmentRequest'];
+export type BookAppointmentRequest = P['BookAppointmentRequest'] & {
+  /** Optional while the organization has one location; hand-written until `pnpm api:update`. */
+  locationId?: string;
+};
 export type RescheduleRequest = P['RescheduleRequest'];
 
 // ---- workshop -----------------------------------------------------------------------
@@ -83,7 +104,10 @@ export type JobCardStatus = NonNullable<W['JobCardResponse']['status']>;
 export type Severity = W['FindingRequest']['severity'];
 export type ApprovalStatus = NonNullable<W['RecommendationResponse']['approvalStatus']>;
 
-export type Finding = Present<W['FindingResponse'], 'id' | 'description' | 'severity' | 'recordedBy' | 'createdAt'>;
+export type Finding = Present<
+  W['FindingResponse'],
+  'id' | 'description' | 'severity' | 'recordedBy' | 'createdAt'
+>;
 
 export type Recommendation = Present<
   W['RecommendationResponse'],
@@ -96,14 +120,20 @@ export type Recommendation = Present<
   | 'approvalStatus'
 >;
 
-export type WorkLog = Present<W['WorkLogResponse'], 'id' | 'recommendationId' | 'mechanic' | 'description' | 'completedAt'>;
+export type WorkLog = Present<
+  W['WorkLogResponse'],
+  'id' | 'recommendationId' | 'mechanic' | 'description' | 'completedAt'
+>;
 
 export type Part = Present<
   W['PartResponse'],
   'id' | 'recommendationId' | 'partNumber' | 'name' | 'quantity' | 'unitPrice' | 'lineTotal' | 'recordedBy'
 >;
 
-export type Labour = Present<W['LabourResponse'], 'id' | 'recommendationId' | 'mechanic' | 'hours' | 'hourlyRate' | 'cost'>;
+export type Labour = Present<
+  W['LabourResponse'],
+  'id' | 'recommendationId' | 'mechanic' | 'hours' | 'hourlyRate' | 'cost'
+>;
 
 export type JobCard = Present<
   Omit<W['JobCardResponse'], 'findings' | 'recommendations' | 'workLogs' | 'parts' | 'labour'>,
@@ -127,12 +157,26 @@ export type JobCard = Present<
   workLogs: WorkLog[];
   parts: Part[];
   labour: Labour[];
+  /** The location (shop) where the work is done; hand-written until `pnpm api:update`. */
+  locationId: string;
 };
 
 export type JobCardSummary = Present<
   W['JobCardSummary'],
-  'id' | 'appointmentId' | 'vehicleId' | 'vin' | 'registration' | 'customerName' | 'mileage' | 'status' | 'createdAt' | 'updatedAt'
->;
+  | 'id'
+  | 'appointmentId'
+  | 'vehicleId'
+  | 'vin'
+  | 'registration'
+  | 'customerName'
+  | 'mileage'
+  | 'status'
+  | 'createdAt'
+  | 'updatedAt'
+> & {
+  /** Hand-written until `pnpm api:update`. */
+  locationId?: string;
+};
 
 export type ServiceRecord = W['ServiceRecord'];
 
@@ -149,10 +193,158 @@ export type ServiceHistoryEntry = Present<
   | 'labourTotal'
   | 'totalCost'
   | 'currency'
->;
+> & {
+  /** Where the work was done; hand-written until `pnpm api:update`. */
+  locationId?: string;
+};
 
 export type FindingRequest = W['FindingRequest'];
 export type RecommendationRequest = W['RecommendationRequest'];
 export type WorkLogRequest = W['WorkLogRequest'];
 export type PartRequest = W['PartRequest'];
 export type LabourRequest = W['LabourRequest'];
+
+// ---- workshop settings (auth-service, SaaS phase 3) --------------------------------------
+// Written by hand until the schema is regenerated with `pnpm api:update`.
+
+/** The signed-in user's workshop and its settings. */
+export interface Workshop {
+  id: string;
+  slug: string;
+  name: string;
+  displayName: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  labourRate: number;
+  /** ISO 4217 code, e.g. USD. */
+  currency: string;
+  /** IANA time zone, e.g. America/New_York. Defines the workshop's "today". */
+  timeZone: string;
+  /** Send back unchanged with an update; 409 if someone saved in between. */
+  version: number;
+}
+
+export interface UpdateWorkshopSettingsRequest {
+  displayName: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  labourRate: number;
+  currency: string;
+  timeZone: string;
+  version: number;
+}
+
+// ---- workshops: sign-up and addresses (auth-service, SaaS phase 4) -----------------------
+
+/** The workshop at this address, for its sign-in page (public). */
+export interface PublicWorkshop {
+  slug: string;
+  name: string;
+  displayName: string;
+  /** False while the workshop is suspended: nobody can sign in. */
+  active: boolean;
+  /** The workshop's look (Branding). Missing from older servers: then Bayflow's look. */
+  branding?: PublicBranding;
+}
+
+// ---- branding (auth-service) -------------------------------------------------------------
+
+export type BannerStyle = 'INFO' | 'IMPORTANT';
+
+/** What every visitor of a workshop's address sees. The banner is present only while it is live. */
+export interface PublicBranding {
+  logoUrl: string | null;
+  coverUrl: string | null;
+  /** #rrggbb, or null for Bayflow's colours. */
+  primaryColor: string | null;
+  showPoweredBy: boolean;
+  banner: { text: string; style: BannerStyle } | null;
+}
+
+/** The workshop ADMIN's view of the branding. */
+export interface Branding {
+  primaryColor: string | null;
+  bannerText: string | null;
+  bannerStyle: BannerStyle;
+  bannerStartsAt: string | null;
+  bannerEndsAt: string | null;
+  /** The banner has text and today is within its dates. */
+  bannerLive: boolean;
+  showPoweredBy: boolean;
+  logoUrl: string | null;
+  coverUrl: string | null;
+  version: number;
+}
+
+export interface UpdateBrandingRequest {
+  primaryColor: string | null;
+  bannerText: string | null;
+  bannerStyle: BannerStyle;
+  bannerStartsAt: string | null;
+  bannerEndsAt: string | null;
+  showPoweredBy: boolean;
+  version: number;
+}
+
+export type BrandingImageKind = 'logo' | 'cover';
+
+export interface SignupRequest {
+  workshopName: string;
+  slug: string;
+  labourRate?: number;
+  currency?: string;
+  timeZone?: string;
+  adminUsername: string;
+  adminEmail: string;
+  adminPassword: string;
+}
+
+export interface SignupResponse {
+  id: string;
+  slug: string;
+  name: string;
+  adminUsername: string;
+}
+
+export interface SlugAvailability {
+  slug: string;
+  available: boolean;
+  reason?: 'taken' | 'reserved' | 'invalid' | null;
+}
+
+// ---- organizations and locations (auth-service, phase L1) -----------------------------------
+
+/** A location (shop) of the organization, with the settings that apply to it. */
+export interface Location {
+  id: string;
+  code: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  status: 'ACTIVE' | 'ARCHIVED';
+  /** Effective time zone: the location's own, else the organization's. */
+  timeZone: string;
+  /** Effective labour rate: the location's own, else the organization's. */
+  labourRate: number;
+  /** The organization's currency. */
+  currency: string;
+  /** The location's own override; null = uses the organization's. */
+  ownTimeZone?: string | null;
+  ownLabourRate?: number | null;
+  version: number;
+}
+
+/** What an admin sets on a location; empty timeZone / labourRate = use the organization's. */
+export interface LocationRequest {
+  code: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  timeZone?: string;
+  labourRate?: number;
+  version?: number;
+}

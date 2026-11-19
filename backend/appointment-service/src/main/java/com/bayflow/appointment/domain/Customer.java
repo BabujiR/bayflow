@@ -10,6 +10,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import org.hibernate.annotations.TenantId;
+
 /**
  * A workshop customer. {@code userId} links the profile to a Bayflow login (the JWT "sub");
  * it is empty for customers an advisor created who have no account.
@@ -20,6 +22,11 @@ public class Customer {
 
     @Id
     private UUID id;
+
+    /** The workshop this customer belongs to. Hibernate fills it and filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
 
     @Column(name = "user_id", unique = true)
     private UUID userId;
@@ -67,6 +74,7 @@ public class Customer {
     }
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
     public UUID getUserId() { return userId; }
     public String getName() { return name; }
     public String getEmail() { return email; }

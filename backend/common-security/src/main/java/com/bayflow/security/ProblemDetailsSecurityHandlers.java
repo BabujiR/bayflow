@@ -36,6 +36,19 @@ public class ProblemDetailsSecurityHandlers implements AuthenticationEntryPoint,
                 "You do not have permission to perform this action.", request.getRequestURI());
     }
 
+    /** 401 for a token used at another workshop's address (see {@link WorkshopHostFilter}). */
+    public void workshopMismatch(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
+        write(response, HttpServletResponse.SC_UNAUTHORIZED, "workshop-mismatch", "Unauthorized",
+                "This session belongs to another workshop. Sign in here instead.", request.getRequestURI());
+    }
+
+    /** 403 for a location the caller does not work at (the X-Bayflow-Location header). */
+    public void locationNotAllowed(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        write(response, HttpServletResponse.SC_FORBIDDEN, "location-not-allowed", "Forbidden",
+                "You do not work at that location.", request.getRequestURI());
+    }
+
     private static void write(HttpServletResponse response, int status, String type, String title,
             String detail, String instance) throws IOException {
         response.setStatus(status);

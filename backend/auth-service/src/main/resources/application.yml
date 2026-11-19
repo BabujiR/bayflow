@@ -2,6 +2,9 @@ server:
   port: ${PORT:8083}
   # Trust X-Forwarded-* from nginx so the client IP used for rate limiting is the real one
   forward-headers-strategy: native
+  tomcat:
+    # Read the rest of a too-large upload so the client gets the 413 instead of a reset connection.
+    max-swallow-size: 8MB
   error:
     include-message: never
     include-stacktrace: never
@@ -11,8 +14,9 @@ spring:
     name: auth-service
   datasource:
     url: ${BAYFLOW_DB_URL:jdbc:postgresql://localhost:5432/bayflow}
-    username: ${BAYFLOW_DB_USER:bayflow}
-    password: ${BAYFLOW_DB_PASSWORD:bayflow}
+    # Runtime login: not the table owner, so row-level security applies (RowLevelSecurityGuard checks).
+    username: ${BAYFLOW_DB_USER:bayflow_app}
+    password: ${BAYFLOW_DB_PASSWORD:bayflow_app}
   jpa:
     open-in-view: false
     hibernate:
@@ -20,6 +24,8 @@ spring:
     properties:
       hibernate:
         default_schema: bayflow
+        # Multi-tenancy: fills and filters tenant_id on every @TenantId entity (fails closed).
+        tenant_identifier_resolver: com.bayflow.security.BayflowTenantResolver
   flyway:
     # All services share schema "bayflow"; each keeps its own history table.
     schemas: bayflow
@@ -29,6 +35,23 @@ spring:
     baseline-on-migrate: true
     baseline-version: "0"
     locations: classpath:db/migration
+    # Migrations run as the table owner; the services themselves connect as the app role.
+    user: ${BAYFLOW_DB_OWNER_USER:bayflow}
+    password: ${BAYFLOW_DB_OWNER_PASSWORD:bayflow}
+    placeholders:
+      # Same fixed value in every service: the workshop pre-multi-tenancy data belongs to.
+      default_tenant_id: 00000000-0000-0000-0000-000000000001
+      # The runtime login that migrations grant access to (row-level security applies to it).
+      app_role: ${BAYFLOW_DB_USER:bayflow_app}
+      # Settings of the default workshop when they are first created (V5).
+      default_labour_rate: ${BAYFLOW_LABOUR_RATE:95.00}
+      default_currency: ${BAYFLOW_CURRENCY:USD}
+      default_time_zone: ${BAYFLOW_WORKSHOP_ZONE:America/New_York}
+  servlet:
+    multipart:
+      # Branding images: logo up to 1 MB, cover up to 3 MB (BrandingImages checks each kind).
+      max-file-size: 3MB
+      max-request-size: 4MB
   data:
     web:
       pageable:
@@ -63,6 +86,25 @@ bayflow:
       appointment-service:
         secret: ${BAYFLOW_SYSTEM_CLIENT_SECRET:dev-system-secret}
         roles: [SYSTEM]
+      # Reads workshop settings (labour rate, currency) when opening job cards.
+      workshop-service:
+        secret: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:dev-workshop-secret}
+        roles: [SYSTEM]
+    # Starting settings of a new workshop (each workshop then edits its own in the app).
+    tenant-defaults:
+      labour-rate: ${BAYFLOW_LABOUR_RATE:95.00}
+      currency: ${BAYFLOW_CURRENCY:USD}
+      time-zone: ${BAYFLOW_WORKSHOP_ZONE:America/New_York}
+    # Self-service sign-up of new workshops (POST /api/v1/tenants/signup).
+    signup:
+      max-per-hour-per-ip: ${BAYFLOW_SIGNUP_MAX_PER_HOUR:10}
+    # Asked before a location is archived whether it still has upcoming appointments.
+    appointment-url: ${BAYFLOW_APPOINTMENT_URL:http://localhost:8081}
+    # Workshop for sign-in at an address without one (Swagger UI on :8083, scripts). Empty = none.
+    fallback-workshop: ${BAYFLOW_FALLBACK_WORKSHOP:}
+  # Workshops live at <slug>.<base domain>; the base domain itself is the public sign-up site.
+  tenancy:
+    base-domain: ${BAYFLOW_BASE_DOMAIN:localhost}
 
 management:
   endpoints:

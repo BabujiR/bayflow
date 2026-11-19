@@ -44,9 +44,12 @@ class JobCardApiIT extends IntegrationTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value((String) JsonPath.read(first, "$.id")));
 
-        mvc.perform(get("/api/v1/job-cards/by-appointment/" + appointmentId).with(system))
+        mvc.perform(get("/api/v1/job-cards/by-appointment/" + appointmentId).with(advisor))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value((String) JsonPath.read(first, "$.id")));
+        // SYSTEM has no workshop, so it can't look cards up (it only opens them, naming the workshop).
+        mvc.perform(get("/api/v1/job-cards/by-appointment/" + appointmentId).with(system))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -245,7 +248,8 @@ class JobCardApiIT extends IntegrationTestBase {
         return mvc.perform(post("/api/v1/job-cards").with(who).contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"appointmentId":"%s","vehicleId":"%s","vin":"1HGCM82633A004352","registration":"BFL 1234",
-                         "customerUserId":%s,"customerName":"Jane Doe","mileage":12480}
+                         "customerUserId":%s,"customerName":"Jane Doe","mileage":12480,
+                         "tenantId":"00000000-0000-0000-0000-000000000001"}
                         """.formatted(appointmentId, UUID.randomUUID(), customer)));
     }
 

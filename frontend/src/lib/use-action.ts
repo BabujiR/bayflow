@@ -22,7 +22,9 @@ export function useAction<TVariables, TResult>(
   return useMutation({
     mutationFn: action,
     onSuccess: async (result) => {
-      await Promise.all((options.invalidate ?? []).map((queryKey) => queryClient.invalidateQueries({ queryKey })));
+      await Promise.all(
+        (options.invalidate ?? []).map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+      );
       if (options.success) {
         toast.success(typeof options.success === 'function' ? options.success(result) : options.success);
       }

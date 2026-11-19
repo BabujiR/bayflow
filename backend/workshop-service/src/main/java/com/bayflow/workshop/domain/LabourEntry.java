@@ -12,6 +12,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import org.hibernate.annotations.TenantId;
+
 /** Time a mechanic spent on an approved recommendation, at an hourly rate. */
 @Entity
 @Table(name = "ws_labour_entries")
@@ -19,6 +21,15 @@ public class LabourEntry {
 
     @Id
     private UUID id;
+
+    /** The workshop this entry belongs to. Hibernate fills it and filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
+
+    /** The job card's location, copied so row-level security can check this table on its own. */
+    @Column(name = "location_id", nullable = false, updatable = false)
+    private UUID locationId;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "job_card_id", nullable = false)
@@ -54,6 +65,7 @@ public class LabourEntry {
         }
         this.id = UUID.randomUUID();
         this.jobCard = jobCard;
+        this.locationId = jobCard.getLocationId();
         this.recommendation = recommendation;
         this.mechanic = mechanic;
         this.hours = hours.setScale(2, RoundingMode.HALF_UP);
@@ -67,6 +79,8 @@ public class LabourEntry {
     }
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
+    public UUID getLocationId() { return locationId; }
     public RecommendedWorkItem getRecommendation() { return recommendation; }
     public String getMechanic() { return mechanic; }
     public BigDecimal getHours() { return hours; }

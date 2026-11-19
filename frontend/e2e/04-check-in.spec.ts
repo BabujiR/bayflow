@@ -1,4 +1,14 @@
-import { appointmentRow, book, expect, jobCardHeading, nextDay, openJobCardFromRow, seedCustomer, slot, test } from './support/bayflow';
+import {
+  appointmentRow,
+  book,
+  expect,
+  jobCardHeading,
+  nextDay,
+  openJobCardFromRow,
+  seedCustomer,
+  slot,
+  test,
+} from './support/bayflow';
 
 /** The advisor's side of an appointment: concurrency, odometer rules and status rules. */
 test.describe('Check-in', () => {
@@ -68,7 +78,9 @@ test.describe('Check-in', () => {
     await advisor.edge('19,000 mi: lower than the last recorded 20,000');
     await odometer.fill('19000');
     await submit.click();
-    await expect(dialog.getByText(/Mileage at check-in \(19000\) is lower than the last recorded reading/)).toBeVisible();
+    await expect(
+      dialog.getByText(/Mileage at check-in \(19000\) is lower than the last recorded reading/),
+    ).toBeVisible();
     await advisor.check('Refused by the server; the appointment is still Arrived');
 
     await advisor.say('Enters the real reading, 20,450 mi');
@@ -80,7 +92,9 @@ test.describe('Check-in', () => {
     await expect(jobCardHeading(advisor)).toContainText('Open');
     await advisor.check('The job card carries the new reading');
 
-    const again = await advisorApi.raw('POST', `/api/v1/appointments/${appointment.id}/check-in`, { mileage: 20_500 });
+    const again = await advisorApi.raw('POST', `/api/v1/appointments/${appointment.id}/check-in`, {
+      mileage: 20_500,
+    });
     expect(again).toMatchObject({ status: 409, code: 'invalid-transition' });
     await cast.note('Checking in the same appointment twice → 409, so no second job card');
   });
@@ -102,7 +116,9 @@ test.describe('Check-in', () => {
     expect(noShow).toMatchObject({ status: 409, code: 'too-early-for-no-show' });
     await cast.note(`No-show before the start time → 409: ${noShow.detail}`);
 
-    const early = await advisorApi.raw('POST', `/api/v1/appointments/${appointment.id}/check-in`, { mileage: 30_000 });
+    const early = await advisorApi.raw('POST', `/api/v1/appointments/${appointment.id}/check-in`, {
+      mileage: 30_000,
+    });
     expect(early).toMatchObject({ status: 409, code: 'invalid-transition' });
     await cast.note(`Check-in before the car arrived → 409: ${early.detail}`);
 

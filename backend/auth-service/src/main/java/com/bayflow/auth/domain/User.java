@@ -22,6 +22,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import org.hibernate.annotations.TenantId;
+
 @Entity
 @Table(name = "auth_users")
 public class User {
@@ -29,10 +31,17 @@ public class User {
     @Id
     private UUID id;
 
-    @Column(nullable = false, unique = true, length = 50)
+    /** The workshop this account belongs to. Hibernate filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
+
+    /** Unique within the workshop, not globally. */
+    @Column(nullable = false, length = 50)
     private String username;
 
-    @Column(nullable = false, unique = true, length = 254)
+    /** Unique within the workshop, not globally. */
+    @Column(nullable = false, length = 254)
     private String email;
 
     @Column(name = "password_hash", nullable = false, length = 100)
@@ -66,8 +75,9 @@ public class User {
         // for JPA
     }
 
-    private User(String username, String email, String passwordHash, Set<Role> roles, Instant now) {
+    private User(UUID tenantId, String username, String email, String passwordHash, Set<Role> roles, Instant now) {
         this.id = UUID.randomUUID();
+        this.tenantId = Objects.requireNonNull(tenantId, "tenantId");
         this.username = normalizeUsername(username);
         this.email = normalizeEmail(email);
         this.passwordHash = Objects.requireNonNull(passwordHash);
@@ -77,11 +87,12 @@ public class User {
         this.updatedAt = now;
     }
 
-    public static User create(String username, String email, String passwordHash, Set<Role> roles, Instant now) {
+    public static User create(UUID tenantId, String username, String email, String passwordHash, Set<Role> roles,
+            Instant now) {
         if (roles == null || roles.isEmpty()) {
             throw new IllegalArgumentException("A user needs at least one role");
         }
-        return new User(username, email, passwordHash, roles, now);
+        return new User(tenantId, username, email, passwordHash, roles, now);
     }
 
     public static String normalizeUsername(String username) {
@@ -135,6 +146,7 @@ public class User {
     // ---- getters ----------------------------------------------------------
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
     public String getUsername() { return username; }
     public String getEmail() { return email; }
     public String getPasswordHash() { return passwordHash; }

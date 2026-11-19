@@ -30,8 +30,14 @@ export function CustomerDetailPage() {
     queryFn: () => appointmentsApi.list({ customerId: id, size: 50 }),
   });
   const addVehicle = useAction(
-    (values: { vin: string; registration: string; make: string; model: string; year: number; mileage: number }) =>
-      vehiclesApi.create({ ...values, customerId: id }),
+    (values: {
+      vin: string;
+      registration: string;
+      make: string;
+      model: string;
+      year: number;
+      mileage: number;
+    }) => vehiclesApi.create({ ...values, customerId: id }),
     {
       success: (v) => `${v.make} ${v.model} added`,
       invalidate: [['vehicles']],
@@ -67,8 +73,15 @@ export function CustomerDetailPage() {
             <CardContent className="grid gap-4">
               {addingVehicle && (
                 <div className="grid gap-3 rounded-lg border p-4">
-                  <VehicleForm submitLabel="Add vehicle" onSubmit={(values) => addVehicle.mutateAsync(values)} />
-                  <Button variant="ghost" className="justify-self-start" onClick={() => setAddingVehicle(false)}>
+                  <VehicleForm
+                    submitLabel="Add vehicle"
+                    onSubmit={(values) => addVehicle.mutateAsync(values)}
+                  />
+                  <Button
+                    variant="ghost"
+                    className="justify-self-start"
+                    onClick={() => setAddingVehicle(false)}
+                  >
                     Cancel
                   </Button>
                 </div>

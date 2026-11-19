@@ -9,6 +9,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import org.hibernate.annotations.TenantId;
+
 import org.hibernate.annotations.Immutable;
 
 /**
@@ -23,11 +25,20 @@ public class ServiceHistoryEntry {
     @Id
     private UUID id;
 
+    /** The workshop this entry belongs to. Hibernate fills it and filters every query by it. */
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;
+
     @Column(name = "vehicle_id", nullable = false)
     private UUID vehicleId;
 
     @Column(name = "job_card_id", nullable = false, unique = true)
     private UUID jobCardId;
+
+    /** The location where the work was done, copied from the job card. */
+    @Column(name = "location_id", nullable = false, updatable = false)
+    private UUID locationId;
 
     @Column(name = "appointment_id", nullable = false)
     private UUID appointmentId;
@@ -60,6 +71,10 @@ public class ServiceHistoryEntry {
     @Column(name = "total_cost", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalCost;
 
+    /** ISO 4217 code of the amounts above, copied from the job card. */
+    @Column(nullable = false, length = 3)
+    private String currency;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -76,6 +91,7 @@ public class ServiceHistoryEntry {
         entry.id = UUID.randomUUID();
         entry.vehicleId = card.getVehicleId();
         entry.jobCardId = card.getId();
+        entry.locationId = card.getLocationId();
         entry.appointmentId = card.getAppointmentId();
         entry.customerUserId = card.getCustomerUserId();
         entry.vin = card.getVin();
@@ -86,6 +102,7 @@ public class ServiceHistoryEntry {
         entry.partsTotal = card.getPartsTotal();
         entry.labourTotal = card.getLabourTotal();
         entry.totalCost = card.getGrandTotal();
+        entry.currency = card.getCurrency();
         entry.createdAt = card.getCompletedAt();
         return entry;
     }
@@ -95,8 +112,10 @@ public class ServiceHistoryEntry {
     }
 
     public UUID getId() { return id; }
+    public UUID getTenantId() { return tenantId; }
     public UUID getVehicleId() { return vehicleId; }
     public UUID getJobCardId() { return jobCardId; }
+    public UUID getLocationId() { return locationId; }
     public UUID getAppointmentId() { return appointmentId; }
     public UUID getCustomerUserId() { return customerUserId; }
     public String getVin() { return vin; }
@@ -107,5 +126,6 @@ public class ServiceHistoryEntry {
     public BigDecimal getPartsTotal() { return partsTotal; }
     public BigDecimal getLabourTotal() { return labourTotal; }
     public BigDecimal getTotalCost() { return totalCost; }
+    public String getCurrency() { return currency; }
     public Instant getCreatedAt() { return createdAt; }
 }

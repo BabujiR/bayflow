@@ -54,22 +54,25 @@ public class AppointmentController {
     @Operation(summary = "Book a service appointment")
     public AppointmentResponse book(@Valid @RequestBody BookAppointmentRequest request, Authentication auth) {
         return AppointmentResponse.from(appointments.book(CurrentUser.from(auth), request.vehicleId(),
-                request.scheduledAt(), request.durationMinutes(), request.serviceType(), request.notes()));
+                request.locationId(), request.scheduledAt(), request.durationMinutes(), request.serviceType(),
+                request.notes()));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('CUSTOMER', 'SERVICE_ADVISOR', 'MECHANIC', 'ADMIN')")
     @Operation(summary = "List appointments",
             description = "Customers see their own; mechanics see today's checked-in vehicles; advisors and "
-                    + "admins see all. date is a workshop-local day (YYYY-MM-DD).")
+                    + "admins see all. date is a day (YYYY-MM-DD) at locationId, or at the organization's "
+                    + "default location; locationId also limits the list to that location.")
     public PageResponse<AppointmentResponse> list(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) AppointmentStatus status,
             @RequestParam(required = false) UUID vehicleId,
             @RequestParam(required = false) UUID customerId,
+            @RequestParam(required = false) UUID locationId,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
             Authentication auth) {
-        ListQuery query = new ListQuery(date, status, vehicleId, customerId);
+        ListQuery query = new ListQuery(date, status, vehicleId, customerId, locationId);
         return PageResponse.from(appointments.list(CurrentUser.from(auth), query, Paging.page(page),
                 Paging.size(size)), AppointmentResponse::from);
     }

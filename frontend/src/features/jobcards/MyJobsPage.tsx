@@ -7,16 +7,25 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { JobCardStatusBadge } from '@/components/common/StatusBadge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLocationLookup } from '@/features/locations/use-locations';
 import { formatDateTime, formatMileage } from '@/lib/format';
 
 const SECTIONS: { title: string; description: string; statuses: JobCardStatus[] }[] = [
-  { title: 'In progress', description: 'Log work, parts and labour, then complete.', statuses: ['IN_PROGRESS'] },
+  {
+    title: 'In progress',
+    description: 'Log work, parts and labour, then complete.',
+    statuses: ['IN_PROGRESS'],
+  },
   {
     title: 'Ready to start',
     description: 'The customer approved the work.',
     statuses: ['APPROVED', 'PARTIALLY_APPROVED'],
   },
-  { title: 'Needs inspection', description: 'Checked in and waiting for findings.', statuses: ['OPEN', 'INSPECTED'] },
+  {
+    title: 'Needs inspection',
+    description: 'Checked in and waiting for findings.',
+    statuses: ['OPEN', 'INSPECTED'],
+  },
 ];
 
 /** A mechanic's work queue, grouped by what needs doing next. */
@@ -33,7 +42,15 @@ export function MyJobsPage() {
   );
 }
 
-function JobSection({ title, description, statuses }: { title: string; description: string; statuses: JobCardStatus[] }) {
+function JobSection({
+  title,
+  description,
+  statuses,
+}: {
+  title: string;
+  description: string;
+  statuses: JobCardStatus[];
+}) {
   // aria-labelledby takes a space-separated list of ids, so the id must not contain spaces.
   const headingId = `section-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   const results = useQueries({
@@ -43,6 +60,7 @@ function JobSection({ title, description, statuses }: { title: string; descripti
     })),
   });
   const loading = results.some((r) => r.isPending);
+  const locations = useLocationLookup();
   const cards: JobCardSummary[] = results.flatMap((r) => r.data?.content ?? []);
 
   return (
@@ -56,7 +74,9 @@ function JobSection({ title, description, statuses }: { title: string; descripti
       {loading ? (
         <Skeleton className="h-24" />
       ) : cards.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Nothing here right now.</p>
+        <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+          Nothing here right now.
+        </p>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
@@ -70,10 +90,11 @@ function JobSection({ title, description, statuses }: { title: string; descripti
                     </CardTitle>
                     <CardDescription>
                       {card.customerName} · {formatMileage(card.mileage)}
+                      {locations.hasSeveral && <> · {locations.nameOf(card.locationId)}</>}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="text-xs text-muted-foreground">
-                    Updated {formatDateTime(card.updatedAt)}
+                    Updated {formatDateTime(card.updatedAt, locations.zoneOf(card.locationId))}
                   </CardContent>
                 </Card>
               </Link>

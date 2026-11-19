@@ -47,8 +47,14 @@ export function CustomersPage() {
               <DialogTrigger asChild>
                 <Button>New customer</Button>
               </DialogTrigger>
-              <DialogContent title="New customer" description="For customers booking by phone or at the desk.">
-                <ProfileForm submitLabel="Create customer" onSubmit={(values) => create.mutateAsync(values)} />
+              <DialogContent
+                title="New customer"
+                description="For customers booking by phone or at the desk."
+              >
+                <ProfileForm
+                  submitLabel="Create customer"
+                  onSubmit={(values) => create.mutateAsync(values)}
+                />
               </DialogContent>
             </Dialog>
           )

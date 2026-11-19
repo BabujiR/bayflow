@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { z } from 'zod';
@@ -17,26 +17,36 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatDateTime, localInputToIso, SERVICE_TYPE_LABELS } from '@/lib/format';
+import { useMyLocations, usePreferredLocation } from '@/features/locations/use-locations';
+import {
+  formatDateTime,
+  localInputToIso,
+  localInputToMillis,
+  SERVICE_TYPE_LABELS,
+  zoneLabel,
+} from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
 import { DURATIONS } from './AppointmentDialogs';
 
 const SERVICE_TYPES = Object.keys(SERVICE_TYPE_LABELS) as [ServiceType, ...ServiceType[]];
 
-const schema = z.object({
-  vehicleId: z.string().min(1, 'Choose a vehicle'),
-  scheduledAt: z
-    .string()
-    .min(1, 'Choose a date and time')
-    .refine((v) => new Date(v).getTime() > Date.now(), 'Choose a time in the future'),
-  durationMinutes: z.coerce.number<string>(),
-  serviceType: z.enum(SERVICE_TYPES, 'Choose a service'),
-  notes: z.string().max(1000, 'At most 1000 characters'),
-});
+/** The date and time are read in the chosen location's time zone (`zone`). */
+const schemaFor = (zone?: string) =>
+  z.object({
+    locationId: z.string(),
+    vehicleId: z.string().min(1, 'Choose a vehicle'),
+    scheduledAt: z
+      .string()
+      .min(1, 'Choose a date and time')
+      .refine((v) => localInputToMillis(v, zone) > Date.now(), 'Choose a time in the future'),
+    durationMinutes: z.coerce.number<string>(),
+    serviceType: z.enum(SERVICE_TYPES, 'Choose a service'),
+    notes: z.string().max(1000, 'At most 1000 characters'),
+  });
 
-type Input_ = z.input<typeof schema>;
-type Output = z.output<typeof schema>;
+type Input_ = z.input<ReturnType<typeof schemaFor>>;
+type Output = z.output<ReturnType<typeof schemaFor>>;
 
 /**
  * Book a service. Customers pick one of their vehicles; advisors first find the customer
@@ -61,6 +71,15 @@ export function BookAppointmentPage() {
     enabled: !advisor || !!customerId,
   });
 
+  // Organizations with several locations: where the work is done, and so which time zone the
+  // date and time are in. Preselected: the switcher's location, else the first by name.
+  const mine = useMyLocations();
+  const preferred = usePreferredLocation();
+  const [locationId, setLocationId] = useState('');
+  const chosen = mine.find((l) => l.id === locationId) ?? preferred;
+  const zone = chosen?.timeZone;
+  const schema = useMemo(() => schemaFor(zone), [zone]);
+
   const {
     register,
     handleSubmit,
@@ -69,6 +88,7 @@ export function BookAppointmentPage() {
   } = useForm<Input_, unknown, Output>({
     resolver: zodResolver(schema),
     defaultValues: {
+      locationId: '',
       vehicleId: params.get('vehicleId') ?? '',
       scheduledAt: '',
       durationMinutes: '60',
@@ -78,12 +98,24 @@ export function BookAppointmentPage() {
   });
 
   const book = useAction(appointmentsApi.book, {
-    success: (a) => `Booked for ${formatDateTime(a.scheduledAt)}`,
+    success: (a) => `Booked for ${formatDateTime(a.scheduledAt, zone)}`,
     invalidate: [['appointments']],
     onSuccess: () => navigate('/appointments'),
     onError: (error) => {
-      if (error instanceof ApiError && (error.code === 'double-booking' || error.code === 'scheduled-in-past')) {
+      if (
+        error instanceof ApiError &&
+        (error.code === 'double-booking' || error.code === 'scheduled-in-past')
+      ) {
         setError('scheduledAt', { message: error.message });
+        return true;
+      }
+      if (
+        error instanceof ApiError &&
+        (error.code === 'location-required' ||
+          error.code === 'invalid-location' ||
+          error.code === 'not-found')
+      ) {
+        setError('locationId', { message: error.message });
         return true;
       }
       return false;
@@ -94,7 +126,9 @@ export function BookAppointmentPage() {
     await book
       .mutateAsync({
         vehicleId: values.vehicleId,
-        scheduledAt: localInputToIso(values.scheduledAt),
+        // With one location the API picks it; with several, send the chosen one.
+        locationId: mine.length > 1 ? chosen?.id : undefined,
+        scheduledAt: localInputToIso(values.scheduledAt, zone),
         durationMinutes: values.durationMinutes,
         serviceType: values.serviceType,
         notes: values.notes.trim() || undefined,
@@ -121,7 +155,11 @@ export function BookAppointmentPage() {
               <ul className="grid gap-1">
                 {(customers.data?.content ?? []).map((c) => (
                   <li key={c.id}>
-                    <Button variant="ghost" className="w-full justify-start" onClick={() => setCustomerId(c.id)}>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => setCustomerId(c.id)}
+                    >
                       {c.name} <span className="text-muted-foreground">· {c.email}</span>
                     </Button>
                   </li>
@@ -139,6 +177,29 @@ export function BookAppointmentPage() {
           )}
           {(!advisor || customerId) && (
             <form noValidate onSubmit={onSubmit} className="grid gap-4">
+              {mine.length > 1 && (
+                <Field
+                  label="Location"
+                  error={errors.locationId?.message}
+                  hint={
+                    chosen
+                      ? `${chosen.address ?? chosen.name} · times in ${zoneName(chosen.timeZone)}`
+                      : undefined
+                  }
+                >
+                  <Select
+                    {...register('locationId')}
+                    value={chosen?.id ?? ''}
+                    onChange={(e) => setLocationId(e.target.value)}
+                  >
+                    {mine.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.name}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              )}
               <Field
                 label="Vehicle"
                 error={errors.vehicleId?.message}
@@ -146,7 +207,10 @@ export function BookAppointmentPage() {
                   !vehicles.isPending && vehicleList.length === 0 ? (
                     <>
                       No vehicles yet.{' '}
-                      <Link to={advisor ? `/customers/${customerId}` : '/vehicles'} className="text-primary underline">
+                      <Link
+                        to={advisor ? `/customers/${customerId}` : '/vehicles'}
+                        className="text-primary underline"
+                      >
                         Add one first
                       </Link>
                       .
@@ -164,14 +228,24 @@ export function BookAppointmentPage() {
                 </Select>
               </Field>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Date and time" error={errors.scheduledAt?.message}>
+                <Field
+                  label="Date and time"
+                  error={errors.scheduledAt?.message}
+                  hint={
+                    mine.length > 1 && chosen
+                      ? `${chosen.name} time (${zoneLabel(new Date(), zone)})`
+                      : undefined
+                  }
+                >
                   <Input type="datetime-local" {...register('scheduledAt')} />
                 </Field>
                 <Field label="Length">
                   <Select {...register('durationMinutes')}>
                     {DURATIONS.map((minutes) => (
                       <option key={minutes} value={minutes}>
-                        {minutes < 60 ? `${minutes} minutes` : `${minutes / 60} hour${minutes === 60 ? '' : 's'}`}
+                        {minutes < 60
+                          ? `${minutes} minutes`
+                          : `${minutes / 60} hour${minutes === 60 ? '' : 's'}`}
                       </option>
                     ))}
                   </Select>
@@ -186,7 +260,11 @@ export function BookAppointmentPage() {
                   ))}
                 </Select>
               </Field>
-              <Field label="Notes for the workshop" error={errors.notes?.message} hint="Optional, e.g. a noise when braking.">
+              <Field
+                label="Notes for the workshop"
+                error={errors.notes?.message}
+                hint="Optional, e.g. a noise when braking."
+              >
                 <Textarea {...register('notes')} />
               </Field>
               <div className="flex gap-2">
@@ -204,3 +282,5 @@ export function BookAppointmentPage() {
     </>
   );
 }
+
+const zoneName = (zone: string) => zone.replaceAll('_', ' ');

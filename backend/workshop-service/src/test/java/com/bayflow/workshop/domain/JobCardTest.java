@@ -21,6 +21,7 @@ class JobCardTest {
 
     private static final Instant NOW = Instant.parse("2026-11-16T15:00:00Z");
     private static final BigDecimal RATE = new BigDecimal("95.00");
+    private static final UUID LOCATION = UUID.randomUUID();
 
 
     /** The expected state machine, written out independently of the production table. */
@@ -255,15 +256,18 @@ class JobCardTest {
     @Test
     void openingRecordsTheVehicleAndOwner() {
         UUID owner = UUID.randomUUID();
-        JobCard card = JobCard.open(UUID.randomUUID(), UUID.randomUUID(), "1HGCM82633A004352", "ABC 123", owner,
-                "Jane Doe", 12_480, NOW);
+        JobCard card = JobCard.open(UUID.randomUUID(), LOCATION, UUID.randomUUID(), "1HGCM82633A004352", "ABC 123", owner,
+                "Jane Doe", 12_480, RATE, "USD", NOW);
 
         assertThat(card.getStatus()).isEqualTo(JobCardStatus.OPEN);
         assertThat(card.getMileage()).isEqualTo(12_480);
+        assertThat(card.getLocationId()).isEqualTo(LOCATION);
+        assertThat(card.getLabourRate()).isEqualByComparingTo("95.00");
+        assertThat(card.getCurrency()).isEqualTo("USD");
         assertThat(card.isOwnedBy(owner)).isTrue();
         assertThat(card.isOwnedBy(UUID.randomUUID())).isFalse();
         assertThat(card.getFindings()).isEmpty();
-        assertThatThrownBy(() -> JobCard.open(UUID.randomUUID(), UUID.randomUUID(), "V", "R", null, "N", -1, NOW))
+        assertThatThrownBy(() -> JobCard.open(UUID.randomUUID(), LOCATION, UUID.randomUUID(), "V", "R", null, "N", -1, RATE, "USD", NOW))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -279,11 +283,26 @@ class JobCardTest {
         assertThat(card.getFindings()).containsExactly(finding);
     }
 
+    @Test
+    void aCardNeedsAValidRateAndCurrency() {
+        UUID a = UUID.randomUUID();
+        assertThatThrownBy(() -> JobCard.open(a, null, a, "V", "R", null, "N", 1, RATE, "USD", NOW))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> JobCard.open(a, LOCATION, a, "V", "R", null, "N", 1, null, "USD", NOW))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> JobCard.open(a, LOCATION, a, "V", "R", null, "N", 1, new BigDecimal("-1"), "USD", NOW))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> JobCard.open(a, LOCATION, a, "V", "R", null, "N", 1, RATE, "usd", NOW))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> JobCard.open(a, LOCATION, a, "V", "R", null, "N", 1, RATE, null, NOW))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
     // ---- helpers -----------------------------------------------------------------
 
     private static JobCard open() {
-        return JobCard.open(UUID.randomUUID(), UUID.randomUUID(), "1HGCM82633A004352", "ABC 123",
-                UUID.randomUUID(), "Jane Doe", 12_000, NOW);
+        return JobCard.open(UUID.randomUUID(), LOCATION, UUID.randomUUID(), "1HGCM82633A004352", "ABC 123",
+                UUID.randomUUID(), "Jane Doe", 12_000, RATE, "USD", NOW);
     }
 
     /** Builds a card in the given status by walking the valid path to it. */

@@ -14,7 +14,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
  * with its local public key instead.
  */
 @AutoConfiguration
-@EnableConfigurationProperties(BayflowJwtProperties.class)
+@EnableConfigurationProperties({ BayflowJwtProperties.class, BayflowTenancyProperties.class })
 public class BayflowSecurityAutoConfiguration {
 
     @Bean
@@ -27,6 +27,12 @@ public class BayflowSecurityAutoConfiguration {
     @ConditionalOnMissingBean
     ProblemDetailsSecurityHandlers problemDetailsSecurityHandlers() {
         return new ProblemDetailsSecurityHandlers();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    WorkshopHosts workshopHosts(BayflowTenancyProperties properties) {
+        return new WorkshopHosts(properties.getBaseDomain());
     }
 
     @Bean

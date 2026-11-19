@@ -170,7 +170,11 @@ test.describe('Job card', () => {
 
     const work = m.page.getByRole('form', { name: 'Log work' });
     await m.check('The item list holds only the approved items');
-    await expect(work.getByLabel('Item').locator('option')).toHaveText(['Choose the approved item', battery, bulb]);
+    await expect(work.getByLabel('Item').locator('option')).toHaveText([
+      'Choose the approved item',
+      battery,
+      bulb,
+    ]);
 
     const mechanicApi = await cast.api('mechanic1');
     const declined = await mechanicApi.raw('POST', `/api/v1/job-cards/${jobCardId}/work-logs`, {
@@ -212,7 +216,9 @@ test.describe('Job card', () => {
 
     await m.edge('Tries to complete with the headlight bulb not logged');
     await m.page.getByRole('button', { name: 'Complete job' }).click();
-    await m.expectToast(new RegExp(`Log the work done for every approved item before completing\\. Missing: ${bulb}`));
+    await m.expectToast(
+      new RegExp(`Log the work done for every approved item before completing\\. Missing: ${bulb}`),
+    );
     await expect(jobCardHeading(m)).toContainText('In progress');
 
     await m.say('Logs the bulb, then completes');
