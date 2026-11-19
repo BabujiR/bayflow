@@ -1,4 +1,10 @@
-import { keepPreviousData, type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  type QueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import { notificationsApi } from '@/api/endpoints';
 import type { AppNotification, PageResponse } from '@/api/types';
@@ -49,7 +55,11 @@ async function removeFromCache(queryClient: QueryClient, gone: (n: AppNotificati
     }
     const content = page.content.filter((n) => !gone(n));
     removed = Math.max(removed, page.content.length - content.length);
-    return { ...page, content, totalElements: Math.max(0, page.totalElements - (page.content.length - content.length)) };
+    return {
+      ...page,
+      content,
+      totalElements: Math.max(0, page.totalElements - (page.content.length - content.length)),
+    };
   });
   queryClient.setQueryData<{ count: number }>([...NOTIFICATIONS_KEY, 'unread-count'], (data) =>
     data ? { count: Math.max(0, data.count - removed) } : data,

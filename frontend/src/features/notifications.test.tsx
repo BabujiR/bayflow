@@ -131,7 +131,13 @@ describe('the notifications page', () => {
       sessionFor(user('SERVICE_ADVISOR', 'advisor1')),
       http.get('*/api/v1/auth/locations', () => HttpResponse.json([location(), north])),
     );
-    inbox([notification({ title: 'New booking: AB12 CDE', locationId: north.id, createdAt: '2026-11-19T15:00:00Z' })]);
+    inbox([
+      notification({
+        title: 'New booking: AB12 CDE',
+        locationId: north.id,
+        createdAt: '2026-11-19T15:00:00Z',
+      }),
+    ]);
     renderApp('/notifications');
 
     const list = await screen.findByRole('list', { name: 'Notifications' });
