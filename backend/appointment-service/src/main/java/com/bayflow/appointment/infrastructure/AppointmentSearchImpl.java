@@ -67,6 +67,15 @@ class AppointmentSearchImpl implements AppointmentSearch {
         if (filter.to() != null) {
             predicates.add(cb.lessThan(root.<Instant>get("scheduledAt"), filter.to()));
         }
+        if (!filter.days().isEmpty()) {
+            // Each appointment's day in its own location's time zone.
+            predicates.add(cb.or(filter.days().stream()
+                    .map(day -> cb.and(
+                            cb.equal(root.<UUID>get("locationId"), day.locationId()),
+                            cb.greaterThanOrEqualTo(root.<Instant>get("scheduledAt"), day.from()),
+                            cb.lessThan(root.<Instant>get("scheduledAt"), day.to())))
+                    .toArray(Predicate[]::new)));
+        }
         return predicates.toArray(Predicate[]::new);
     }
 }

@@ -160,6 +160,22 @@ class LocationsIT extends IntegrationTestBase {
     }
 
     @Test
+    void aListOverAllLocationsUsesEachBookingsOwnDay() throws Exception {
+        organizationHas(mainAt("America/New_York"), location(NORTH, "north", true, "Pacific/Auckland"));
+        String vehicleId = vehicle();
+        String atMain = JsonPath.read(book(vehicleId, MAIN).andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString(), "$.id");
+        String atNorth = JsonPath.read(book(vehicleId, NORTH, AT.plusSeconds(86_400)).andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString(), "$.id");
+
+        // Main's booking is on 17 Nov in New York; North's (18 Nov 15:00 UTC) on 19 Nov in Auckland,
+        // although it is still 18 Nov in New York.
+        count(vehicleId, "2026-11-17", null, 1, atMain);
+        count(vehicleId, "2026-11-19", null, 1, atNorth);
+        count(vehicleId, "2026-11-18", null, 0, null);
+    }
+
+    @Test
     void theConfiguredZoneIsUsedWhileLocationsAreUnavailable() throws Exception {
         String vehicleId = vehicle();
         String id = JsonPath.read(book(vehicleId, null).andExpect(status().isCreated())

@@ -557,6 +557,9 @@ in the page `<meta name="description">`.
       - Times are shown in each record's location's zone; booking and
         rescheduling read the time in the location's zone; booking offers a
         location choice (preselected: the switcher's, else the first by name).
+      - Lists over all locations filter a day by each booking's own location's day
+        (an Auckland booking on the 23rd shows under the 23rd, even while it is the 22nd in
+        New York); a mechanic's "today" likewise. One location: that location's day.
       - The board always shows one location (the switcher's, or a picker on the
         page when "All" is selected), because a day belongs to one time zone.
       - With one location, none of this appears.

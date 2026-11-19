@@ -5,8 +5,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -86,25 +89,24 @@ public class AppointmentService {
     /**
      * Advisors and admins see all appointments (with optional filters); customers only their
      * own; mechanics only today's checked-in vehicles. Days ("date", "today") are those of the
-     * location asked for, or of the organization's default location.
+     * location asked for; over several locations, each booking's own location's day.
      */
     @Transactional(readOnly = true)
     public Page<Appointment> list(CurrentUser user, ListQuery query, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size);
-        ZoneId zone = locations.zoneOf(locations.forList(query.locationId()));
         if (Callers.seesAll(user)) {
-            return appointments.search(filter(query.customerId(), query, zone), pageable);
+            return appointments.search(filter(query.customerId(), query), pageable);
         }
         if (user.isMechanic()) {
-            LocalDate today = LocalDate.now(clock.withZone(zone));
+            Day today = day(zone -> LocalDate.now(clock.withZone(zone)), query.locationId());
             return appointments.search(new AppointmentFilter(null, null, AppointmentStatus.CHECKED_IN,
-                    startOf(today, zone), startOf(today.plusDays(1), zone), query.locationId()), pageable);
+                    today.from(), today.to(), query.locationId(), today.perLocation()), pageable);
         }
         Optional<Customer> own = callers.findOwnProfile(user);
         if (own.isEmpty()) {
             return Page.empty(pageable);
         }
-        return appointments.search(filter(own.get().getId(), query, zone), pageable);
+        return appointments.search(filter(own.get().getId(), query), pageable);
     }
 
     @Transactional(readOnly = true)
@@ -210,10 +212,39 @@ public class AppointmentService {
         }
     }
 
-    private static AppointmentFilter filter(UUID customerId, ListQuery query, ZoneId zone) {
-        Instant from = query.date() == null ? null : startOf(query.date(), zone);
-        Instant to = query.date() == null ? null : startOf(query.date().plusDays(1), zone);
-        return new AppointmentFilter(customerId, query.vehicleId(), query.status(), from, to, query.locationId());
+    private AppointmentFilter filter(UUID customerId, ListQuery query) {
+        Day day = query.date() == null ? Day.ANY : day(zone -> query.date(), query.locationId());
+        return new AppointmentFilter(customerId, query.vehicleId(), query.status(), day.from(), day.to(),
+                query.locationId(), day.perLocation());
+    }
+
+    /** A day as [from, to), or (lists over several locations) one window per location. */
+    private record Day(Instant from, Instant to, List<AppointmentFilter.LocationDay> perLocation) {
+        static final Day ANY = new Day(null, null, List.of());
+    }
+
+    /**
+     * The day {@code dayIn} gives in the list's time zone: the location asked for (or the only
+     * one the caller works at). A list over several locations uses each location's own day, so
+     * an Auckland booking on the 23rd shows on the 23rd, not on New York's 22nd.
+     */
+    private Day day(Function<ZoneId, LocalDate> dayIn, UUID locationId) {
+        boolean oneLocation = locationId != null || LocationContext.current().single().isPresent();
+        if (!oneLocation) {
+            Map<UUID, ZoneId> zones = locations.zones();
+            if (zones.size() > 1) {
+                return new Day(null, null, zones.entrySet().stream()
+                        .map(e -> {
+                            LocalDate date = dayIn.apply(e.getValue());
+                            return new AppointmentFilter.LocationDay(e.getKey(), startOf(date, e.getValue()),
+                                    startOf(date.plusDays(1), e.getValue()));
+                        })
+                        .toList());
+            }
+        }
+        ZoneId zone = locations.zoneOf(locations.forList(locationId));
+        LocalDate date = dayIn.apply(zone);
+        return new Day(startOf(date, zone), startOf(date.plusDays(1), zone), List.of());
     }
 
     private static Instant startOf(LocalDate date, ZoneId zone) {

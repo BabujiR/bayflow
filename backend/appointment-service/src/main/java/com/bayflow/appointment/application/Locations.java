@@ -2,9 +2,13 @@ package com.bayflow.appointment.application;
 
 import java.time.DateTimeException;
 import java.time.ZoneId;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,15 +105,30 @@ public class Locations {
     /** The time zone of one of this organization's locations, or the fallback zone. */
     public ZoneId zoneOf(UUID locationId) {
         UUID tenant = TenantContext.require();
-        Optional<LocationSettings> location = all(tenant, locationId)
-                .flatMap(list -> list.stream().filter(l -> l.id().equals(locationId)).findFirst());
-        if (location.isEmpty()) {
-            return properties.getWorkshopZone();
-        }
+        return all(tenant, locationId)
+                .flatMap(list -> list.stream().filter(l -> l.id().equals(locationId)).findFirst())
+                .map(this::zone)
+                .orElse(properties.getWorkshopZone());
+    }
+
+    /**
+     * Every location's time zone (archived ones too: they keep their bookings), for "a day"
+     * across all locations. Empty when the locations can't be read.
+     */
+    public Map<UUID, ZoneId> zones() {
+        UUID tenant = TenantContext.require();
+        return all(tenant)
+                .map(list -> list.stream().collect(Collectors.toMap(LocationSettings::id, this::zone,
+                        (a, b) -> a, LinkedHashMap::new)))
+                .<Map<UUID, ZoneId>>map(map -> map)
+                .orElse(Map.of());
+    }
+
+    private ZoneId zone(LocationSettings location) {
         try {
-            return ZoneId.of(location.get().timeZone());
+            return ZoneId.of(location.timeZone());
         } catch (DateTimeException | NullPointerException e) {
-            log.warn("Location {} has an invalid time zone; using {}", locationId, properties.getWorkshopZone());
+            log.warn("Location {} has an invalid time zone; using {}", location.id(), properties.getWorkshopZone());
             return properties.getWorkshopZone();
         }
     }
