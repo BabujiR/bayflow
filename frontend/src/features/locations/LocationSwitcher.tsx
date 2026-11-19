@@ -45,7 +45,7 @@ export function LocationSwitcher() {
       <span className="sr-only">Location</span>
       <Select
         aria-label="Location"
-        className="h-9 w-44"
+        className="h-9 w-40 shrink-0"
         value={choice}
         onChange={(e) => {
           setLocationChoice(e.target.value);

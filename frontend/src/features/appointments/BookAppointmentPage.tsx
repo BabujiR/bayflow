@@ -18,7 +18,13 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useMyLocations, usePreferredLocation } from '@/features/locations/use-locations';
-import { formatDateTime, localInputToIso, localInputToMillis, SERVICE_TYPE_LABELS, zoneLabel } from '@/lib/format';
+import {
+  formatDateTime,
+  localInputToIso,
+  localInputToMillis,
+  SERVICE_TYPE_LABELS,
+  zoneLabel,
+} from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
 import { DURATIONS } from './AppointmentDialogs';
@@ -105,7 +111,9 @@ export function BookAppointmentPage() {
       }
       if (
         error instanceof ApiError &&
-        (error.code === 'location-required' || error.code === 'invalid-location' || error.code === 'not-found')
+        (error.code === 'location-required' ||
+          error.code === 'invalid-location' ||
+          error.code === 'not-found')
       ) {
         setError('locationId', { message: error.message });
         return true;
@@ -173,7 +181,11 @@ export function BookAppointmentPage() {
                 <Field
                   label="Location"
                   error={errors.locationId?.message}
-                  hint={chosen ? `${chosen.address ?? chosen.name} · times in ${zoneName(chosen.timeZone)}` : undefined}
+                  hint={
+                    chosen
+                      ? `${chosen.address ?? chosen.name} · times in ${zoneName(chosen.timeZone)}`
+                      : undefined
+                  }
                 >
                   <Select
                     {...register('locationId')}
@@ -219,7 +231,11 @@ export function BookAppointmentPage() {
                 <Field
                   label="Date and time"
                   error={errors.scheduledAt?.message}
-                  hint={mine.length > 1 && chosen ? `${chosen.name} time (${zoneLabel(new Date(), zone)})` : undefined}
+                  hint={
+                    mine.length > 1 && chosen
+                      ? `${chosen.name} time (${zoneLabel(new Date(), zone)})`
+                      : undefined
+                  }
                 >
                   <Input type="datetime-local" {...register('scheduledAt')} />
                 </Field>

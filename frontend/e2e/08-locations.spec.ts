@@ -96,7 +96,9 @@ test.describe('Locations', () => {
       // ---- The job card freezes the new location's rate -------------------------------------
       const northApi = await cast.api(advisorName, NEW_PASSWORD);
       const jobCardId = await checkInViaApi(northApi, appointmentId!, seeded.vehicle.mileage + 100);
-      const card = await northApi.get<{ labourRate: number; locationId: string }>(`/api/v1/job-cards/${jobCardId}`);
+      const card = await northApi.get<{ labourRate: number; locationId: string }>(
+        `/api/v1/job-cards/${jobCardId}`,
+      );
       expect(card.locationId).toBe(locationId);
       expect(card.labourRate).toBe(140);
       await cast.note(`The job card belongs to ${name} and charges its 140/h`);
@@ -107,9 +109,13 @@ test.describe('Locations', () => {
       const switcher = admin.page.getByRole('combobox', { name: 'Location' });
       await switcher.selectOption({ label: name });
       await admin.page.getByLabel('Day').fill(day);
-      await expect(admin.page.getByRole('row', { name: new RegExp(seeded.vehicle.registration) })).toBeVisible();
+      await expect(
+        admin.page.getByRole('row', { name: new RegExp(seeded.vehicle.registration) }),
+      ).toBeVisible();
       await switcher.selectOption({ label: 'Main' });
-      await expect(admin.page.getByRole('row', { name: new RegExp(seeded.vehicle.registration) })).toHaveCount(0);
+      await expect(
+        admin.page.getByRole('row', { name: new RegExp(seeded.vehicle.registration) }),
+      ).toHaveCount(0);
       await switcher.selectOption({ label: 'All locations' });
       await expect(admin.page.getByRole('columnheader', { name: 'Location' })).toBeVisible();
       await admin.check('One location, the other, or all of them, with each row showing where it is');

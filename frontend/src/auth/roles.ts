@@ -15,5 +15,7 @@ export const ALL_ROLES: Role[] = ['CUSTOMER', 'SERVICE_ADVISOR', 'MECHANIC', 'MA
  * advisor may, as in the API.
  */
 export function effectiveRoles(roles: Role[]): Role[] {
-  return roles.includes('MANAGER') && !roles.includes('SERVICE_ADVISOR') ? [...roles, 'SERVICE_ADVISOR'] : roles;
+  return roles.includes('MANAGER') && !roles.includes('SERVICE_ADVISOR')
+    ? [...roles, 'SERVICE_ADVISOR']
+    : roles;
 }

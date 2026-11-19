@@ -32,34 +32,39 @@ export function AppShell() {
         Skip to content
       </a>
       <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4">
-          <Link to="/" aria-label="Bayflow home">
+        {/* Wider than the page content: admins have many links next to the location switcher. */}
+        <div className="mx-auto flex h-16 max-w-screen-2xl items-center gap-4 px-4">
+          <Link to="/" aria-label="Bayflow home" className="shrink-0">
             <Logo withTagline={!workshop.data} />
           </Link>
           {workshop.data && (
             <span
-              className="hidden max-w-48 truncate border-l pl-4 text-sm font-semibold sm:inline"
+              className="hidden max-w-48 shrink-0 truncate border-l pl-4 text-sm font-semibold sm:inline"
               data-testid="workshop-name"
               title={workshop.data.displayName}
             >
               {workshop.data.displayName}
             </span>
           )}
-          <nav aria-label="Main" className="hidden flex-1 items-center gap-1 md:flex">
+          {/* Takes the room that is left and scrolls rather than run under the controls on the right. */}
+          <nav
+            aria-label="Main"
+            className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] lg:flex"
+          >
             {items.map((item) => (
               <NavLink key={item.to} to={item.to} className={navLinkClass}>
                 {item.label}
               </NavLink>
             ))}
           </nav>
-          <div className="ml-auto flex items-center gap-1 md:ml-0">
+          <div className="ml-auto flex shrink-0 items-center gap-1 lg:ml-0">
             <LocationSwitcher />
             <ThemeToggle />
             <UserMenu />
           </div>
         </div>
         {/* Small screens: the same links in a scrollable row */}
-        <nav aria-label="Main (compact)" className="flex gap-1 overflow-x-auto px-4 pb-2 md:hidden">
+        <nav aria-label="Main (compact)" className="flex gap-1 overflow-x-auto px-4 pb-2 lg:hidden">
           {items.map((item) => (
             <NavLink key={item.to} to={item.to} className={navLinkClass}>
               {item.label}

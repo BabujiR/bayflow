@@ -54,7 +54,10 @@ export function useLocationLookup() {
     /** Its time zone, for showing its times (undefined = the workshop's default zone). */
     zoneOf: useCallback((id?: string | null) => (id ? byId.get(id)?.timeZone : undefined), [byId]),
     /** Its name. */
-    nameOf: useCallback((id?: string | null) => (id ? (byId.get(id)?.name ?? 'Unknown location') : ''), [byId]),
+    nameOf: useCallback(
+      (id?: string | null) => (id ? (byId.get(id)?.name ?? 'Unknown location') : ''),
+      [byId],
+    ),
     /** True once the organization has (or had) more than one location: show location names. */
     hasSeveral,
   };

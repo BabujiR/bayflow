@@ -21,7 +21,9 @@ export function LocationChecklist({
             type="checkbox"
             className="size-4"
             checked={value.includes(l.id)}
-            onChange={(e) => onChange(e.target.checked ? [...value, l.id] : value.filter((id) => id !== l.id))}
+            onChange={(e) =>
+              onChange(e.target.checked ? [...value, l.id] : value.filter((id) => id !== l.id))
+            }
           />
           {l.name}
           <span className="text-xs text-muted-foreground">{l.timeZone.replaceAll('_', ' ')}</span>

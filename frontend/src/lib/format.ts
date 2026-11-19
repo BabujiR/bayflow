@@ -40,14 +40,21 @@ function formatter(
 /** Each formatter takes an optional time zone: a location's, when a screen mixes locations. */
 export const formatDateTime = (iso?: string | null, zone?: string) =>
   iso
-    ? formatter('dateTime', { dateStyle: 'medium', timeStyle: 'short' }, undefined, zone ?? workshopZone).format(
-        new Date(iso),
-      )
+    ? formatter(
+        'dateTime',
+        { dateStyle: 'medium', timeStyle: 'short' },
+        undefined,
+        zone ?? workshopZone,
+      ).format(new Date(iso))
     : '—';
 export const formatDate = (iso?: string | null, zone?: string) =>
-  iso ? formatter('date', { dateStyle: 'medium' }, undefined, zone ?? workshopZone).format(new Date(iso)) : '—';
+  iso
+    ? formatter('date', { dateStyle: 'medium' }, undefined, zone ?? workshopZone).format(new Date(iso))
+    : '—';
 export const formatTime = (iso?: string | null, zone?: string) =>
-  iso ? formatter('time', { timeStyle: 'short' }, undefined, zone ?? workshopZone).format(new Date(iso)) : '—';
+  iso
+    ? formatter('time', { timeStyle: 'short' }, undefined, zone ?? workshopZone).format(new Date(iso))
+    : '—';
 
 export function formatMoney(amount: number | null | undefined, currency = 'USD'): string {
   if (amount === null || amount === undefined) {

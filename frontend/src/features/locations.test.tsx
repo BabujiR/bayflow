@@ -57,11 +57,11 @@ describe('the location switcher', () => {
     renderApp('/appointments');
 
     const switcher = await screen.findByRole('combobox', { name: 'Location' });
-    expect(within(switcher).getAllByRole('option').map((o) => o.textContent)).toEqual([
-      'All locations',
-      'Main',
-      'North',
-    ]);
+    expect(
+      within(switcher)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual(['All locations', 'Main', 'North']);
     await vi.waitFor(() => expect(headers.length).toBeGreaterThan(0));
     expect(headers.at(-1)).toBeNull();
 
@@ -96,7 +96,9 @@ describe('times are each location’s', () => {
 
     const row = (await screen.findByRole('cell', { name: 'North' })).closest('tr')!;
     // 21:30 UTC is 10:30 the next morning in Auckland (NZDT).
-    expect(within(row).getByText(formatDateTime(atNorth.scheduledAt, 'Pacific/Auckland'))).toBeInTheDocument();
+    expect(
+      within(row).getByText(formatDateTime(atNorth.scheduledAt, 'Pacific/Auckland')),
+    ).toBeInTheDocument();
     expect(formatDateTime(atNorth.scheduledAt, 'Pacific/Auckland')).toMatch(/16/);
   });
 
@@ -132,7 +134,11 @@ describe('times are each location’s', () => {
   it('shows the board of one location', async () => {
     const requests: URL[] = [];
     server.use(
-      sessionFor({ ...user('SERVICE_ADVISOR', 'advisor1'), allLocations: false, locationIds: [MAIN.id, NORTH.id] }),
+      sessionFor({
+        ...user('SERVICE_ADVISOR', 'advisor1'),
+        allLocations: false,
+        locationIds: [MAIN.id, NORTH.id],
+      }),
       twoLocations,
       http.get('*/api/v1/appointments', ({ request }) => {
         requests.push(new URL(request.url));
@@ -190,9 +196,12 @@ describe('User accounts', () => {
       http.get('*/api/v1/auth/users', () => HttpResponse.json(pageOf([]))),
       http.post('*/api/v1/auth/users', async ({ request }) => {
         created = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ ...user('MANAGER', 'mgr'), allLocations: false, locationIds: [NORTH.id] }, {
-          status: 201,
-        });
+        return HttpResponse.json(
+          { ...user('MANAGER', 'mgr'), allLocations: false, locationIds: [NORTH.id] },
+          {
+            status: 201,
+          },
+        );
       }),
     );
     renderApp('/users');

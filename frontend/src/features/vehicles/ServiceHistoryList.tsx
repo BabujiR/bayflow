@@ -33,7 +33,9 @@ export function ServiceHistoryList({ vehicleId }: { vehicleId: string }) {
                   <CardHeader className="flex-row flex-wrap items-baseline justify-between gap-2">
                     <CardTitle>{formatDate(entry.serviceDate, locations.zoneOf(entry.locationId))}</CardTitle>
                     <span className="text-sm text-muted-foreground">
-                      {locations.hasSeveral && entry.locationId ? `${locations.nameOf(entry.locationId)} · ` : ''}
+                      {locations.hasSeveral && entry.locationId
+                        ? `${locations.nameOf(entry.locationId)} · `
+                        : ''}
                       {formatMileage(entry.mileage)} · {formatMoney(entry.totalCost, entry.currency)}
                     </span>
                   </CardHeader>

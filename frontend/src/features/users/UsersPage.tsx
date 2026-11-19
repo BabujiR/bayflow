@@ -42,7 +42,8 @@ type StaffValues = z.infer<typeof staffSchema>;
 
 /** Roles that work at particular locations (ADMIN works with all of them). */
 const LOCATION_SCOPED: Role[] = ['MANAGER', 'SERVICE_ADVISOR', 'MECHANIC'];
-const isLocationScoped = (u: User) => !u.roles.includes('ADMIN') && u.roles.some((r) => LOCATION_SCOPED.includes(r));
+const isLocationScoped = (u: User) =>
+  !u.roles.includes('ADMIN') && u.roles.some((r) => LOCATION_SCOPED.includes(r));
 
 /** Admins create staff accounts and enable or disable any account. */
 export function UsersPage() {

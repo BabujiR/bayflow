@@ -9,6 +9,7 @@ import { ApiError } from '@/api/errors';
 import type { Location } from '@/api/types';
 import { PageHeader } from '@/components/common/PageHeader';
 import { QueryState } from '@/components/common/QueryState';
+import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
@@ -37,7 +38,10 @@ const schema = z.object({
   labourRate: z
     .string()
     .trim()
-    .refine((v) => v === '' || (/^\d{1,5}(\.\d{1,2})?$/.test(v) && Number(v) <= 10_000), 'A rate such as 120.00'),
+    .refine(
+      (v) => v === '' || (/^\d{1,5}(\.\d{1,2})?$/.test(v) && Number(v) <= 10_000),
+      'A rate such as 120.00',
+    ),
 });
 
 type FormInput = z.input<typeof schema>;
@@ -48,9 +52,20 @@ export function LocationsPage() {
   const locations = useLocations();
   const workshop = useWorkshop();
   const [adding, setAdding] = useState(false);
+  // Why an archive was refused (upcoming appointments, last location): shown on the page, since
+  // the admin has to act on it.
+  const [archiveError, setArchiveError] = useState<string | null>(null);
   const archive = useAction(({ id }: { id: string; name: string }) => locationsApi.archive(id), {
     success: (l) => `${l.name} archived`,
     invalidate: [LOCATIONS_QUERY_KEY],
+    onSuccess: () => setArchiveError(null),
+    onError: (error) => {
+      if (error instanceof ApiError && error.isClientError) {
+        setArchiveError(error.message);
+        return true;
+      }
+      return false;
+    },
   });
   const reactivate = useAction(locationsApi.reactivate, {
     success: (l) => `${l.name} is active again`,
@@ -73,6 +88,14 @@ export function LocationsPage() {
           </Dialog>
         }
       />
+      {archiveError && (
+        <Alert className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <span>{archiveError}</span>
+          <Button size="sm" variant="outline" onClick={() => setArchiveError(null)}>
+            Dismiss
+          </Button>
+        </Alert>
+      )}
       <QueryState query={locations}>
         {(list) => (
           <Table>
@@ -164,7 +187,10 @@ function EditLocation({ location }: { location: Location }) {
           Edit
         </Button>
       </DialogTrigger>
-      <DialogContent title={`Edit ${location.name}`} description="Changes apply to new bookings and job cards.">
+      <DialogContent
+        title={`Edit ${location.name}`}
+        description="Changes apply to new bookings and job cards."
+      >
         <LocationForm location={location} onSaved={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
@@ -189,9 +215,10 @@ function LocationForm({ location, onSaved }: { location?: Location; onSaved: () 
       email: location?.email ?? '',
       address: location?.address ?? '',
       timeZone: location?.ownTimeZone ?? '',
-      labourRate: location?.ownLabourRate !== null && location?.ownLabourRate !== undefined
-        ? String(location.ownLabourRate)
-        : '',
+      labourRate:
+        location?.ownLabourRate !== null && location?.ownLabourRate !== undefined
+          ? String(location.ownLabourRate)
+          : '',
     },
   });
   const save = useAction(
@@ -205,7 +232,9 @@ function LocationForm({ location, onSaved }: { location?: Location; onSaved: () 
         timeZone: values.timeZone || undefined,
         labourRate: values.labourRate === '' ? undefined : Number(values.labourRate),
       };
-      return location ? locationsApi.update(location.id, { ...body, version: location.version }) : locationsApi.create(body);
+      return location
+        ? locationsApi.update(location.id, { ...body, version: location.version })
+        : locationsApi.create(body);
     },
     {
       success: (l) => `${l.name} saved`,
@@ -230,7 +259,9 @@ function LocationForm({ location, onSaved }: { location?: Location; onSaved: () 
     },
   );
   const defaultZone = workshop.data?.timeZone.replaceAll('_', ' ') ?? 'the workshop setting';
-  const defaultRate = workshop.data ? formatMoney(workshop.data.labourRate, workshop.data.currency) : 'the workshop rate';
+  const defaultRate = workshop.data
+    ? formatMoney(workshop.data.labourRate, workshop.data.currency)
+    : 'the workshop rate';
 
   return (
     <form
