@@ -1,3 +1,5 @@
+import { SLUG_PATTERN } from './slug';
+
 /**
  * Which part of Bayflow this address serves (SaaS phase 4):
  *
@@ -27,19 +29,60 @@ export function siteOf(hostname: string, baseDomain: string = BASE_DOMAIN): Site
 
 export const currentSite = (): Site => siteOf(window.location.hostname);
 
-/** The address of a workshop, on the same scheme and port as this page. */
+/**
+ * The address of a workshop, on the same scheme and port as this page. Only a valid workshop
+ * address (slug) is accepted, so text typed by a user can never point the browser elsewhere.
+ */
 export function workshopUrl(slug: string, path = '/'): string {
+  if (!SLUG_PATTERN.test(slug)) {
+    throw new Error(`Not a workshop address: ${JSON.stringify(slug)}`);
+  }
   const { protocol, port } = window.location;
-  return `${protocol}//${slug}.${BASE_DOMAIN}${port ? `:${port}` : ''}${path}`;
+  return `${protocol}//${slug}.${BASE_DOMAIN}${port ? `:${port}` : ''}${safePath(path)}`;
 }
 
 /** The public site's address (landing and sign-up), on the same scheme and port. */
 export function publicSiteUrl(path = '/'): string {
   const { protocol, port } = window.location;
-  return `${protocol}//${BASE_DOMAIN}${port ? `:${port}` : ''}${path}`;
+  return `${protocol}//${BASE_DOMAIN}${port ? `:${port}` : ''}${safePath(path)}`;
 }
 
-/** Full-page navigation to another address; tests replace `go`. */
+/** A path on the same host: starts with one "/", never "//" (another host) or "\\". */
+function safePath(path: string): string {
+  if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\')) {
+    throw new Error(`Not a path: ${JSON.stringify(path)}`);
+  }
+  return path;
+}
+
+/**
+ * Whether a URL is one of Bayflow's own addresses: http(s), on this page's port, at the base
+ * domain or exactly one workshop label below it.
+ */
+export function isBayflowUrl(url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return false;
+  }
+  if (parsed.username || parsed.password || parsed.port !== window.location.port) {
+    return false;
+  }
+  const host = parsed.hostname.toLowerCase();
+  const base = BASE_DOMAIN.toLowerCase();
+  return host === base || (host.endsWith(`.${base}`) && siteOf(host).kind === 'workshop');
+}
+
+/** Full-page navigation to another Bayflow address (never anywhere else); tests replace `go`. */
 export const browser = {
-  go: (url: string) => window.location.assign(url),
+  go: (url: string) => {
+    if (!isBayflowUrl(url)) {
+      throw new Error('Refusing to navigate outside Bayflow');
+    }
+    window.location.assign(new URL(url).href);
+  },
 };

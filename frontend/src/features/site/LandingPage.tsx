@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { BASE_DOMAIN, browser, workshopUrl } from '@/lib/site';
+import { SLUG_PATTERN } from '@/lib/slug';
 
 const FEATURES = [
   {
@@ -20,6 +21,7 @@ const FEATURES = [
 export function LandingPage() {
   const [slug, setSlug] = useState('');
   const go = slug.trim().toLowerCase();
+  const validGo = SLUG_PATTERN.test(go);
 
   return (
     <div className="grid gap-10 pt-10">
@@ -58,17 +60,22 @@ export function LandingPage() {
             className="flex items-end gap-2"
             onSubmit={(e) => {
               e.preventDefault();
-              if (go) {
+              // Only a valid workshop address is ever turned into a URL.
+              if (SLUG_PATTERN.test(go)) {
                 browser.go(workshopUrl(go, '/login'));
               }
             }}
           >
             <div className="flex-1">
-              <Field label="Workshop address" hint={`${go || 'your-workshop'}.${BASE_DOMAIN}`}>
+              <Field
+                label="Workshop address"
+                hint={`${validGo ? go : 'your-workshop'}.${BASE_DOMAIN}`}
+                error={go && !validGo ? 'Letters, numbers and hyphens only, e.g. acme-auto' : undefined}
+              >
                 <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="your-workshop" />
               </Field>
             </div>
-            <Button type="submit" variant="outline" className="mb-6" disabled={!go}>
+            <Button type="submit" variant="outline" className="mb-6" disabled={!validGo}>
               Go
             </Button>
           </form>

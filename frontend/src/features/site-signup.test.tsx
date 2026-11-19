@@ -111,6 +111,19 @@ describe('the public site (base domain)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Go' }));
     expect(go).toHaveBeenCalledWith('http://acme.localhost:3000/login');
   });
+
+  it('never sends people anywhere else from the landing page', async () => {
+    const go = vi.fn();
+    browser.go = go;
+    renderSite('/');
+
+    const address = await screen.findByLabelText('Workshop address');
+    await userEvent.type(address, 'evil.example/x?');
+    expect(screen.getByText('Letters, numbers and hyphens only, e.g. acme-auto')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Go' })).toBeDisabled();
+    await userEvent.type(address, '{Enter}');
+    expect(go).not.toHaveBeenCalled();
+  });
 });
 
 describe("a workshop's sign-in page", () => {
