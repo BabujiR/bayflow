@@ -27,7 +27,13 @@ export function NotificationBell() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative" aria-label={label} data-testid="notification-bell">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+          aria-label={label}
+          data-testid="notification-bell"
+        >
           <BellIcon className="size-5" />
           {count > 0 && (
             <span
@@ -103,7 +109,9 @@ function Panel({
         ) : list.isError ? (
           <p className="p-4 text-sm text-muted-foreground">Notifications can't be loaded right now.</p>
         ) : list.data.content.length === 0 ? (
-          <p className="p-4 text-sm text-muted-foreground">You're all caught up. Updates on bookings and job cards appear here.</p>
+          <p className="p-4 text-sm text-muted-foreground">
+            You're all caught up. Updates on bookings and job cards appear here.
+          </p>
         ) : (
           list.data.content.map((n) => (
             <DropdownMenuItem

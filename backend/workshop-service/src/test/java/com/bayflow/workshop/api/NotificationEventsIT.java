@@ -106,7 +106,7 @@ class NotificationEventsIT extends IntegrationTestBase {
 
         assertThat(types(card)).containsExactlyInAnyOrder("ESTIMATE_READY", "ESTIMATE_DECIDED", "WORK_COMPLETED");
 
-        dispatcher.dispatchFor(UUID.fromString(card));
+        dispatch(card);
 
         WIREMOCK.verify(1, postRequestedFor(urlEqualTo(EVENTS))
                 .withHeader("Authorization", equalTo("Bearer system-token"))
@@ -145,20 +145,25 @@ class NotificationEventsIT extends IntegrationTestBase {
                 "{\"description\":\"Replace front pads\",\"estimatedPartsCost\":90.50,\"estimatedLabourHours\":1}");
         act(advisor, card, "submit-for-approval", null).andExpect(status().isOk());
 
-        dispatcher.dispatchFor(UUID.fromString(card));
-        OutboxMessage pending = messages(card).get(0);
+        dispatch(card);
+        OutboxMessage pending = messages(card).getFirst();
         assertThat(pending.isProcessed()).isFalse();
         assertThat(pending.getAttempts()).isEqualTo(1);
         assertThat(pending.getLastError()).contains("503");
 
         WIREMOCK.stubFor(WireMock.post(urlEqualTo(EVENTS)).willReturn(json(200, "{}")));
-        dispatcher.dispatchFor(UUID.fromString(card));
-        assertThat(messages(card).get(0).isProcessed()).isTrue();
+        dispatch(card);
+        assertThat(messages(card).getFirst().isProcessed()).isTrue();
         WIREMOCK.verify(2, postRequestedFor(urlEqualTo(EVENTS))
                 .withRequestBody(matchingJsonPath("$.eventId", equalTo(pending.getId().toString()))));
     }
 
     // ---- helpers -------------------------------------------------------------------------
+
+    /** Sends the card's pending events now, inside its workshop (as the app does after each change). */
+    private void dispatch(String card) {
+        TenantContext.run(Tenants.DEFAULT_TENANT_ID, () -> dispatcher.dispatchFor(UUID.fromString(card)));
+    }
 
     private List<OutboxMessage> messages(String card) {
         return TenantContext.call(Tenants.DEFAULT_TENANT_ID, () -> outbox.findByJobCardId(UUID.fromString(card)));

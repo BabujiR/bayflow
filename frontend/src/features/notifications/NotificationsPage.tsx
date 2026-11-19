@@ -33,7 +33,10 @@ export function NotificationsPage() {
       <QueryState query={list}>
         {(data) =>
           data.content.length === 0 ? (
-            <EmptyState title="No notifications yet" description="Updates on bookings and job cards appear here." />
+            <EmptyState
+              title="No notifications yet"
+              description="Updates on bookings and job cards appear here."
+            />
           ) : (
             <>
               <Card className="divide-y" role="list" aria-label="Notifications">

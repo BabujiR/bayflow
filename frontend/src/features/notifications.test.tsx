@@ -39,7 +39,12 @@ describe('the notification bell', () => {
       http.get('*/api/v1/notifications', () =>
         HttpResponse.json(
           pageOf([
-            notification({ id: 'n1', title: 'Booking confirmed', body: 'BFL 1234 on Tue 24 Nov.', link: '/appointments' }),
+            notification({
+              id: 'n1',
+              title: 'Booking confirmed',
+              body: 'BFL 1234 on Tue 24 Nov.',
+              link: '/appointments',
+            }),
             notification({ id: 'n2', title: 'Older one', read: true, link: null }),
           ]),
         ),
@@ -67,7 +72,9 @@ describe('the notification bell', () => {
     server.use(
       sessionFor(user('MECHANIC', 'mechanic1')),
       http.get('*/api/v1/notifications/unread-count', () => HttpResponse.json({ count: markedAll ? 0 : 2 })),
-      http.get('*/api/v1/notifications', () => HttpResponse.json(pageOf([notification(), notification({ id: 'n2' })]))),
+      http.get('*/api/v1/notifications', () =>
+        HttpResponse.json(pageOf([notification(), notification({ id: 'n2' })])),
+      ),
       http.post('*/api/v1/notifications/read-all', () => {
         markedAll = true;
         return HttpResponse.json({ count: 2 });
@@ -107,14 +114,23 @@ describe('the notification bell', () => {
 
 describe('the notifications page', () => {
   it('lists every notification with where it happened when there are several locations', async () => {
-    const north = location({ id: '0d0d0d0d-1111-4000-8000-0000000000d1', code: 'north', name: 'North', timeZone: 'Pacific/Auckland' });
+    const north = location({
+      id: '0d0d0d0d-1111-4000-8000-0000000000d1',
+      code: 'north',
+      name: 'North',
+      timeZone: 'Pacific/Auckland',
+    });
     server.use(
       sessionFor(user('SERVICE_ADVISOR', 'advisor1')),
       http.get('*/api/v1/auth/locations', () => HttpResponse.json([location(), north])),
       http.get('*/api/v1/notifications', () =>
         HttpResponse.json(
           pageOf([
-            notification({ title: 'New booking: AB12 CDE', locationId: north.id, createdAt: '2026-11-19T15:00:00Z' }),
+            notification({
+              title: 'New booking: AB12 CDE',
+              locationId: north.id,
+              createdAt: '2026-11-19T15:00:00Z',
+            }),
           ]),
         ),
       ),

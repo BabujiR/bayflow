@@ -46,7 +46,8 @@ export function useMarkRead() {
     onMutate: async (id: string) => {
       queryClient.setQueriesData<PageResponse<AppNotification>>(
         { queryKey: [...NOTIFICATIONS_KEY, 'list'] },
-        (page) => page && { ...page, content: page.content.map((n) => (n.id === id ? { ...n, read: true } : n)) },
+        (page) =>
+          page && { ...page, content: page.content.map((n) => (n.id === id ? { ...n, read: true } : n)) },
       );
     },
     onSettled: refresh,

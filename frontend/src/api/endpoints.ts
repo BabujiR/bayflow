@@ -169,7 +169,8 @@ export const locationsApi = {
 
 /** The signed-in user's own notifications (notification-service). */
 export const notificationsApi = {
-  list: (page = 0, size = 20) => http.get<PageResponse<AppNotification>>('/api/v1/notifications', { page, size }),
+  list: (page = 0, size = 20) =>
+    http.get<PageResponse<AppNotification>>('/api/v1/notifications', { page, size }),
   unreadCount: () => http.get<{ count: number }>('/api/v1/notifications/unread-count'),
   markRead: (id: string) => http.post<AppNotification>(`/api/v1/notifications/${id}/read`),
   markAllRead: () => http.post<{ count: number }>('/api/v1/notifications/read-all'),
