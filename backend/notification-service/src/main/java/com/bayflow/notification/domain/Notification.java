@@ -11,7 +11,7 @@ import jakarta.persistence.Table;
 
 import org.hibernate.annotations.TenantId;
 
-/** One message to one user about one event. */
+/** One message to one user about one event, until they read it (reading deletes it). */
 @Entity
 @Table(name = "ntf_notifications")
 public class Notification {
@@ -48,9 +48,6 @@ public class Notification {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(name = "read_at")
-    private Instant readAt;
-
     protected Notification() {
         // for JPA
     }
@@ -70,17 +67,6 @@ public class Notification {
         return notification;
     }
 
-    /** Marks it read; reading it again keeps the first time. */
-    public void markRead(Instant now) {
-        if (readAt == null) {
-            readAt = now;
-        }
-    }
-
-    public boolean isRead() {
-        return readAt != null;
-    }
-
     private static String truncate(String value, int max) {
         return value.length() <= max ? value : value.substring(0, max - 1) + "…";
     }
@@ -95,5 +81,4 @@ public class Notification {
     public String getLink() { return link; }
     public UUID getEventId() { return eventId; }
     public Instant getCreatedAt() { return createdAt; }
-    public Instant getReadAt() { return readAt; }
 }

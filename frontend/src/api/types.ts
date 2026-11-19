@@ -361,7 +361,7 @@ export type NotificationType =
   | 'ESTIMATE_DECIDED'
   | 'WORK_COMPLETED';
 
-/** One message to the signed-in user. Title and body are plain text. */
+/** One unread message to the signed-in user (reading it deletes it). Title and body are plain text. */
 export interface AppNotification {
   id: string;
   type: NotificationType;
@@ -371,5 +371,4 @@ export interface AppNotification {
   link: string | null;
   locationId: string | null;
   createdAt: string;
-  read: boolean;
 }

@@ -52,10 +52,9 @@ export function NotificationBell() {
         className="w-[calc(100vw-2rem)] max-w-sm p-0 sm:w-96"
       >
         <Panel
-          onOpen={(id, link, read) => {
-            if (!read) {
-              one.mutate(id);
-            }
+          onOpen={(id, link) => {
+            // Reading it deletes it: it leaves the panel and the count drops.
+            one.mutate(id);
             const target = safeLink(link);
             if (target) {
               navigate(target);
@@ -76,11 +75,12 @@ function Panel({
   markingAll,
   hasUnread,
 }: {
-  onOpen: (id: string, link: string | null, read: boolean) => void;
+  onOpen: (id: string, link: string | null) => void;
   onMarkAll: () => void;
   markingAll: boolean;
   hasUnread: boolean;
 }) {
+  // Everything here is unread: reading a notification deletes it.
   // Loaded when the panel opens (it is only mounted while open).
   const list = useNotifications(0, PANEL_SIZE);
   return (
@@ -110,7 +110,7 @@ function Panel({
           <p className="p-4 text-sm text-muted-foreground">Notifications can't be loaded right now.</p>
         ) : list.data.content.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">
-            You're all caught up. Updates on bookings and job cards appear here.
+            You're all caught up. New updates on bookings and job cards appear here.
           </p>
         ) : (
           list.data.content.map((n) => (
@@ -118,7 +118,7 @@ function Panel({
               key={n.id}
               className="items-start px-2 py-2"
               data-testid="notification-item"
-              onSelect={() => onOpen(n.id, n.link, n.read)}
+              onSelect={() => onOpen(n.id, n.link)}
             >
               <NotificationItem notification={n} compact />
             </DropdownMenuItem>

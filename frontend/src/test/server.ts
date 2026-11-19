@@ -241,7 +241,6 @@ export function notification(overrides: Partial<AppNotification> = {}): AppNotif
     link: '/job-cards/0f0f0f0f-0000-4000-8000-000000000001',
     locationId: '00000000-0000-0000-0000-000000000001',
     createdAt: '2026-11-19T15:00:00Z',
-    read: false,
     ...overrides,
   };
 }

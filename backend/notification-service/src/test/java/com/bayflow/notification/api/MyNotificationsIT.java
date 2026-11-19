@@ -51,33 +51,45 @@ class MyNotificationsIT extends IntegrationTestBase {
     }
 
     @Test
-    void markingReadWorksOnlyOnYourOwn() throws Exception {
-        UUID mine = notify(me, Tenants.DEFAULT_TENANT_ID, "Yours", Instant.now());
-        UUID theirs = notify(someoneElse, Tenants.DEFAULT_TENANT_ID, "Theirs", Instant.now());
+    void readingANotificationDeletesIt() throws Exception {
+        UUID first = notify(me, Tenants.DEFAULT_TENANT_ID, "First", Instant.now().minus(1, ChronoUnit.HOURS));
+        notify(me, Tenants.DEFAULT_TENANT_ID, "Second", Instant.now());
 
-        mvc.perform(post("/api/v1/notifications/" + mine + "/read").with(user("SERVICE_ADVISOR", me)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.read").value(true));
-        mvc.perform(get("/api/v1/notifications/unread-count").with(user("SERVICE_ADVISOR", me)))
-                .andExpect(jsonPath("$.count").value(0));
+        mvc.perform(post("/api/v1/notifications/" + first + "/read").with(user("CUSTOMER", me)))
+                .andExpect(status().isNoContent());
 
-        // Someone else's looks like it does not exist, and stays unread.
-        mvc.perform(post("/api/v1/notifications/" + theirs + "/read").with(user("SERVICE_ADVISOR", me)))
+        assertThat(exists(first)).isFalse();
+        mvc.perform(get("/api/v1/notifications").with(user("CUSTOMER", me)))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("Second"));
+        mvc.perform(get("/api/v1/notifications/unread-count").with(user("CUSTOMER", me)))
+                .andExpect(jsonPath("$.count").value(1));
+        // Reading it again: it is gone.
+        mvc.perform(post("/api/v1/notifications/" + first + "/read").with(user("CUSTOMER", me)))
                 .andExpect(status().isNotFound());
-        assertThat(readAt(theirs)).isNull();
     }
 
     @Test
-    void readAllMarksOnlyYourOwn() throws Exception {
+    void onlyYourOwnCanBeRead() throws Exception {
+        UUID theirs = notify(someoneElse, Tenants.DEFAULT_TENANT_ID, "Theirs", Instant.now());
+
+        // Someone else's looks like it does not exist, and stays.
+        mvc.perform(post("/api/v1/notifications/" + theirs + "/read").with(user("SERVICE_ADVISOR", me)))
+                .andExpect(status().isNotFound());
+        assertThat(exists(theirs)).isTrue();
+    }
+
+    @Test
+    void readAllDeletesOnlyYourOwn() throws Exception {
         notify(me, Tenants.DEFAULT_TENANT_ID, "One", Instant.now());
         notify(me, Tenants.DEFAULT_TENANT_ID, "Two", Instant.now());
         UUID theirs = notify(someoneElse, Tenants.DEFAULT_TENANT_ID, "Theirs", Instant.now());
 
         mvc.perform(post("/api/v1/notifications/read-all").with(user("MECHANIC", me)))
                 .andExpect(jsonPath("$.count").value(2));
-        mvc.perform(get("/api/v1/notifications/unread-count").with(user("MECHANIC", me)))
-                .andExpect(jsonPath("$.count").value(0));
-        assertThat(readAt(theirs)).isNull();
+        mvc.perform(get("/api/v1/notifications").with(user("MECHANIC", me)))
+                .andExpect(jsonPath("$.totalElements").value(0));
+        assertThat(exists(theirs)).isTrue();
     }
 
     @Test
@@ -117,11 +129,6 @@ class MyNotificationsIT extends IntegrationTestBase {
                     link, event_id, created_at) values (?, ?, ?, ?, 'APPOINTMENT_CONFIRMED', ?, 'Body', '/appointments',
                     ?, ?)""", id, tenant, tenant, recipient, title, UUID.randomUUID(), Timestamp.from(at));
         return id;
-    }
-
-    private Timestamp readAt(UUID id) {
-        return ownerJdbc().queryForObject("select read_at from bayflow.ntf_notifications where id = ?",
-                Timestamp.class, id);
     }
 
     private boolean exists(UUID id) {

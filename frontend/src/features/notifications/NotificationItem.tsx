@@ -20,18 +20,10 @@ export function NotificationItem({
   const zone = locations.zoneOf(notification.locationId);
   return (
     <div className="flex w-full items-start gap-3 text-left">
-      <span
-        aria-hidden
-        className={cn(
-          'mt-1.5 size-2 shrink-0 rounded-full',
-          notification.read ? 'bg-transparent' : 'bg-primary',
-        )}
-      />
+      {/* Every notification shown is unread: reading one deletes it. */}
+      <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />
       <span className="grid min-w-0 flex-1 gap-0.5">
-        <span className={cn('text-sm', notification.read ? 'font-normal' : 'font-semibold')}>
-          {notification.title}
-          {!notification.read && <span className="sr-only"> (unread)</span>}
-        </span>
+        <span className="text-sm font-semibold">{notification.title}</span>
         <span className={cn('text-sm text-muted-foreground', compact && 'line-clamp-2')}>
           {notification.body}
         </span>

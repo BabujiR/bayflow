@@ -642,15 +642,18 @@ in the page `<meta name="description">`.
       signed-in user's id (only their own rows), `*` for the service storing an event, or
       nothing (no rows). Policies check both; the API also filters by recipient; another
       user's notification is 404.
+    - **Only unread notifications are kept** (V2): reading one deletes the row (`POST
+      …/{id}/read` → 204; again → 404), `POST …/read-all` deletes all the user's. There is
+      no read history. `ntf_received_events` stays, so a repeated event is still stored once.
     - **API:** `GET /api/v1/notifications` (paged, newest first), `GET …/unread-count`,
       `POST …/{id}/read`, `POST …/read-all`, SYSTEM-only
       `POST /api/v1/internal/notification-events` (not routed by nginx).
-    - **Retention:** a nightly job (03:17) deletes notifications and received events older
-      than 90 days, through the owner-run `ntf_delete_before`.
+    - **Retention:** a nightly job (03:17) deletes notifications nobody read and received
+      events older than 90 days, through the owner-run `ntf_delete_before`.
     - **Web app:** a bell for every signed-in user with the unread count (polled every 30 s
       and on returning to the tab), a panel with the latest 20 and "Mark all read", and a
-      Notifications page. Times in the location's zone; the location's name when the
-      organization has several.
+      Notifications page. Opening a notification deletes it, so it leaves both at once.
+      Times in the location's zone; the location's name when the organization has several.
     - Next steps: email (N2: Mailpit locally, SES on AWS, per-user preferences), reminders
       the day before and admin announcements (N3), live updates with server-sent events,
       translations, SMS/WhatsApp (needs a paid provider).

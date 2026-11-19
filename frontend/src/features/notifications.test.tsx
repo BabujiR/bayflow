@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { AppNotification } from '@/api/types';
 import { safeLink } from '@/features/notifications/NotificationItem';
 import { renderApp } from '@/test/render';
 import { location, notification, noSession, pageOf, server, sessionFor, user } from '@/test/server';
@@ -10,8 +11,33 @@ import { location, notification, noSession, pageOf, server, sessionFor, user } f
 const unread = (count: number) =>
   http.get('*/api/v1/notifications/unread-count', () => HttpResponse.json({ count }));
 
+/** A user's notifications on the server: reading one deletes it, as notification-service does. */
+function inbox(initial: AppNotification[]) {
+  const left = [...initial];
+  const read: string[] = [];
+  server.use(
+    http.get('*/api/v1/notifications/unread-count', () => HttpResponse.json({ count: left.length })),
+    http.get('*/api/v1/notifications', () => HttpResponse.json(pageOf([...left]))),
+    http.post('*/api/v1/notifications/:id/read', ({ params }) => {
+      const index = left.findIndex((n) => n.id === params.id);
+      if (index < 0) {
+        return new HttpResponse(null, { status: 404 });
+      }
+      left.splice(index, 1);
+      read.push(params.id as string);
+      return new HttpResponse(null, { status: 204 });
+    }),
+    http.post('*/api/v1/notifications/read-all', () => {
+      const count = left.length;
+      left.splice(0);
+      return HttpResponse.json({ count });
+    }),
+  );
+  return { left, read };
+}
+
 describe('the notification bell', () => {
-  it('shows how many are unread, and nothing when all are read', async () => {
+  it('shows how many are unread, and nothing when there are none', async () => {
     server.use(sessionFor(user('CUSTOMER', 'customer1')), unread(3));
     const view = renderApp('/');
 
@@ -31,68 +57,46 @@ describe('the notification bell', () => {
     expect(await screen.findByTestId('notification-count')).toHaveTextContent('9+');
   });
 
-  it('opens the latest, and clicking one marks it read and goes to it', async () => {
-    let marked: string | undefined;
-    server.use(
-      sessionFor(user('CUSTOMER', 'customer1')),
-      unread(1),
-      http.get('*/api/v1/notifications', () =>
-        HttpResponse.json(
-          pageOf([
-            notification({
-              id: 'n1',
-              title: 'Booking confirmed',
-              body: 'BFL 1234 on Tue 24 Nov.',
-              link: '/appointments',
-            }),
-            notification({ id: 'n2', title: 'Older one', read: true, link: null }),
-          ]),
-        ),
-      ),
-      http.post('*/api/v1/notifications/:id/read', ({ params }) => {
-        marked = params.id as string;
-        return HttpResponse.json(notification({ id: marked, read: true }));
-      }),
-    );
+  it('opening one goes to it and removes it for good', async () => {
+    server.use(sessionFor(user('CUSTOMER', 'customer1')));
+    const server_ = inbox([
+      notification({ id: 'n1', title: 'Booking confirmed', link: '/appointments' }),
+      notification({ id: 'n2', title: 'Estimate ready' }),
+    ]);
     const { router } = renderApp('/');
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Notifications, 1 unread' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Notifications, 2 unread' }));
     const items = await screen.findAllByTestId('notification-item');
     expect(items).toHaveLength(2);
-    expect(items[0]).toHaveTextContent('Booking confirmed (unread)');
-    expect(items[1]).not.toHaveTextContent('(unread)');
 
     await userEvent.click(items[0]);
-    await vi.waitFor(() => expect(marked).toBe('n1'));
+    await vi.waitFor(() => expect(server_.read).toEqual(['n1']));
     await vi.waitFor(() => expect(router.state.location.pathname).toBe('/appointments'));
+
+    // Opened again: the one just read is gone, the other is still there.
+    await userEvent.click(await screen.findByRole('button', { name: 'Notifications, 1 unread' }));
+    const left = await screen.findAllByTestId('notification-item');
+    expect(left).toHaveLength(1);
+    expect(left[0]).toHaveTextContent('Estimate ready');
   });
 
-  it('marks everything read at once', async () => {
-    let markedAll = false;
-    server.use(
-      sessionFor(user('MECHANIC', 'mechanic1')),
-      http.get('*/api/v1/notifications/unread-count', () => HttpResponse.json({ count: markedAll ? 0 : 2 })),
-      http.get('*/api/v1/notifications', () =>
-        HttpResponse.json(pageOf([notification(), notification({ id: 'n2' })])),
-      ),
-      http.post('*/api/v1/notifications/read-all', () => {
-        markedAll = true;
-        return HttpResponse.json({ count: 2 });
-      }),
-    );
+  it('marks everything read at once, which empties it', async () => {
+    server.use(sessionFor(user('MECHANIC', 'mechanic1')));
+    const server_ = inbox([notification(), notification({ id: 'n2' })]);
     renderApp('/my-jobs');
 
     await userEvent.click(await screen.findByRole('button', { name: 'Notifications, 2 unread' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Mark all read' }));
 
-    await vi.waitFor(() => expect(markedAll).toBe(true));
+    await vi.waitFor(() => expect(server_.left).toHaveLength(0));
+    expect(await screen.findByText(/You're all caught up/)).toBeInTheDocument();
     // The panel stays open (the rest of the page is hidden from assistive tech meanwhile); close it.
     await userEvent.keyboard('{Escape}');
     expect(await screen.findByRole('button', { name: 'Notifications' })).toBeInTheDocument();
     expect(screen.queryByTestId('notification-count')).not.toBeInTheDocument();
   });
 
-  it('says when there is nothing yet', async () => {
+  it('says when there is nothing', async () => {
     server.use(sessionFor(user('CUSTOMER', 'customer1')));
     renderApp('/');
     await userEvent.click(await screen.findByRole('button', { name: 'Notifications' }));
@@ -116,7 +120,7 @@ describe('the notification bell', () => {
 });
 
 describe('the notifications page', () => {
-  it('lists every notification with where it happened when there are several locations', async () => {
+  it('lists them with where they happened when there are several locations', async () => {
     const north = location({
       id: '0d0d0d0d-1111-4000-8000-0000000000d1',
       code: 'north',
@@ -126,18 +130,8 @@ describe('the notifications page', () => {
     server.use(
       sessionFor(user('SERVICE_ADVISOR', 'advisor1')),
       http.get('*/api/v1/auth/locations', () => HttpResponse.json([location(), north])),
-      http.get('*/api/v1/notifications', () =>
-        HttpResponse.json(
-          pageOf([
-            notification({
-              title: 'New booking: AB12 CDE',
-              locationId: north.id,
-              createdAt: '2026-11-19T15:00:00Z',
-            }),
-          ]),
-        ),
-      ),
     );
+    inbox([notification({ title: 'New booking: AB12 CDE', locationId: north.id, createdAt: '2026-11-19T15:00:00Z' })]);
     renderApp('/notifications');
 
     const list = await screen.findByRole('list', { name: 'Notifications' });
@@ -148,13 +142,28 @@ describe('the notifications page', () => {
     expect(item).toHaveTextContent('North');
   });
 
+  it('opening one removes it from the page', async () => {
+    server.use(sessionFor(user('CUSTOMER', 'customer1')));
+    inbox([
+      notification({ id: 'n1', title: 'First', link: null }),
+      notification({ id: 'n2', title: 'Second', link: null }),
+    ]);
+    renderApp('/notifications');
+
+    await userEvent.click(await screen.findByText('First'));
+    await vi.waitFor(() => expect(screen.queryByText('First')).not.toBeInTheDocument());
+    expect(screen.getByText('Second')).toBeInTheDocument();
+  });
+
+  it('says so when there are none', async () => {
+    server.use(sessionFor(user('CUSTOMER', 'customer1')));
+    renderApp('/notifications');
+    expect(await screen.findByText("You're all caught up")).toBeInTheDocument();
+  });
+
   it('shows the text as text, never as markup', async () => {
-    server.use(
-      sessionFor(user('CUSTOMER', 'customer1')),
-      http.get('*/api/v1/notifications', () =>
-        HttpResponse.json(pageOf([notification({ title: '<img src=x onerror=alert(1)>' })])),
-      ),
-    );
+    server.use(sessionFor(user('CUSTOMER', 'customer1')));
+    inbox([notification({ title: '<img src=x onerror=alert(1)>' })]);
     renderApp('/notifications');
     const item = await screen.findByTestId('notification-item');
     expect(item).toHaveTextContent('<img src=x onerror=alert(1)>');

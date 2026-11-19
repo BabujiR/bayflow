@@ -1,7 +1,6 @@
 package com.bayflow.notification.infrastructure;
 
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -25,14 +24,18 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     @Query("select n from Notification n where n.recipientId = :recipient order by n.createdAt desc, n.id desc")
     Page<Notification> findForRecipient(@Param("recipient") UUID recipient, Pageable pageable);
 
-    long countByRecipientIdAndReadAtIsNull(UUID recipientId);
+    long countByRecipientId(UUID recipientId);
 
-    Optional<Notification> findByIdAndRecipientId(UUID id, UUID recipientId);
+    /** Reading a notification deletes it; 0 when it isn't the recipient's (or no longer exists). */
+    @Transactional
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("delete from Notification n where n.id = :id and n.recipientId = :recipient")
+    int deleteOwn(@Param("id") UUID id, @Param("recipient") UUID recipient);
 
     @Transactional
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("update Notification n set n.readAt = :now where n.recipientId = :recipient and n.readAt is null")
-    int markAllRead(@Param("recipient") UUID recipient, @Param("now") Instant now);
+    @Query("delete from Notification n where n.recipientId = :recipient")
+    int deleteAllOwn(@Param("recipient") UUID recipient);
 
     /** Deletes old notifications in every workshop (owner-run function, migration V1). */
     @Transactional

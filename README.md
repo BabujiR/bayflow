@@ -137,9 +137,10 @@ once at the workshop's address, for everyone, signed in or not.
 ### Notifications
 
 Everyone signed in has a **bell** in the header. It shows how many notifications are unread
-(checked every 30 seconds and when you come back to the tab); clicking it lists the latest,
-and clicking one opens the booking or job card. *See all notifications* (`/notifications`)
-has the full history for 90 days.
+(checked every 30 seconds and when you come back to the tab); clicking it lists them, and
+clicking one opens the booking or job card. **Reading a notification deletes it**: Bayflow keeps
+only unread ones (and deletes unread ones after 90 days). *Mark all read* deletes them all. The
+Notifications page (`/notifications`) lists the same, page by page.
 
 | When | Who is told |
 |---|---|

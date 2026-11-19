@@ -175,11 +175,13 @@ export const locationsApi = {
   reactivate: (id: string) => http.post<Location>(`/api/v1/auth/locations/${id}/reactivate`),
 };
 
-/** The signed-in user's own notifications (notification-service). */
+/** The signed-in user's own notifications (notification-service); read ones are deleted. */
 export const notificationsApi = {
+  /** All unread: reading a notification deletes it. */
   list: (page = 0, size = 20) =>
     http.get<PageResponse<AppNotification>>('/api/v1/notifications', { page, size }),
   unreadCount: () => http.get<{ count: number }>('/api/v1/notifications/unread-count'),
-  markRead: (id: string) => http.post<AppNotification>(`/api/v1/notifications/${id}/read`),
+  /** Deletes it (204). */
+  markRead: (id: string) => http.post<void>(`/api/v1/notifications/${id}/read`),
   markAllRead: () => http.post<{ count: number }>('/api/v1/notifications/read-all'),
 };

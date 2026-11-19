@@ -11,7 +11,10 @@ import { Card } from '@/components/ui/card';
 import { NotificationItem, safeLink } from './NotificationItem';
 import { useMarkRead, useNotifications, useUnreadCount } from './use-notifications';
 
-/** Every notification of the signed-in user, newest first. */
+/**
+ * The signed-in user's notifications, newest first. All of them are unread: opening one (or
+ * "Mark all read") deletes it.
+ */
 export function NotificationsPage() {
   const [page, setPage] = useState(0);
   const list = useNotifications(page, 20);
@@ -23,7 +26,7 @@ export function NotificationsPage() {
     <>
       <PageHeader
         title="Notifications"
-        description="Updates on your bookings and job cards. Kept for 90 days."
+        description="Updates on your bookings and job cards. Opening one removes it."
         actions={
           <Button variant="outline" disabled={!unread.data || all.isPending} onClick={() => all.mutate()}>
             Mark all read
@@ -34,8 +37,8 @@ export function NotificationsPage() {
         {(data) =>
           data.content.length === 0 ? (
             <EmptyState
-              title="No notifications yet"
-              description="Updates on bookings and job cards appear here."
+              title="You're all caught up"
+              description="New updates on your bookings and job cards appear here."
             />
           ) : (
             <>
@@ -49,9 +52,7 @@ export function NotificationsPage() {
                         className="w-full px-4 py-3 text-left hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
                         data-testid="notification-item"
                         onClick={() => {
-                          if (!n.read) {
-                            one.mutate(n.id);
-                          }
+                          one.mutate(n.id);
                           if (target) {
                             navigate(target);
                           }

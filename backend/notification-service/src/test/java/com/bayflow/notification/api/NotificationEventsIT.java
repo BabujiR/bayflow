@@ -57,8 +57,7 @@ class NotificationEventsIT extends IntegrationTestBase {
         inbox(advisor).andExpect(jsonPath("$.content[0].title").value("New booking: AB12 CDE"))
                 .andExpect(jsonPath("$.content[0].body").value("Booked for Tue 24 Nov, 10:00."))
                 .andExpect(jsonPath("$.content[0].link").value("/appointments"))
-                .andExpect(jsonPath("$.content[0].locationId").value(MAIN.toString()))
-                .andExpect(jsonPath("$.content[0].read").value(false));
+                .andExpect(jsonPath("$.content[0].locationId").value(MAIN.toString()));
         inbox(customer).andExpect(jsonPath("$.totalElements").value(0));
     }
 

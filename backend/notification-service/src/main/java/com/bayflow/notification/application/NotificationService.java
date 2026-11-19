@@ -88,6 +88,7 @@ public class NotificationService {
 
     // ---- a user's own notifications --------------------------------------------------------
 
+    /** The user's notifications (all unread: reading deletes them), newest first. */
     @Transactional(readOnly = true)
     public Page<Notification> mine(UUID user, int page, int size) {
         return notifications.findForRecipient(user, PageRequest.of(page, size));
@@ -95,21 +96,21 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public long unreadCount(UUID user) {
-        return notifications.countByRecipientIdAndReadAtIsNull(user);
+        return notifications.countByRecipientId(user);
     }
 
-    /** Marks one of the user's notifications read; another user's is "not found". */
+    /** Reading a notification deletes it; another user's (or one already read) is "not found". */
     @Transactional
-    public Notification markRead(UUID user, UUID id) {
-        Notification notification = notifications.findByIdAndRecipientId(id, user)
-                .orElseThrow(() -> ApiException.notFound("Notification"));
-        notification.markRead(clock.instant());
-        return notification;
+    public void markRead(UUID user, UUID id) {
+        if (notifications.deleteOwn(id, user) == 0) {
+            throw ApiException.notFound("Notification");
+        }
     }
 
+    /** Deletes all the user's notifications; returns how many there were. */
     @Transactional
     public int markAllRead(UUID user) {
-        return notifications.markAllRead(user, clock.instant());
+        return notifications.deleteAllOwn(user);
     }
 
     // ---- clean-up -----------------------------------------------------------------------------

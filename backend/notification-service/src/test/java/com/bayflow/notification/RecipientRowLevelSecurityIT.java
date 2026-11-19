@@ -46,7 +46,7 @@ class RecipientRowLevelSecurityIT extends IntegrationTestBase {
     }
 
     @Test
-    void aUserCannotWriteSomeoneElsesNotificationOrIntoAnotherWorkshop() throws Exception {
+    void aUserCannotTouchSomeoneElsesNotificationsOrAnotherWorkshop() throws Exception {
         try (Connection app = app()) {
             app.setAutoCommit(false);
             try (Statement statement = app.createStatement()) {
@@ -63,8 +63,8 @@ class RecipientRowLevelSecurityIT extends IntegrationTestBase {
             app.rollback();
             try (Statement statement = app.createStatement()) {
                 set(statement, A, alice);
-                // Marking someone else's read changes nothing: their rows are invisible.
-                assertThat(statement.executeUpdate("update bayflow.ntf_notifications set read_at = now() where"
+                // Reading (deleting) someone else's changes nothing: their rows are invisible.
+                assertThat(statement.executeUpdate("delete from bayflow.ntf_notifications where"
                         + " recipient_id = '" + bob + "'")).isZero();
             }
             app.rollback();
