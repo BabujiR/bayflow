@@ -176,6 +176,11 @@ test.describe('Accounts and access', () => {
     await dialog.getByLabel('Email').fill(`${staffName}@example.com`);
     await dialog.getByLabel('Temporary password').fill(NEW_PASSWORD);
     await dialog.getByLabel('Role').selectOption('MECHANIC');
+    // With several locations (e.g. a "North" left over from 08-locations), staff need one.
+    const worksAt = dialog.getByRole('group', { name: 'Works at' });
+    if (await worksAt.isVisible()) {
+      await worksAt.getByRole('checkbox', { name: /^Main/ }).check();
+    }
     await dialog.getByRole('button', { name: 'Create account' }).click();
     await expect(dialog.getByText('That username is already taken.')).toBeVisible();
     await dialog.getByLabel('Username').fill(staffName);
