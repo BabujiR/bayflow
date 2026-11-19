@@ -24,7 +24,14 @@ describe('addresses the app navigates to', () => {
   });
 
   it('never turns typed text into an address outside Bayflow', () => {
-    for (const slug of ['evil.example/x?', 'a@evil.example', 'acme.localhost', '', 'javascript:alert(1)', 'ACME']) {
+    for (const slug of [
+      'evil.example/x?',
+      'a@evil.example',
+      'acme.localhost',
+      '',
+      'javascript:alert(1)',
+      'ACME',
+    ]) {
       expect(() => workshopUrl(slug)).toThrow();
     }
     for (const path of ['//evil.example', 'https://evil.example', 'login', '/\\evil.example']) {
