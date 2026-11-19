@@ -599,6 +599,9 @@ in the page `<meta name="description">`.
     - **"Powered by Bayflow"** is on by default; turning it off also drops "· Bayflow" from the
       tab title. Bayflow's own public site (sign-up) is never branded.
     - The browser tab shows the workshop's name and its logo as the icon.
+    - With a logo, the app header shows the logo alone (its alt text is the workshop's name);
+      the name beside it is only shown next to Bayflow's logo. The sign-in page keeps the
+      name under the logo.
     - Next steps (not built): a custom domain per workshop (`book.acme-auto.com`, needs
       certificates per domain), branded emails, a dark-mode logo variant, S3 + CDN for the
       images on AWS (docs/SAAS-AWS-NOTES.md), plan-based limits (white label as a paid

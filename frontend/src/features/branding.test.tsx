@@ -92,6 +92,8 @@ describe('a branded workshop', () => {
     const customer = renderApp('/');
     expect(await screen.findByTestId('workshop-banner')).toHaveAttribute('data-variant', 'full');
     expect(screen.getByRole('link', { name: 'Acme Auto home' })).toBeInTheDocument();
+    // The logo names the workshop, so the header does not repeat its name.
+    expect(screen.queryByTestId('workshop-name')).not.toBeInTheDocument();
     customer.unmount();
 
     server.use(sessionFor(user('SERVICE_ADVISOR', 'advisor1')));

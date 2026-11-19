@@ -48,7 +48,8 @@ export function AppShell() {
           >
             <WorkshopLogo withTagline={!workshop.data} />
           </Link>
-          {workshop.data && (
+          {/* The workshop's own logo already names it; without one, Bayflow's logo needs the name. */}
+          {workshop.data && !branding.logoUrl && (
             <span
               className="hidden max-w-48 shrink-0 truncate border-l pl-4 text-sm font-semibold sm:inline"
               data-testid="workshop-name"
