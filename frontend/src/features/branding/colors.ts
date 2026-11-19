@@ -33,8 +33,10 @@ export function foregroundFor(hex: string): string {
 }
 
 /**
- * Why a brand colour may be hard to read, or null when it is fine: button text needs 4.5:1, and
- * links and outlines in the colour need 3:1 on both the light and the dark page.
+ * Why a brand colour may be hard to read, or null when it is fine: button text needs 4.5:1,
+ * links in the colour 3:1 on the light page. The dark theme uses the same colour (it is the
+ * workshop's), so mid-tone brand colours like Bayflow blue (2.6:1) are accepted there; only
+ * colours under 2:1, which nearly vanish on the dark page, get a warning.
  */
 export function colorWarning(hex: string): string | null {
   if (contrast(hex, foregroundFor(hex)) < 4.5) {
@@ -43,7 +45,7 @@ export function colorWarning(hex: string): string | null {
   if (contrast(hex, LIGHT_PAGE) < 3) {
     return 'Links in this colour are hard to see on the light theme. Choose a darker shade.';
   }
-  if (contrast(hex, DARK_PAGE) < 3) {
+  if (contrast(hex, DARK_PAGE) < 2) {
     return 'Links in this colour are hard to see on the dark theme. Choose a lighter shade.';
   }
   return null;

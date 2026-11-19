@@ -5,6 +5,7 @@ import { useBranding } from './use-branding';
 
 const DEFAULT_TITLE = 'Bayflow';
 const DEFAULT_ICON = '/favicon.svg';
+export const BRANDING_STYLE_ID = 'bayflow-branding';
 
 /**
  * Applies the workshop's branding to the whole page: its colour (as the app's primary colour,
@@ -18,20 +19,22 @@ export function BrandingEffect() {
     if (!color) {
       return;
     }
-    const style = document.documentElement.style;
-    // Inline variables win over both the :root and .dark palettes in index.css.
-    style.setProperty('--primary', color);
-    style.setProperty('--primary-foreground', foregroundFor(color));
-    style.setProperty('--ring', color);
+    // A stylesheet rule rather than inline styles: `html:root` outranks both the :root and the
+    // .dark palettes in index.css, so the colour applies in light and dark mode. The colour is
+    // a checked #rrggbb, so nothing else can get into the rule.
+    const sheet = document.createElement('style');
+    sheet.id = BRANDING_STYLE_ID;
+    sheet.textContent =
+      `html:root { --primary: ${color}; --primary-foreground: ${foregroundFor(color)}; ` +
+      `--ring: ${color}; }`;
+    document.head.appendChild(sheet);
     const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     const previousThemeColor = themeColor?.content;
     if (themeColor) {
       themeColor.content = color;
     }
     return () => {
-      style.removeProperty('--primary');
-      style.removeProperty('--primary-foreground');
-      style.removeProperty('--ring');
+      sheet.remove();
       if (themeColor && previousThemeColor !== undefined) {
         themeColor.content = previousThemeColor;
       }

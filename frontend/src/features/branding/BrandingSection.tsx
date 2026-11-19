@@ -14,6 +14,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { PUBLIC_WORKSHOP_QUERY_KEY } from '@/features/workshop/use-public-workshop';
 import { isoToLocalInput, localInputToIso, localInputToMillis, zoneLabel } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 import { cn } from '@/lib/utils';
@@ -21,7 +22,6 @@ import { cn } from '@/lib/utils';
 import { colorWarning, foregroundFor, isHexColor } from './colors';
 
 export const BRANDING_QUERY_KEY = ['branding'] as const;
-const PUBLIC_WORKSHOP_QUERY_KEY = ['public-workshop'] as const;
 
 /** Bayflow blue, offered as the starting point when a workshop picks its own colour. */
 const BAYFLOW_BLUE = '#1d4ed8';
@@ -296,8 +296,8 @@ function BrandingDetails({ branding }: { branding: Branding }) {
         <CardHeader>
           <CardTitle>Colour</CardTitle>
           <CardDescription>
-            Used for buttons, links and highlights, in the light and the dark theme. Text on it turns white
-            or black automatically, whichever reads better.
+            Used for buttons, links and highlights, in the light and the dark theme. Text on it turns white or
+            black automatically, whichever reads better.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
@@ -343,8 +343,8 @@ function BrandingDetails({ branding }: { branding: Branding }) {
         <CardHeader>
           <CardTitle>Announcement</CardTitle>
           <CardDescription>
-            A one-line message at the top of every page, e.g. holiday hours or a seasonal offer. Leave
-            the dates empty to show it until you remove it. Times are in {zone || 'the workshop time zone'}.
+            A one-line message at the top of every page, e.g. holiday hours or a seasonal offer. Leave the
+            dates empty to show it until you remove it. Times are in {zone || 'the workshop time zone'}.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">

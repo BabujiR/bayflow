@@ -585,11 +585,13 @@ in the page `<meta name="description">`.
     - **Limits:** Spring multipart 3 MB per file / 4 MB per request; Tomcat swallows up to
       8 MB so a too-large upload gets its 413; nginx allows 4 MB only under
       `/api/v1/auth/tenant/branding/` (1 MB everywhere else).
-    - **Colour:** `#rrggbb` (stored lower case). The web app sets `--primary`, `--ring` and
-      `--primary-foreground` inline on `<html>`, so the same colour applies in the light and
-      the dark theme; the text colour on it (white or near-black) is chosen by WCAG contrast.
-      The editor warns when button text would be under 4.5:1 or links under 3:1 on either
-      theme's background; it does not refuse such colours.
+    - **Colour:** `#rrggbb` (stored lower case). The web app adds one stylesheet rule,
+      `html:root { --primary; --primary-foreground; --ring }`, which outranks both the light
+      (`:root`) and dark (`.dark`) palettes, so the same colour applies in both themes; the
+      text colour on it (white or near-black) is chosen by WCAG contrast. The editor warns
+      when button text would be under 4.5:1, links under 3:1 on the light page, or the colour
+      under 2:1 on the dark page (mid-tones such as Bayflow blue, 2.6:1, are accepted there,
+      because the workshop's colour is kept as it is); it does not refuse such colours.
     - **Announcement:** plain text, one line (control characters become spaces), at most 200
       characters, rendered as text (never HTML). INFO or IMPORTANT style. Optional start and
       end (end after start); `/tenants/current` includes it only while live. Customers and

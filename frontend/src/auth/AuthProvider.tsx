@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { authApi } from '@/api/auth';
 import { configureSession, refreshSession, setAccessToken } from '@/api/http';
 import type { LoginRequest, RegisterRequest, Role, TokenResponse, User } from '@/api/types';
+import { PUBLIC_WORKSHOP_QUERY_KEY } from '@/features/workshop/use-public-workshop';
 
 import { AuthContext, type AuthContextValue, type AuthStatus } from './auth-context';
 import { effectiveRoles } from './roles';
@@ -34,7 +35,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null);
     setUser(null);
     setStatus('anonymous');
-    queryClient.clear();
+    // Forget everything the session loaded, except the workshop's public info (name,
+    // branding): components such as BrandingEffect keep watching it across sign-out.
+    queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== PUBLIC_WORKSHOP_QUERY_KEY[0] });
+    queryClient.getMutationCache().clear();
   }, [clearTimer, queryClient]);
 
   const startSession = useCallback(

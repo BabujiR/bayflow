@@ -6,11 +6,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { brandingApi } from '@/api/endpoints';
 import { ApiError } from '@/api/errors';
 import type { PublicBranding } from '@/api/types';
+import { BRANDING_STYLE_ID } from '@/features/branding/BrandingEffect';
 import { colorWarning, contrast, foregroundFor } from '@/features/branding/colors';
 import { renderApp } from '@/test/render';
 import { branding, noSession, publicWorkshop, server, sessionFor, user } from '@/test/server';
 
-const rootStyle = () => document.documentElement.style;
+/** The brand colour rule BrandingEffect adds to the page, or '' without one. */
+const brandRule = () => document.getElementById(BRANDING_STYLE_ID)?.textContent ?? '';
 
 const branded = (overrides: Partial<PublicBranding> = {}) =>
   http.get('*/api/v1/tenants/current', () =>
@@ -50,7 +52,7 @@ describe('a workshop without branding', () => {
     expect(screen.queryByTestId('workshop-cover')).not.toBeInTheDocument();
     expect(screen.queryByTestId('workshop-banner')).not.toBeInTheDocument();
     expect(screen.getByTestId('powered-by')).toHaveTextContent('Powered by Bayflow');
-    expect(rootStyle().getPropertyValue('--primary')).toBe('');
+    expect(brandRule()).toBe('');
   });
 });
 
@@ -71,8 +73,8 @@ describe('a branded workshop', () => {
     expect(banner).toHaveAttribute('data-style', 'IMPORTANT');
     expect(screen.queryByTestId('powered-by')).not.toBeInTheDocument();
 
-    await vi.waitFor(() => expect(rootStyle().getPropertyValue('--primary')).toBe('#be123c'));
-    expect(rootStyle().getPropertyValue('--primary-foreground')).toBe('#ffffff');
+    await vi.waitFor(() => expect(brandRule()).toContain('--primary: #be123c;'));
+    expect(brandRule()).toContain('--primary-foreground: #ffffff;');
     expect(document.title).toBe('Acme Auto');
   });
 
@@ -100,11 +102,11 @@ describe('a branded workshop', () => {
   it('puts the colour back when the app closes', async () => {
     server.use(noSession, branded());
     const view = renderApp('/login');
-    await vi.waitFor(() => expect(rootStyle().getPropertyValue('--primary')).toBe('#be123c'));
+    await vi.waitFor(() => expect(brandRule()).toContain('--primary: #be123c;'));
 
     view.unmount();
 
-    expect(rootStyle().getPropertyValue('--primary')).toBe('');
+    expect(brandRule()).toBe('');
     expect(document.title).toBe('Bayflow');
   });
 });
@@ -217,7 +219,8 @@ describe('branding settings (workshop ADMIN)', () => {
       'src',
       '/api/v1/tenants/current/logo?v=new',
     );
-    expect(upload).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'logo' }));
+    // (useMutation passes a context object as a second argument.)
+    expect(upload.mock.lastCall?.[0]).toMatchObject({ kind: 'logo' });
     upload.mockRestore();
   });
 

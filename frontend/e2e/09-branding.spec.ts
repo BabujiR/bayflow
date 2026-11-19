@@ -44,9 +44,7 @@ test.describe('Workshop branding', () => {
     await expect(logo.getByRole('img', { name: 'Current logo' })).toBeVisible();
 
     const cover = owner.page.getByTestId('branding-cover');
-    await cover
-      .getByLabel('Upload sign-in cover photo')
-      .setInputFiles(join(FIXTURES, 'workshop-cover.png'));
+    await cover.getByLabel('Upload sign-in cover photo').setInputFiles(join(FIXTURES, 'workshop-cover.png'));
     await owner.expectToast('Sign-in cover photo saved');
     await owner.check('Logo and cover photo uploaded (checked and re-encoded by the server)');
 
