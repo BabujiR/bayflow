@@ -655,6 +655,18 @@ in the page `<meta name="description">`.
       the day before and admin announcements (N3), live updates with server-sent events,
       translations, SMS/WhatsApp (needs a paid provider).
 
+26. **Sorting the appointment list.** `GET /api/v1/appointments` takes
+    `sort=upcoming|latest|earliest|recent` (any case; anything else is 400):
+    - `upcoming`: appointments not finished yet (end after now) first, soonest first, then
+      past ones, most recent first;
+    - `latest` / `earliest`: by appointment time;
+    - `recent`: by when the booking was made, newest first.
+    The id breaks ties, so pages never repeat or skip a row. Default without `sort`:
+    `earliest` with a `date` (a day reads in time order, e.g. the board), otherwise
+    `upcoming`. The web app's *Appointments* page has a **Sort** dropdown; day, status and
+    sort are in the address (`/appointments?sort=latest&day=2026-11-24`), and the last sort
+    chosen is remembered in the browser.
+
 ---
 
 ## 10. Milestones

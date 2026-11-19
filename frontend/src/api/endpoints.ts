@@ -69,7 +69,15 @@ export interface AppointmentFilters extends Paging {
   customerId?: string;
   /** One location; its day is the one `date` means (organizations with several locations). */
   locationId?: string;
+  /** Default: earliest for one day, otherwise upcoming. */
+  sort?: AppointmentSort;
 }
+
+/**
+ * upcoming: not finished yet, soonest first, then the past, latest first; latest / earliest: by
+ * appointment time; recent: most recently booked first.
+ */
+export type AppointmentSort = 'upcoming' | 'latest' | 'earliest' | 'recent';
 
 export const appointmentsApi = {
   list: (filters: AppointmentFilters) =>

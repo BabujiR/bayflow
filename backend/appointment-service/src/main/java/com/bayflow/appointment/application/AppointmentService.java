@@ -26,6 +26,7 @@ import com.bayflow.appointment.domain.ServiceType;
 import com.bayflow.appointment.domain.Vehicle;
 import com.bayflow.appointment.infrastructure.AppointmentFilter;
 import com.bayflow.appointment.infrastructure.AppointmentRepository;
+import com.bayflow.appointment.infrastructure.AppointmentSort;
 import com.bayflow.appointment.infrastructure.VehicleRepository;
 import com.bayflow.security.CurrentUser;
 import com.bayflow.security.LocationContext;
@@ -40,8 +41,14 @@ import com.bayflow.security.LocationContext;
 public class AppointmentService {
 
     /** Optional filters from the list endpoint. */
+    /** {@code sort} null = the default: EARLIEST for one day, otherwise UPCOMING. */
     public record ListQuery(LocalDate date, AppointmentStatus status, UUID vehicleId, UUID customerId,
-            UUID locationId) {
+            UUID locationId, AppointmentSort sort) {
+
+        public ListQuery(LocalDate date, AppointmentStatus status, UUID vehicleId, UUID customerId,
+                UUID locationId) {
+            this(date, status, vehicleId, customerId, locationId, null);
+        }
     }
 
     private final AppointmentRepository appointments;
@@ -103,7 +110,8 @@ public class AppointmentService {
     /**
      * Advisors and admins see all appointments (with optional filters); customers only their
      * own; mechanics only today's checked-in vehicles. Days ("date", "today") are those of the
-     * location asked for; over several locations, each booking's own location's day.
+     * location asked for; over several locations, each booking's own location's day. The order is
+     * the query's sort; by default a day in time order, anything wider upcoming first.
      */
     @Transactional(readOnly = true)
     public Page<Appointment> list(CurrentUser user, ListQuery query, int page, int size) {
@@ -114,7 +122,8 @@ public class AppointmentService {
         if (user.isMechanic()) {
             Day today = day(zone -> LocalDate.now(clock.withZone(zone)), query.locationId());
             return appointments.search(new AppointmentFilter(null, null, AppointmentStatus.CHECKED_IN,
-                    today.from(), today.to(), query.locationId(), today.perLocation()), pageable);
+                    today.from(), today.to(), query.locationId(), today.perLocation(), sortOf(query, true),
+                    clock.instant()), pageable);
         }
         Optional<Customer> own = callers.findOwnProfile(user);
         if (own.isEmpty()) {
@@ -234,7 +243,11 @@ public class AppointmentService {
     private AppointmentFilter filter(UUID customerId, ListQuery query) {
         Day day = query.date() == null ? Day.ANY : day(zone -> query.date(), query.locationId());
         return new AppointmentFilter(customerId, query.vehicleId(), query.status(), day.from(), day.to(),
-                query.locationId(), day.perLocation());
+                query.locationId(), day.perLocation(), sortOf(query, query.date() != null), clock.instant());
+    }
+
+    private static AppointmentSort sortOf(ListQuery query, boolean oneDay) {
+        return query.sort() != null ? query.sort() : AppointmentSort.defaultFor(oneDay);
     }
 
     /** A day as [from, to), or (lists over several locations) one window per location. */
