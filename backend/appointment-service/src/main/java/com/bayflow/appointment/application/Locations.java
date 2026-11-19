@@ -61,9 +61,14 @@ public class Locations {
         }
         List<LocationSettings> active = known.get().stream().filter(LocationSettings::active).toList();
         if (wanted == null) {
-            List<LocationSettings> mine = active.stream().filter(l -> scope.allows(l.id())).toList();
+            List<LocationSettings> mine = mineOf(active, scope);
+            if (mine.size() != 1) {
+                // The cached list may be stale (a location archived or added since): ask again
+                // once before making the caller choose.
+                mine = refreshed(tenant).map(list -> mineOf(list, scope)).orElse(mine);
+            }
             if (mine.size() == 1) {
-                return mine.get(0).id();
+                return mine.getFirst().id();
             }
             throw ApiException.badRequest("location-required", "Choose the location for this appointment.");
         }
@@ -106,6 +111,21 @@ public class Locations {
         } catch (DateTimeException | NullPointerException e) {
             log.warn("Location {} has an invalid time zone; using {}", locationId, properties.getWorkshopZone());
             return properties.getWorkshopZone();
+        }
+    }
+
+    private static List<LocationSettings> mineOf(List<LocationSettings> locations, LocationScope scope) {
+        return locations.stream().filter(LocationSettings::active).filter(l -> scope.allows(l.id())).toList();
+    }
+
+    /** The locations fetched again from auth-service, past the cache. */
+    private Optional<List<LocationSettings>> refreshed(UUID tenant) {
+        try {
+            client.evict(tenant);
+            return Optional.of(client.locations(tenant));
+        } catch (RuntimeException e) {
+            log.warn("Could not read the locations of organization {} ({})", tenant, e.getMessage());
+            return Optional.empty();
         }
     }
 

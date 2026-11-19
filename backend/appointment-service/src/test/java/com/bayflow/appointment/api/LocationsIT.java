@@ -59,7 +59,7 @@ class LocationsIT extends IntegrationTestBase {
 
     @Test
     void withSeveralLocationsABookingNamesAnActiveOneOfTheOrganization() throws Exception {
-        organizationHas(main("America/New_York"), location(NORTH, "north", true, "America/Chicago"),
+        organizationHas(mainAt("America/New_York"), location(NORTH, "north", true, "America/Chicago"),
                 location(CLOSED, "closed", false, "America/New_York"));
         String vehicleId = vehicle();
 
@@ -88,13 +88,27 @@ class LocationsIT extends IntegrationTestBase {
     @Test
     void aNewLocationTakesBookingsAtOnce() throws Exception {
         // The cached answer predates North; asking for North fetches the locations again.
-        Mockito.doReturn(List.of(main("America/New_York")))
-                .doReturn(List.of(main("America/New_York"), location(NORTH, "north", true, "America/Chicago")))
+        Mockito.doReturn(List.of(mainAt("America/New_York")))
+                .doReturn(List.of(mainAt("America/New_York"), location(NORTH, "north", true, "America/Chicago")))
                 .when(locationsClient).locations(ArgumentMatchers.any());
         String vehicleId = vehicle();
 
         book(vehicleId, NORTH).andExpect(status().isCreated())
                 .andExpect(jsonPath("$.locationId").value(NORTH.toString()));
+        Mockito.verify(locationsClient).evict(Tenants.DEFAULT_TENANT_ID);
+    }
+
+    @Test
+    void anArchivedLocationNoLongerMakesCustomersChooseOne() throws Exception {
+        // The cached answer still has North; it was archived since, so the booking asks again
+        // and goes to the only active location instead of answering location-required.
+        Mockito.doReturn(List.of(mainAt("America/New_York"), location(NORTH, "north", true, "America/Chicago")))
+                .doReturn(List.of(mainAt("America/New_York"), location(NORTH, "north", false, "America/Chicago")))
+                .when(locationsClient).locations(ArgumentMatchers.any());
+        String vehicleId = vehicle();
+
+        book(vehicleId, null).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.locationId").value(MAIN.toString()));
         Mockito.verify(locationsClient).evict(Tenants.DEFAULT_TENANT_ID);
     }
 
@@ -120,18 +134,18 @@ class LocationsIT extends IntegrationTestBase {
         String id = JsonPath.read(book(vehicleId, null).andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString(), "$.id");
 
-        organizationHas(main("Pacific/Auckland"));
+        organizationHas(mainAt("Pacific/Auckland"));
         count(vehicleId, "2026-11-18", null, 1, id);
         count(vehicleId, "2026-11-17", null, 0, null);
 
-        organizationHas(main("America/New_York"));
+        organizationHas(mainAt("America/New_York"));
         count(vehicleId, "2026-11-17", null, 1, id);
         count(vehicleId, "2026-11-18", null, 0, null);
     }
 
     @Test
     void aListCanBeLimitedToOneLocationAndUsesItsDay() throws Exception {
-        organizationHas(main("America/New_York"), location(NORTH, "north", true, "Pacific/Auckland"));
+        organizationHas(mainAt("America/New_York"), location(NORTH, "north", true, "Pacific/Auckland"));
         String vehicleId = vehicle();
         String atMain = JsonPath.read(book(vehicleId, MAIN).andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString(), "$.id");
@@ -163,7 +177,8 @@ class LocationsIT extends IntegrationTestBase {
         Mockito.doReturn(List.of(locations)).when(locationsClient).locations(ArgumentMatchers.any());
     }
 
-    private static LocationSettings main(String zone) {
+    /** The organization's "Main" location, in {@code zone}. */
+    private static LocationSettings mainAt(String zone) {
         return mainLocation(MAIN, zone);
     }
 

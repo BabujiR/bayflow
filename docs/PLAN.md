@@ -543,7 +543,10 @@ in the page `<meta name="description">`.
       not route `/api/v1/internal/`. Customers only see active locations.
     - appointment-service fetches the locations again once when asked for one it
       doesn't know (a location added since its 5-minute cache), so new locations
-      take bookings at once. Rate and time-zone edits reach it within 5 minutes.
+      take bookings at once. Likewise, before answering `location-required` (no location
+      given and not exactly one to choose), it fetches them again once, so a location
+      archived within the last 5 minutes no longer makes customers choose. Rate and
+      time-zone edits reach it within 5 minutes.
     - Web app:
       - *Locations* page (ADMIN): list, add, edit, archive, reactivate.
       - *User accounts*: Manager role; a "Works at" checklist when the
