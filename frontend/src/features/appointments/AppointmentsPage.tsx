@@ -118,11 +118,7 @@ export function AppointmentsPage() {
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="filter-status">Status</Label>
-          <Select
-            id="filter-status"
-            value={status}
-            onChange={(e) => update({ status: e.target.value })}
-          >
+          <Select id="filter-status" value={status} onChange={(e) => update({ status: e.target.value })}>
             <option value="">Any status</option>
             {STATUSES.map((s) => (
               <option key={s} value={s}>
