@@ -80,7 +80,9 @@ test.describe('Workshop branding', () => {
     const ownerBanner = owner.page.getByTestId('workshop-banner');
     await expect(ownerBanner).toHaveAttribute('data-variant', 'slim');
     await expect(ownerBanner.getByTestId('announcement').first()).toContainText(bannerText);
-    await owner.check('Crimson colour, two announcements (the important one first) and no "Powered by Bayflow"');
+    await owner.check(
+      'Crimson colour, two announcements (the important one first) and no "Powered by Bayflow"',
+    );
 
     // ---- A customer sees the workshop's look ---------------------------------------------
     const customer = await cast.actor('Customer', { at: workshopURL });

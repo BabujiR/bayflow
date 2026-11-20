@@ -94,7 +94,10 @@ describe('a branded workshop', () => {
 
     await userEvent.click(more);
     expect(within(banner).getByText('Winter tyres in stock')).toBeVisible();
-    expect(within(banner).getByRole('button', { name: 'Show less' })).toHaveAttribute('aria-expanded', 'true');
+    expect(within(banner).getByRole('button', { name: 'Show less' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
   });
 
   it('has no "more" with a single announcement', async () => {

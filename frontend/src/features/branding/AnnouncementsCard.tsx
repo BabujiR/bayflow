@@ -17,7 +17,13 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { PUBLIC_WORKSHOP_QUERY_KEY } from '@/features/workshop/use-public-workshop';
-import { formatDateTime, isoToLocalInput, localInputToIso, localInputToMillis, zoneLabel } from '@/lib/format';
+import {
+  formatDateTime,
+  isoToLocalInput,
+  localInputToIso,
+  localInputToMillis,
+  zoneLabel,
+} from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 import { cn } from '@/lib/utils';
 
@@ -26,11 +32,12 @@ export const ANNOUNCEMENTS_QUERY_KEY = ['branding', 'announcements'] as const;
 export const MAX_ANNOUNCEMENTS = 10;
 const TEXT_MAX = 200;
 
-const STATES: Record<Announcement['state'], { label: string; variant: 'success' | 'secondary' | 'outline' }> = {
-  LIVE: { label: 'Live', variant: 'success' },
-  SCHEDULED: { label: 'Scheduled', variant: 'secondary' },
-  ENDED: { label: 'Ended', variant: 'outline' },
-};
+const STATES: Record<Announcement['state'], { label: string; variant: 'success' | 'secondary' | 'outline' }> =
+  {
+    LIVE: { label: 'Live', variant: 'success' },
+    SCHEDULED: { label: 'Scheduled', variant: 'secondary' },
+    ENDED: { label: 'Ended', variant: 'outline' },
+  };
 
 const schema = z
   .object({
@@ -113,7 +120,12 @@ export function AnnouncementsCard() {
                         <Badge variant={STATES[a.state].variant}>{STATES[a.state].label}</Badge>
                         {a.style === 'IMPORTANT' && <Badge variant="warning">Important</Badge>}
                       </div>
-                      <p className={cn('m-0 break-words text-sm', a.state === 'ENDED' && 'text-muted-foreground')}>
+                      <p
+                        className={cn(
+                          'm-0 break-words text-sm',
+                          a.state === 'ENDED' && 'text-muted-foreground',
+                        )}
+                      >
                         {a.text}
                       </p>
                       <p className="m-0 text-xs text-muted-foreground">{when(a)}</p>
@@ -167,7 +179,13 @@ function when(a: Announcement): string {
   return from + until;
 }
 
-function AnnouncementEditor({ announcement, onDone }: { announcement: Announcement | null; onDone: () => void }) {
+function AnnouncementEditor({
+  announcement,
+  onDone,
+}: {
+  announcement: Announcement | null;
+  onDone: () => void;
+}) {
   const refresh = useRefresh();
   const queryClient = useQueryClient();
   const {
@@ -205,8 +223,16 @@ function AnnouncementEditor({ announcement, onDone }: { announcement: Announceme
     refresh();
     onDone();
   };
-  const create = useAction(announcementsApi.create, { success: 'Announcement added', onSuccess: done, onError });
-  const update = useAction(announcementsApi.update, { success: 'Announcement saved', onSuccess: done, onError });
+  const create = useAction(announcementsApi.create, {
+    success: 'Announcement added',
+    onSuccess: done,
+    onError,
+  });
+  const update = useAction(announcementsApi.update, {
+    success: 'Announcement saved',
+    onSuccess: done,
+    onError,
+  });
 
   const text = watch('text') ?? '';
   const style = watch('style');
@@ -252,7 +278,9 @@ function AnnouncementEditor({ announcement, onDone }: { announcement: Announceme
           <div
             className={cn(
               'rounded-md border px-4 py-2.5 text-sm',
-              style === 'IMPORTANT' ? 'border-warning/50 bg-warning/20 font-semibold' : 'border-primary/20 bg-primary/10',
+              style === 'IMPORTANT'
+                ? 'border-warning/50 bg-warning/20 font-semibold'
+                : 'border-primary/20 bg-primary/10',
             )}
           >
             {text}
