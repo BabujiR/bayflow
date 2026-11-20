@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 
 @Configuration
 @OpenAPIDefinition(info = @Info(
-        title = "Bayflow Appointment API",
+        title = "Ramplight Appointment API",
         version = "v1",
         description = "Customers, vehicles and service appointments from booking to check-in. "
                 + "Get a token from auth-service (POST /api/v1/auth/login) and use Authorize."))

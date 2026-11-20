@@ -13,7 +13,7 @@ test.describe('Workshops on their own addresses', () => {
 
     // ---- Workshop A signs up on the public site -----------------------------------------
     const ownerA = await cast.actor('Owner of workshop A', { at: cast.siteURL });
-    await ownerA.say('Opens the Bayflow site and sets up a workshop');
+    await ownerA.say('Opens the Ramplight site and sets up a workshop');
     await ownerA.page.getByRole('link', { name: 'Set up your workshop' }).first().click();
     const form = ownerA.page.getByRole('form', { name: 'Set up your workshop' });
     await form.getByLabel('Workshop name').fill(`Alpha Autos ${slugA}`);

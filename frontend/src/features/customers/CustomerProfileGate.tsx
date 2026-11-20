@@ -6,6 +6,7 @@ import { ApiError } from '@/api/errors';
 import { useAuth } from '@/auth/auth-context';
 import { QueryState } from '@/components/common/QueryState';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PRODUCT_NAME } from '@/lib/brand';
 import { useAction } from '@/lib/use-action';
 
 import { ProfileForm } from './ProfileForm';
@@ -24,7 +25,7 @@ export function CustomerProfileGate({ children }: { children: ReactNode }) {
     retry: false,
   });
   const create = useAction(customersApi.createMe, {
-    success: 'Profile saved. Welcome to Bayflow!',
+    success: `Profile saved. Welcome to ${PRODUCT_NAME}!`,
     invalidate: [['my-profile']],
   });
 

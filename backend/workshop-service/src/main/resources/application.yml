@@ -77,7 +77,7 @@ management:
 
 info:
   app:
-    name: Bayflow workshop-service
+    name: Ramplight workshop-service
 
 springdoc:
   api-docs:

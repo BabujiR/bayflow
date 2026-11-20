@@ -276,7 +276,7 @@ Screens (milestone 7), under `src/features/`:
 - Admin: User accounts (create staff, enable/disable); read-only appointments, customers and job
   cards.
 
-Branding: name "Bayflow", tagline "The smarter way to run your auto workshop."
+Branding: name "Ramplight" (codename "Bayflow" in code, packages and settings; public site getramplight.com), tagline "The smarter way to run your auto workshop."
 shown on the login and register pages, in the app header on wide screens, and
 in the page `<meta name="description">`.
 

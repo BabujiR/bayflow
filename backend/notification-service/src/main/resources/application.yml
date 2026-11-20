@@ -79,7 +79,7 @@ management:
 
 info:
   app:
-    name: Bayflow notification-service
+    name: Ramplight notification-service
 
 springdoc:
   api-docs:

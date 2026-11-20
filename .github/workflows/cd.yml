@@ -1,6 +1,6 @@
 name: CD
 
-# Publishes the four images to GitHub Container Registry after CI has passed on main.
+# Publishes the images to GitHub Container Registry after CI has passed on main.
 on:
   workflow_run:
     workflows: [CI]
@@ -69,7 +69,7 @@ jobs:
             type=raw,value=latest
           labels: |
             org.opencontainers.image.title=${{ matrix.image }}
-            org.opencontainers.image.description=Bayflow: the smarter way to run your auto workshop.
+            org.opencontainers.image.description=Ramplight: the smarter way to run your auto workshop.
             org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}
 
       - name: Build and push
@@ -80,5 +80,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # The web app has its domain built in (workshops at <slug>.<domain>). Set the
+          # repository variable BAYFLOW_BASE_DOMAIN (e.g. getramplight.com) for production
+          # images; the backend images ignore it.
+          build-args: |
+            VITE_BASE_DOMAIN=${{ vars.BAYFLOW_BASE_DOMAIN || 'localhost' }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}

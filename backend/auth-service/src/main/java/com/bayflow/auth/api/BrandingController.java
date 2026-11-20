@@ -68,9 +68,9 @@ public class BrandingController {
     }
 
     @PutMapping
-    @Operation(summary = "Change colour and 'Powered by Bayflow' (workshop ADMIN)",
+    @Operation(summary = "Change colour and 'Powered by Ramplight' (workshop ADMIN)",
             description = "Send the version you read; 409 if someone changed the branding meanwhile. "
-                    + "Empty colour = Bayflow's colours.")
+                    + "Empty colour = Ramplight's colours.")
     public BrandingResponse update(@Valid @RequestBody UpdateBrandingRequest request) {
         return BrandingResponse.from(branding.update(new BrandingUpdate(request.primaryColor(),
                 request.showPoweredBy(), request.version())));

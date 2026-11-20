@@ -36,7 +36,7 @@ public final class CookieRequestGuard {
         boolean crossSite = "cross-site".equalsIgnoreCase(request.getHeader("Sec-Fetch-Site"));
         if (crossSite || !StringUtils.hasText(request.getHeader(HEADER))) {
             throw new ApiException(HttpStatus.FORBIDDEN, "csrf-check-failed", "Forbidden",
-                    "This request must come from the Bayflow app.");
+                    "This request must come from the Ramplight app.");
         }
     }
 }

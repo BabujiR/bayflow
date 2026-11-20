@@ -81,7 +81,7 @@ management:
 
 info:
   app:
-    name: Bayflow appointment-service
+    name: Ramplight appointment-service
 
 springdoc:
   api-docs:

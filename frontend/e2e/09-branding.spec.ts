@@ -7,7 +7,7 @@ const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), 'fixtures');
 
 /**
  * Branding: a workshop's owner gives it its own logo, colour, sign-in photo and announcement,
- * and turns off "Powered by Bayflow"; its customers see that look, and no other workshop does.
+ * and turns off "Powered by Ramplight"; its customers see that look, and no other workshop does.
  * Uses a newly signed-up workshop, so demo and acme keep their look.
  */
 test.describe('Workshop branding', () => {
@@ -39,7 +39,7 @@ test.describe('Workshop branding', () => {
     await owner.say('Opens Branding in the workshop settings');
 
     const logo = owner.page.getByTestId('branding-logo');
-    await expect(logo.getByText('Bayflow logo shown')).toBeVisible();
+    await expect(logo.getByText('Ramplight logo shown')).toBeVisible();
     await logo.getByLabel('Upload logo').setInputFiles(join(FIXTURES, 'acme-logo.png'));
     await owner.expectToast('Logo saved');
     await expect(logo.getByRole('img', { name: 'Current logo' })).toBeVisible();
@@ -60,7 +60,7 @@ test.describe('Workshop branding', () => {
     const form = owner.page.getByRole('form', { name: 'Branding' });
     await form.getByLabel("Use my workshop's colour").check();
     await form.getByLabel('Colour code').fill('#be123c');
-    await form.getByLabel('Show "Powered by Bayflow"').uncheck();
+    await form.getByLabel('Show "Powered by Ramplight"').uncheck();
     await form.getByRole('button', { name: 'Save branding' }).click();
     await owner.expectToast('Branding saved');
 
@@ -81,7 +81,7 @@ test.describe('Workshop branding', () => {
     await expect(ownerBanner).toHaveAttribute('data-variant', 'slim');
     await expect(ownerBanner.getByTestId('announcement').first()).toContainText(bannerText);
     await owner.check(
-      'Crimson colour, two announcements (the important one first) and no "Powered by Bayflow"',
+      'Crimson colour, two announcements (the important one first) and no "Powered by Ramplight"',
     );
 
     // ---- A customer sees the workshop's look ---------------------------------------------
@@ -134,12 +134,12 @@ test.describe('Workshop branding', () => {
     expect(other.branding?.logoUrl ?? null).not.toBe(current.branding.logoUrl);
     await cast.note("This run's own workshop keeps its own look");
 
-    // ---- Back to Bayflow's look ----------------------------------------------------------------
+    // ---- Back to Ramplight's look ----------------------------------------------------------------
     await owner.page.getByTestId('branding-logo').getByRole('button', { name: 'Remove' }).click();
     await owner.expectToast('Logo removed');
     await customer.page.goto('/');
     await customer.page.reload();
     await expect(customer.page.getByTestId('workshop-logo')).toHaveCount(0);
-    await customer.check('Removing the logo brings back the Bayflow logo');
+    await customer.check('Removing the logo brings back the Ramplight logo');
   });
 });

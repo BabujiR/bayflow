@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { PRODUCT_NAME } from '@/lib/brand';
 import { BASE_DOMAIN, publicSiteUrl } from '@/lib/site';
 
 /** Shown at an address that names no workshop, e.g. a mistyped acme.localhost. */
@@ -9,8 +10,8 @@ export function WorkshopNotFoundPage() {
       <CardHeader>
         <CardTitle>Workshop not found</CardTitle>
         <CardDescription>
-          There is no Bayflow workshop at <strong>{window.location.host}</strong>. Check the address with your
-          workshop, or set up a new one.
+          There is no {PRODUCT_NAME} workshop at <strong>{window.location.host}</strong>. Check the address
+          with your workshop, or set up a new one.
         </CardDescription>
       </CardHeader>
       <CardContent className="text-sm text-muted-foreground">

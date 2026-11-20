@@ -46,7 +46,7 @@ describe('brand colours', () => {
 });
 
 describe('a workshop without branding', () => {
-  it('looks like Bayflow', async () => {
+  it('looks like Ramplight', async () => {
     server.use(noSession);
     renderApp('/login');
 
@@ -54,7 +54,7 @@ describe('a workshop without branding', () => {
     expect(screen.queryByTestId('workshop-logo')).not.toBeInTheDocument();
     expect(screen.queryByTestId('workshop-cover')).not.toBeInTheDocument();
     expect(screen.queryByTestId('workshop-banner')).not.toBeInTheDocument();
-    expect(screen.getByTestId('powered-by')).toHaveTextContent('Powered by Bayflow');
+    expect(screen.getByTestId('powered-by')).toHaveTextContent('Powered by Ramplight');
     expect(brandRule()).toBe('');
   });
 });
@@ -142,7 +142,7 @@ describe('a branded workshop', () => {
     view.unmount();
 
     expect(brandRule()).toBe('');
-    expect(document.title).toBe('Bayflow');
+    expect(document.title).toBe('Ramplight');
   });
 });
 
@@ -153,7 +153,7 @@ describe('a branded workshop', () => {
 const brandingForm = () => screen.findByRole('form', { name: 'Branding' }, { timeout: 5_000 });
 
 describe('branding settings (workshop ADMIN)', () => {
-  it('saves colour and "Powered by Bayflow", sending the version read', async () => {
+  it('saves colour and "Powered by Ramplight", sending the version read', async () => {
     let sent: Record<string, unknown> | undefined;
     server.use(
       sessionFor(user('ADMIN', 'admin')),
@@ -171,7 +171,7 @@ describe('branding settings (workshop ADMIN)', () => {
     await userEvent.clear(code);
     await userEvent.type(code, '#BE123C');
     expect(within(form).getByTestId('color-preview')).toHaveTextContent('Book a service');
-    await userEvent.click(within(form).getByLabelText('Show "Powered by Bayflow"'));
+    await userEvent.click(within(form).getByLabelText('Show "Powered by Ramplight"'));
     await userEvent.click(within(form).getByRole('button', { name: 'Save branding' }));
 
     await vi.waitFor(() =>
@@ -211,7 +211,7 @@ describe('branding settings (workshop ADMIN)', () => {
     const person = userEvent.setup({ applyAccept: false });
 
     const logo = await screen.findByTestId('branding-logo');
-    expect(within(logo).getByText('Bayflow logo shown')).toBeInTheDocument();
+    expect(within(logo).getByText('Ramplight logo shown')).toBeInTheDocument();
 
     // Checked in the browser first: not an image, so nothing is sent.
     await person.upload(

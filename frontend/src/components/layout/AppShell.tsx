@@ -12,6 +12,7 @@ import { CustomerProfileGate } from '@/features/customers/CustomerProfileGate';
 import { LocationSwitcher } from '@/features/locations/LocationSwitcher';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { useWorkshop } from '@/features/workshop/use-workshop';
+import { PRODUCT_NAME } from '@/lib/brand';
 import { setWorkshopZone } from '@/lib/format';
 import { navItemsFor } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
@@ -44,12 +45,12 @@ export function AppShell() {
         <div className="mx-auto flex h-16 max-w-screen-2xl items-center gap-4 px-4">
           <Link
             to="/"
-            aria-label={branding.logoUrl && brandName ? `${brandName} home` : 'Bayflow home'}
+            aria-label={branding.logoUrl && brandName ? `${brandName} home` : `${PRODUCT_NAME} home`}
             className="shrink-0"
           >
             <WorkshopLogo withTagline={!workshop.data} />
           </Link>
-          {/* The workshop's own logo already names it; without one, Bayflow's logo needs the name. */}
+          {/* The workshop's own logo already names it; without one, the product logo needs the name. */}
           {workshop.data && !branding.logoUrl && (
             <span
               className="hidden max-w-48 shrink-0 truncate border-l pl-4 text-sm font-semibold sm:inline"

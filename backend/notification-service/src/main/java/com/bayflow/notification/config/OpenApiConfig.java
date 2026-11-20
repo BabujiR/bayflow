@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 
 @Configuration
 @OpenAPIDefinition(info = @Info(
-        title = "Bayflow Notification API",
+        title = "Ramplight Notification API",
         version = "v1",
         description = "Each signed-in user's notifications: list, unread count, mark as read. Get a token "
                 + "from auth-service (POST /api/v1/auth/login) and use Authorize."))

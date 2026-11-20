@@ -16,7 +16,9 @@ updates:
       interval: weekly
 
   - package-ecosystem: docker-compose
-    directory: /
+    directories:
+      - /
+      - /deploy/gcp
     schedule:
       interval: weekly
     ignore:
@@ -31,6 +33,8 @@ updates:
       - /backend/workshop-service
       - /backend/notification-service
       - /frontend
+      # Caddy in front of the GCP VM
+      - /deploy/gcp/caddy
     schedule:
       interval: weekly
     ignore:

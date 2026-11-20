@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { PUBLIC_WORKSHOP_QUERY_KEY } from '@/features/workshop/use-public-workshop';
+import { PRODUCT_NAME } from '@/lib/brand';
 import { useAction } from '@/lib/use-action';
 import { cn } from '@/lib/utils';
 
@@ -21,7 +22,7 @@ import { colorWarning, foregroundFor, isHexColor } from './colors';
 
 export const BRANDING_QUERY_KEY = ['branding'] as const;
 
-/** Bayflow blue, offered as the starting point when a workshop picks its own colour. */
+/** The product's blue, offered as the starting point when a workshop picks its own colour. */
 const BAYFLOW_BLUE = '#1d4ed8';
 const IMAGE_TYPES = ['image/png', 'image/jpeg'];
 
@@ -52,7 +53,7 @@ const brandingSchema = z
 
 type BrandingForm = z.infer<typeof brandingSchema>;
 
-/** The workshop ADMIN's branding: logo, cover photo, announcements, colour and "Powered by Bayflow". */
+/** The workshop ADMIN's branding: logo, cover photo, announcements, colour and "Powered by …". */
 export function BrandingSection() {
   const branding = useQuery({ queryKey: BRANDING_QUERY_KEY, queryFn: brandingApi.get });
   return (
@@ -150,7 +151,7 @@ function ImageSetting({ kind, url }: { kind: BrandingImageKind; url: string | nu
           />
         ) : (
           <span className="text-sm text-muted-foreground">
-            {kind === 'logo' ? 'Bayflow logo shown' : 'No cover photo'}
+            {kind === 'logo' ? `${PRODUCT_NAME} logo shown` : 'No cover photo'}
           </span>
         )}
       </div>
@@ -305,13 +306,13 @@ function BrandingDetails({ branding }: { branding: Branding }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Powered by Bayflow</CardTitle>
+          <CardTitle>Powered by {PRODUCT_NAME}</CardTitle>
           <CardDescription>A small line at the bottom of the sign-in page and the app.</CardDescription>
         </CardHeader>
         <CardContent>
           <label className="flex items-center gap-2 text-sm font-medium">
             <input type="checkbox" className="size-4 accent-primary" {...register('showPoweredBy')} />
-            Show "Powered by Bayflow"
+            Show "Powered by {PRODUCT_NAME}"
           </label>
         </CardContent>
       </Card>

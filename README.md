@@ -1,8 +1,13 @@
-# Bayflow
+# Ramplight
 
 **The smarter way to run your auto workshop.**
 
-Bayflow is a vehicle maintenance platform that runs a workshop from booking to
+> **Name:** the product is called **Ramplight** (public site: `getramplight.com`). Inside the
+> code it keeps its codename **Bayflow**: Java packages (`com.bayflow`), the database schema,
+> `BAYFLOW_*` settings, `X-Bayflow-*` headers and image names. The visible name lives in
+> `frontend/src/lib/brand.ts`.
+
+Ramplight is a vehicle maintenance platform that runs a workshop from booking to
 service history: customers book appointments, service advisors check vehicles
 in and manage job cards, mechanics log the work, and every completed job is
 recorded in the vehicle's service history.
@@ -120,7 +125,7 @@ session from one workshop is refused at any other workshop's address.
 
 Sign in as the workshop's admin → *Workshop settings* → **Branding**:
 
-- **Logo** (PNG or JPEG, up to 1 MB) replaces the Bayflow logo in the header, on the sign-in
+- **Logo** (PNG or JPEG, up to 1 MB) replaces the Ramplight logo in the header, on the sign-in
   page and as the browser tab's icon.
 - **Sign-in cover photo** (PNG or JPEG, up to 3 MB) shows beside the sign-in form.
 - **Colour** becomes the app's main colour (buttons, links, highlights) in the light and dark
@@ -131,7 +136,7 @@ Sign in as the workshop's admin → *Workshop settings* → **Branding**:
   as **one line**, the important one first, with **"N more"** to open the rest: full size for
   customers and the sign-in page, slim for staff. The list shows which are live, scheduled or
   ended.
-- **"Powered by Bayflow"** at the bottom of the pages can be turned off.
+- **"Powered by Ramplight"** at the bottom of the pages can be turned off.
 
 Images are checked by their content (not their name), re-encoded and scaled down on the
 server, which also removes metadata such as a photo's GPS location. Everything applies at
@@ -274,7 +279,7 @@ videos plus a trace for any failure.
 | `06-resilience` | Stops `workshop-service`, checks in, starts it again: the job card arrives from the outbox, exactly once. Needs the Docker CLI; skip with `E2E_SKIP_CHAOS=1` |
 | `07-workshops` | Two workshops sign up through the public site, configure themselves, and reuse the same admin username independently; taken and reserved addresses refused; a token from one workshop refused at the other's address (401); an unknown address shows *Workshop not found* |
 | `08-locations` | The owner adds a location in Auckland with its own rate, hires an advisor for it; a customer books there in Auckland time; each location's advisor sees only their own; the job card charges the location's rate; the switcher shows one location or all; the location is archived again at the end |
-| `09-branding` | A new workshop's owner uploads a logo and cover photo (a fake PNG is refused), sets a colour and an announcement and turns off "Powered by Bayflow"; a customer sees all of it on the sign-in page and in the app; the images are served cached; other workshops are unchanged; removing the logo brings Bayflow's back |
+| `09-branding` | A new workshop's owner uploads a logo and cover photo (a fake PNG is refused), sets a colour and an announcement and turns off "Powered by Ramplight"; a customer sees all of it on the sign-in page and in the app; the images are served cached; other workshops are unchanged; removing the logo brings Ramplight's back |
 | `10-notifications` | A customer books and the advisor's bell shows it; confirmation and check-in reach the customer, the check-in the mechanic; the estimate reaches the customer, who opens the job card from it; the decision reaches the advisor and mechanic; "ready to collect" reaches the customer; another customer hears nothing |
 
 Pace of the videos: `E2E_SLOWMO` (ms per action, default 250) and `E2E_STEP_PAUSE` (ms per
@@ -298,6 +303,9 @@ spaced out to stay under the 10-per-minute login limit.
 
 ## Running outside local development
 
+**On Google Cloud:** follow [docs/GCP-DEPLOY.md](docs/GCP-DEPLOY.md) (one VM, Docker Compose,
+Caddy with a wildcard certificate, nightly backups). It applies everything below.
+
 - Set `SPRING_PROFILES_ACTIVE` to something other than `dev` (no demo users), set
   `BAYFLOW_BOOTSTRAP_ADMIN_PASSWORD` for the first admin, and change
   `BAYFLOW_SYSTEM_CLIENT_SECRET`, `BAYFLOW_WORKSHOP_CLIENT_SECRET` and the database password.
@@ -318,6 +326,7 @@ spaced out to stay under the 10-per-minute login limit.
 | `infra/postgres/init/` | creates schema `bayflow` on first start |
 | `infra/nginx/` | nginx config for the web image: routing, caching, security headers |
 | `scripts/` | helper scripts (dev JWT key generation) |
+| `deploy/gcp/` | production on one Google Cloud VM: Compose file, Caddy (HTTPS), setup and backup scripts ([docs/GCP-DEPLOY.md](docs/GCP-DEPLOY.md)) |
 | `docs/` | build plan and design notes |
 | `.github/` | CI/CD workflows and Dependabot |
 
@@ -340,7 +349,7 @@ spaced out to stay under the 10-per-minute login limit.
 | Locations 1 | Organizations have locations ("Main" for everyone) | ✅ done |
 | Locations 2 | Location-scoped roles and isolation | ✅ done |
 | Locations 3 | Locations page, switcher, booking per location | ✅ done |
-| Branding | Logo, colour, cover photo, announcement, "Powered by Bayflow" | ✅ done |
+| Branding | Logo, colour, cover photo, announcement, "Powered by Ramplight" | ✅ done |
 | Notifications 1 | In-app notifications: bell, panel, Notifications page | 🔍 in review |
 
 ## Assumptions

@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 
+import { PRODUCT_NAME } from '@/lib/brand';
+
 import { foregroundFor, isHexColor } from './colors';
 import { useBranding } from './use-branding';
 
-const DEFAULT_TITLE = 'Bayflow';
+const DEFAULT_TITLE = PRODUCT_NAME;
 const DEFAULT_ICON = '/favicon.svg';
 export const BRANDING_STYLE_ID = 'bayflow-branding';
 
@@ -45,7 +47,7 @@ export function BrandingEffect() {
     if (!displayName) {
       return;
     }
-    document.title = branding.showPoweredBy ? `${displayName} · Bayflow` : displayName;
+    document.title = branding.showPoweredBy ? `${displayName} · ${PRODUCT_NAME}` : displayName;
     return () => {
       document.title = DEFAULT_TITLE;
     };
