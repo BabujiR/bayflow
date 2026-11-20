@@ -8,6 +8,7 @@ import { announcementsApi } from '@/api/endpoints';
 import { ApiError } from '@/api/errors';
 import type { Announcement } from '@/api/types';
 import { QueryState } from '@/components/common/QueryState';
+import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -213,6 +214,11 @@ function AnnouncementEditor({
         setError('endsAt', { message: error.message });
         return true;
       }
+      if (error.code === 'too-many-announcements') {
+        // Shown in the dialog itself: a toast would sit behind it.
+        setError('root.server', { message: error.message });
+        return true;
+      }
       if (error.code === 'concurrent-update') {
         void queryClient.invalidateQueries({ queryKey: ANNOUNCEMENTS_QUERY_KEY });
       }
@@ -287,6 +293,7 @@ function AnnouncementEditor({
           </div>
         </div>
       )}
+      {errors.root?.server?.message && <Alert>{errors.root.server.message}</Alert>}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onDone}>
           Cancel

@@ -96,7 +96,9 @@ describe('announcements (workshop ADMIN)', () => {
 
     fireEvent.change(within(dialog).getByLabelText('Show from'), { target: { value: '' } });
     await userEvent.click(within(dialog).getByRole('button', { name: 'Add announcement' }));
-    expect(await screen.findByText('A workshop can keep at most 10 announcements.')).toBeInTheDocument();
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      'A workshop can keep at most 10 announcements.',
+    );
   });
 
   it('edits one, sending the version read, and deletes another', async () => {
