@@ -126,8 +126,11 @@ Sign in as the workshop's admin → *Workshop settings* → **Branding**:
 - **Colour** becomes the app's main colour (buttons, links, highlights) in the light and dark
   theme; text on it turns white or black automatically, and a warning shows for colours that
   are hard to read.
-- **Announcement**: one line of plain text at the top of every page (holiday hours, an
-  offer), optionally only between two dates. Customers see it in full, staff as a slim line.
+- **Announcements** (up to 10): each one line of plain text (holiday hours, an offer),
+  Information or Important, optionally only between two dates. Every page shows the live ones
+  as **one line**, the important one first, with **"N more"** to open the rest: full size for
+  customers and the sign-in page, slim for staff. The list shows which are live, scheduled or
+  ended.
 - **"Powered by Bayflow"** at the bottom of the pages can be turned off.
 
 Images are checked by their content (not their name), re-encoded and scaled down on the

@@ -31,6 +31,7 @@ const defaults = [
   http.get('*/api/v1/auth/locations', () => HttpResponse.json([location()])),
   http.get('*/api/v1/tenants/current', () => HttpResponse.json(publicWorkshop())),
   http.get('*/api/v1/auth/tenant/branding', () => HttpResponse.json(branding())),
+  http.get('*/api/v1/auth/tenant/branding/announcements', () => HttpResponse.json([])),
   http.get('*/api/v1/notifications/unread-count', () => HttpResponse.json({ count: 0 })),
   http.get('*/api/v1/notifications', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/customers/me', () => HttpResponse.json(customer())),
@@ -175,7 +176,7 @@ export function publicWorkshop(
       coverUrl: null,
       primaryColor: null,
       showPoweredBy: true,
-      banner: null,
+      announcements: [],
       ...brandingOverrides,
     },
   };
@@ -185,11 +186,6 @@ export function publicWorkshop(
 export function branding(overrides: Partial<Branding> = {}): Branding {
   return {
     primaryColor: null,
-    bannerText: null,
-    bannerStyle: 'INFO',
-    bannerStartsAt: null,
-    bannerEndsAt: null,
-    bannerLive: false,
     showPoweredBy: true,
     logoUrl: null,
     coverUrl: null,

@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
@@ -24,7 +24,10 @@ const branded = (overrides: Partial<PublicBranding> = {}) =>
           coverUrl: '/api/v1/tenants/current/cover?v=def',
           primaryColor: '#be123c',
           showPoweredBy: false,
-          banner: { text: 'Closed on 24 December', style: 'IMPORTANT' },
+          announcements: [
+            { id: 'a1', text: 'Closed on 24 December', style: 'IMPORTANT' },
+            { id: 'a2', text: 'Winter tyres in stock', style: 'INFO' },
+          ],
           ...overrides,
         },
       }),
@@ -68,9 +71,11 @@ describe('a branded workshop', () => {
       'src',
       '/api/v1/tenants/current/cover?v=def',
     );
-    const banner = screen.getByRole('complementary', { name: 'Workshop announcement' });
-    expect(banner).toHaveTextContent('Closed on 24 December');
-    expect(banner).toHaveAttribute('data-style', 'IMPORTANT');
+    const banner = screen.getByRole('complementary', { name: 'Workshop announcements' });
+    const [first, second] = within(banner).getAllByTestId('announcement');
+    expect(first).toHaveTextContent('Closed on 24 December');
+    expect(first).toHaveAttribute('data-style', 'IMPORTANT');
+    expect(second).not.toBeVisible();
     expect(screen.queryByTestId('powered-by')).not.toBeInTheDocument();
 
     await vi.waitFor(() => expect(brandRule()).toContain('--primary: #be123c;'));
@@ -78,11 +83,36 @@ describe('a branded workshop', () => {
     expect(document.title).toBe('Acme Auto');
   });
 
-  it('shows the announcement as text, never as markup', async () => {
-    server.use(noSession, branded({ banner: { text: '<img src=x onerror=alert(1)>', style: 'INFO' } }));
+  it('shows one announcement, and the rest behind "more"', async () => {
+    server.use(noSession, branded());
     renderApp('/login');
 
-    const banner = await screen.findByRole('complementary', { name: 'Workshop announcement' });
+    const banner = await screen.findByRole('complementary', { name: 'Workshop announcements' });
+    const more = within(banner).getByRole('button', { name: '1 more' });
+    expect(more).toHaveAttribute('aria-expanded', 'false');
+    expect(within(banner).getByText('Winter tyres in stock')).not.toBeVisible();
+
+    await userEvent.click(more);
+    expect(within(banner).getByText('Winter tyres in stock')).toBeVisible();
+    expect(within(banner).getByRole('button', { name: 'Show less' })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('has no "more" with a single announcement', async () => {
+    server.use(noSession, branded({ announcements: [{ id: 'a1', text: 'Open Saturdays', style: 'INFO' }] }));
+    renderApp('/login');
+    const banner = await screen.findByRole('complementary', { name: 'Workshop announcements' });
+    expect(banner).toHaveTextContent('Open Saturdays');
+    expect(within(banner).queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('shows the announcement as text, never as markup', async () => {
+    server.use(
+      noSession,
+      branded({ announcements: [{ id: 'a1', text: '<img src=x onerror=alert(1)>', style: 'INFO' }] }),
+    );
+    renderApp('/login');
+
+    const banner = await screen.findByRole('complementary', { name: 'Workshop announcements' });
     expect(banner).toHaveTextContent('<img src=x onerror=alert(1)>');
     expect(banner.querySelector('img')).toBeNull();
   });
@@ -113,40 +143,36 @@ describe('a branded workshop', () => {
   });
 });
 
+/**
+ * The settings page is large (the time-zone list alone has ~400 options), and a role query
+ * scans the whole page, so finding the form can take longer than findBy's default second.
+ */
+const brandingForm = () => screen.findByRole('form', { name: 'Branding' }, { timeout: 5_000 });
+
 describe('branding settings (workshop ADMIN)', () => {
-  it('saves colour, announcement and "Powered by Bayflow", sending the version read', async () => {
+  it('saves colour and "Powered by Bayflow", sending the version read', async () => {
     let sent: Record<string, unknown> | undefined;
     server.use(
       sessionFor(user('ADMIN', 'admin')),
       http.get('*/api/v1/auth/tenant/branding', () => HttpResponse.json(branding({ version: 3 }))),
       http.put('*/api/v1/auth/tenant/branding', async ({ request }) => {
         sent = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(branding({ primaryColor: '#be123c', bannerLive: true, version: 4 }));
+        return HttpResponse.json(branding({ primaryColor: '#be123c', version: 4 }));
       }),
     );
     renderApp('/settings');
 
-    const form = await screen.findByRole('form', { name: 'Branding' });
+    const form = await brandingForm();
     await userEvent.click(within(form).getByLabelText("Use my workshop's colour"));
     const code = within(form).getByLabelText('Colour code');
     await userEvent.clear(code);
     await userEvent.type(code, '#BE123C');
     expect(within(form).getByTestId('color-preview')).toHaveTextContent('Book a service');
-    await userEvent.type(within(form).getByLabelText('Message'), 'Winter tyres in stock');
-    await userEvent.selectOptions(within(form).getByLabelText('Style'), 'IMPORTANT');
     await userEvent.click(within(form).getByLabelText('Show "Powered by Bayflow"'));
     await userEvent.click(within(form).getByRole('button', { name: 'Save branding' }));
 
     await vi.waitFor(() =>
-      expect(sent).toEqual({
-        primaryColor: '#be123c',
-        bannerText: 'Winter tyres in stock',
-        bannerStyle: 'IMPORTANT',
-        bannerStartsAt: null,
-        bannerEndsAt: null,
-        showPoweredBy: false,
-        version: 3,
-      }),
+      expect(sent).toEqual({ primaryColor: '#be123c', showPoweredBy: false, version: 3 }),
     );
   });
 
@@ -154,7 +180,7 @@ describe('branding settings (workshop ADMIN)', () => {
     server.use(sessionFor(user('ADMIN', 'admin')));
     renderApp('/settings');
 
-    const form = await screen.findByRole('form', { name: 'Branding' });
+    const form = await brandingForm();
     await userEvent.click(within(form).getByLabelText("Use my workshop's colour"));
     const code = within(form).getByLabelText('Colour code');
     await userEvent.clear(code);
@@ -163,22 +189,8 @@ describe('branding settings (workshop ADMIN)', () => {
 
     await userEvent.clear(code);
     await userEvent.type(code, 'blue');
-    await userEvent.type(within(form).getByLabelText('Message'), 'x');
     await userEvent.click(within(form).getByRole('button', { name: 'Save branding' }));
     expect(await within(form).findByText('A colour like #1d4ed8')).toBeInTheDocument();
-  });
-
-  it('refuses a banner that ends before it starts', async () => {
-    server.use(sessionFor(user('ADMIN', 'admin')));
-    renderApp('/settings');
-
-    const form = await screen.findByRole('form', { name: 'Branding' });
-    await userEvent.type(within(form).getByLabelText('Message'), 'Holiday hours');
-    fireEvent.change(within(form).getByLabelText('Show from'), { target: { value: '2026-12-24T08:00' } });
-    fireEvent.change(within(form).getByLabelText('Show until'), { target: { value: '2026-12-20T08:00' } });
-    await userEvent.click(within(form).getByRole('button', { name: 'Save branding' }));
-
-    expect(await within(form).findByText('Must be after the start')).toBeInTheDocument();
   });
 
   it('uploads a logo and shows the server refusing an unsafe file', async () => {

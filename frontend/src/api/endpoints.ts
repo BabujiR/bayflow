@@ -1,5 +1,7 @@
 import { http } from './http';
 import type {
+  Announcement,
+  AnnouncementRequest,
   AppNotification,
   Appointment,
   Branding,
@@ -155,6 +157,16 @@ export const brandingApi = {
     return http.put<Branding>(`/api/v1/auth/tenant/branding/${kind}`, form);
   },
   remove: (kind: BrandingImageKind) => http.delete<Branding>(`/api/v1/auth/tenant/branding/${kind}`),
+};
+
+/** The workshop's announcements (workshop ADMIN only). Everyone sees the live ones via tenantsApi.current. */
+export const announcementsApi = {
+  list: () => http.get<Announcement[]>('/api/v1/auth/tenant/branding/announcements'),
+  create: (body: AnnouncementRequest) =>
+    http.post<Announcement>('/api/v1/auth/tenant/branding/announcements', body),
+  update: ({ id, ...body }: AnnouncementRequest & { id: string; version: number }) =>
+    http.put<Announcement>(`/api/v1/auth/tenant/branding/announcements/${id}`, body),
+  remove: (id: string) => http.delete<void>(`/api/v1/auth/tenant/branding/announcements/${id}`),
 };
 
 /** Public: sign up a workshop, check an address, name the workshop at this address. */

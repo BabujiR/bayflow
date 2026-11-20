@@ -1,7 +1,6 @@
 package com.bayflow.auth.api;
 
 import java.io.IOException;
-import java.time.Instant;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -25,7 +24,6 @@ import com.bayflow.auth.application.BrandingService.BrandingUpdate;
 import com.bayflow.auth.application.BrandingService.BrandingView;
 import com.bayflow.auth.domain.TenantAsset.Kind;
 import com.bayflow.auth.domain.TenantBranding;
-import com.bayflow.auth.domain.TenantBranding.BannerStyle;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -39,14 +37,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Workshop branding")
 public class BrandingController {
 
-    public record BrandingResponse(String primaryColor, String bannerText, BannerStyle bannerStyle,
-            Instant bannerStartsAt, Instant bannerEndsAt, boolean bannerLive, boolean showPoweredBy,
-            String logoUrl, String coverUrl, long version) {
+    /** Colour, "Powered by Bayflow" and the images; announcements are under /announcements. */
+    public record BrandingResponse(String primaryColor, boolean showPoweredBy, String logoUrl, String coverUrl,
+            long version) {
 
-        static BrandingResponse from(BrandingView view, Instant now) {
+        static BrandingResponse from(BrandingView view) {
             TenantBranding b = view.branding();
-            return new BrandingResponse(b.getPrimaryColor(), b.getBannerText(), b.getBannerStyle(),
-                    b.getBannerStartsAt(), b.getBannerEndsAt(), b.isBannerLive(now), b.isShowPoweredBy(),
+            return new BrandingResponse(b.getPrimaryColor(), b.isShowPoweredBy(),
                     imageUrl(Kind.LOGO, view.logoSha256()), imageUrl(Kind.COVER, view.coverSha256()),
                     b.getVersion() == null ? 0 : b.getVersion());
         }
@@ -54,51 +51,44 @@ public class BrandingController {
 
     public record UpdateBrandingRequest(
             @Size(max = 7) String primaryColor,
-            @Size(max = 400) String bannerText,
-            BannerStyle bannerStyle,
-            Instant bannerStartsAt,
-            Instant bannerEndsAt,
             @NotNull Boolean showPoweredBy,
             @NotNull Long version) {
     }
 
     private final BrandingService branding;
-    private final java.time.Clock clock;
 
-    public BrandingController(BrandingService branding, java.time.Clock clock) {
+    public BrandingController(BrandingService branding) {
         this.branding = branding;
-        this.clock = clock;
     }
 
     @GetMapping
     @Operation(summary = "The workshop's branding (workshop ADMIN)")
     public BrandingResponse get() {
-        return BrandingResponse.from(branding.current(), clock.instant());
+        return BrandingResponse.from(branding.current());
     }
 
     @PutMapping
-    @Operation(summary = "Change colour, banner and 'Powered by Bayflow' (workshop ADMIN)",
+    @Operation(summary = "Change colour and 'Powered by Bayflow' (workshop ADMIN)",
             description = "Send the version you read; 409 if someone changed the branding meanwhile. "
-                    + "Empty colour = Bayflow's colours; empty banner text = no banner.")
+                    + "Empty colour = Bayflow's colours.")
     public BrandingResponse update(@Valid @RequestBody UpdateBrandingRequest request) {
-        return BrandingResponse.from(branding.update(new BrandingUpdate(request.primaryColor(), request.bannerText(),
-                request.bannerStyle(), request.bannerStartsAt(), request.bannerEndsAt(), request.showPoweredBy(),
-                request.version())), clock.instant());
+        return BrandingResponse.from(branding.update(new BrandingUpdate(request.primaryColor(),
+                request.showPoweredBy(), request.version())));
     }
 
-    @PutMapping(path = "/{kind}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(path = "/{kind:logo|cover}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload the logo or cover photo (workshop ADMIN)",
             description = "kind = logo (PNG/JPEG, up to 1 MB, shown up to 512 px) or cover (PNG/JPEG, up to "
                     + "3 MB, shown up to 2000 px wide). The image is re-encoded; its metadata is removed.")
     public BrandingResponse upload(@PathVariable String kind, @RequestPart("file") MultipartFile file)
             throws IOException {
-        return BrandingResponse.from(branding.upload(kindOf(kind), file.getBytes()), clock.instant());
+        return BrandingResponse.from(branding.upload(kindOf(kind), file.getBytes()));
     }
 
-    @DeleteMapping("/{kind}")
+    @DeleteMapping("/{kind:logo|cover}")
     @Operation(summary = "Remove the logo or cover photo (workshop ADMIN)")
     public BrandingResponse remove(@PathVariable String kind) {
-        return BrandingResponse.from(branding.remove(kindOf(kind)), clock.instant());
+        return BrandingResponse.from(branding.remove(kindOf(kind)));
     }
 
     static Kind kindOf(String kind) {

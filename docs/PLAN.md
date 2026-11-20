@@ -601,8 +601,7 @@ in the page `<meta name="description">`.
       because the workshop's colour is kept as it is); it does not refuse such colours.
     - **Announcement:** plain text, one line (control characters become spaces), at most 200
       characters, rendered as text (never HTML). INFO or IMPORTANT style. Optional start and
-      end (end after start); `/tenants/current` includes it only while live. Customers and
-      the sign-in page show it in full, staff as a slim line under the header.
+      end (end after start). Since item 27 a workshop can have several.
     - **"Powered by Bayflow"** is on by default; turning it off also drops "· Bayflow" from the
       tab title. Bayflow's own public site (sign-up) is never branded.
     - The browser tab shows the workshop's name and its logo as the icon.
@@ -669,6 +668,23 @@ in the page `<meta name="description">`.
     `upcoming`. The web app's *Appointments* page has a **Sort** dropdown; day, status and
     sort are in the address (`/appointments?sort=latest&day=2026-11-24`), and the last sort
     chosen is remembered in the browser.
+
+27. **Several announcements (option D).** The single banner on `auth_tenant_branding` became
+    `auth_tenant_announcements` (auth V10, RLS like every per-workshop table; today's banner,
+    if any, became the first announcement and the banner columns were dropped). Each has
+    text (one line, ≤ 200 characters), style INFO/IMPORTANT and optional start/end; a
+    workshop keeps at most 10 (409 `too-many-announcements`).
+    - ADMIN API: `GET/POST /api/v1/auth/tenant/branding/announcements`,
+      `PUT/DELETE …/{id}` (PUT with `version`). The list says LIVE, SCHEDULED or ENDED;
+      ended ones stay until deleted, to reuse.
+    - `GET /api/v1/tenants/current` → `branding.announcements`: the live ones, important
+      first, then the one ending soonest (no end last), then the oldest. The `banner` field
+      is gone; colour and "Powered by Bayflow" stay on `PUT /api/v1/auth/tenant/branding`.
+    - Web app: one line with the first, and "N more" (a button with `aria-expanded`) that
+      opens the others underneath; full size for customers and the sign-in page, slim for
+      staff. Settings: an *Announcements* card with Add / Edit (dialog) / Delete.
+    - Not built (decided against for now): audience (customers/staff only) and per-location
+      announcements, and customers dismissing one.
 
 ---
 
