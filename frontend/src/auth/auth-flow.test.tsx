@@ -113,7 +113,7 @@ describe('signing in and out', () => {
     );
     renderApp('/register');
 
-    await userEvent.type(await screen.findByLabelText('Username or email'), 'customer1');
+    await userEvent.type(await screen.findByLabelText('Username'), 'customer1');
     await userEvent.type(screen.getByLabelText('Email'), 'c1@example.com');
     await userEvent.type(screen.getByLabelText('Password'), 'Correct-Horse-1');
     await userEvent.type(screen.getByLabelText('Confirm password'), 'Different-1');
