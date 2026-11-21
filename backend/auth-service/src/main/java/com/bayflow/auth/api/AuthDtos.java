@@ -35,7 +35,18 @@ public final class AuthDtos {
             @NotBlank @Size(min = 8, max = 100) String password) {
     }
 
-    public record LoginRequest(@NotBlank String username, @NotBlank String password) {
+    /** {@code username} may also be the account's e-mail address. */
+    public record LoginRequest(@NotBlank @Size(max = 254) String username, @NotBlank String password) {
+    }
+
+    /** The signed-in user's new password; {@code currentPassword} is the temporary one after a reset. */
+    public record ChangePasswordRequest(@NotBlank String currentPassword,
+            @NotBlank @Size(min = 8, max = 100) String newPassword) {
+    }
+
+    /** Shown once to the staff member who reset the password; never stored in plain text. */
+    public record TemporaryPasswordResponse(UUID userId, String username, String temporaryPassword,
+            Instant expiresAt) {
     }
 
     public record ClientTokenRequest(@NotBlank String clientId, @NotBlank String clientSecret) {
@@ -47,7 +58,7 @@ public final class AuthDtos {
             @NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(min = 8, max = 100) String password,
             @NotNull Role role,
-            /** For MANAGER, SERVICE_ADVISOR and MECHANIC; none = the organization's only location. */
+            /* For MANAGER, SERVICE_ADVISOR and MECHANIC; none = the organization's only location. */
             @Size(max = 200) List<UUID> locationIds) {
     }
 
@@ -60,15 +71,16 @@ public final class AuthDtos {
 
     /**
      * An account. {@code allLocations}: works with every location of the organization (ADMIN,
-     * CUSTOMER); otherwise {@code locationIds} lists where they work.
+     * CUSTOMER); otherwise {@code locationIds} lists where they work. {@code mustChangePassword}:
+     * signed in with a temporary password from a reset, which they must replace first.
      */
     public record UserResponse(UUID id, String username, String email, List<String> roles, boolean enabled,
-            Instant createdAt, boolean allLocations, List<UUID> locationIds) {
+            Instant createdAt, boolean allLocations, List<UUID> locationIds, boolean mustChangePassword) {
 
         public static UserResponse from(User user, LocationAccess access) {
             List<String> roles = user.getRoles().stream().map(Role::name).sorted().toList();
             return new UserResponse(user.getId(), user.getUsername(), user.getEmail(), roles, user.isEnabled(),
-                    user.getCreatedAt(), access.all(), access.locationIds());
+                    user.getCreatedAt(), access.all(), access.locationIds(), user.isMustChangePassword());
         }
     }
 

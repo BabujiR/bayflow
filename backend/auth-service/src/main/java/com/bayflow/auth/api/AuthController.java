@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.bayflow.auth.api.AuthDtos.ChangePasswordRequest;
 import com.bayflow.auth.api.AuthDtos.ClientTokenRequest;
 import com.bayflow.auth.api.AuthDtos.LoginRequest;
 import com.bayflow.auth.api.AuthDtos.RegisterRequest;
@@ -65,7 +66,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Sign in; returns an access token and sets the refresh-token cookie")
+    @Operation(summary = "Sign in with username or e-mail; returns an access token and sets the refresh-token cookie")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request,
             HttpServletRequest httpRequest) {
         Session session = TenantContext.call(tenants.resolve(httpRequest),
@@ -93,20 +94,32 @@ public class AuthController {
                 .build();
     }
 
+    @PostMapping("/me/password")
+    @Operation(summary = "Change your own password (also replaces a temporary one after a reset)",
+            description = "Ends your other sessions; returns a new access token and refresh-token cookie.")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<TokenResponse> changePassword(@Valid @RequestBody ChangePasswordRequest request,
+            Authentication authentication, HttpServletRequest httpRequest) {
+        UUID userId = userIdOf(authentication);
+        return sessionResponse(authService.changePassword(userId, request.currentPassword(),
+                request.newPassword(), httpRequest.getRemoteAddr()));
+    }
+
     @GetMapping("/me")
     @Operation(summary = "The signed-in user")
     @SecurityRequirement(name = "bearerAuth")
     public UserResponse me(Authentication authentication) {
-        CurrentUser current = CurrentUser.from(authentication);
-        UUID userId;
+        User user = authService.getUser(userIdOf(authentication));
+        return UserResponse.from(user, authService.accessOf(user));
+    }
+
+    private static UUID userIdOf(Authentication authentication) {
         try {
-            userId = UUID.fromString(current.subject());
+            return UUID.fromString(CurrentUser.from(authentication).subject());
         } catch (IllegalArgumentException e) {
             // SYSTEM tokens carry a client id, not a user id
             throw ApiException.notFound("User");
         }
-        User user = authService.getUser(userId);
-        return UserResponse.from(user, authService.accessOf(user));
     }
 
     @PostMapping("/token")

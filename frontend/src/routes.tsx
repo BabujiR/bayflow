@@ -1,6 +1,6 @@
 import type { RouteObject } from 'react-router';
 
-import { GuestOnly, RequireAuth, RequireRole } from '@/auth/guards';
+import { CHANGE_PASSWORD_PATH, GuestOnly, RequireAuth, RequireRole } from '@/auth/guards';
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { AppointmentsPage } from '@/features/appointments/AppointmentsPage';
@@ -20,6 +20,7 @@ import { UsersPage } from '@/features/users/UsersPage';
 import { VehicleDetailPage } from '@/features/vehicles/VehicleDetailPage';
 import { VehiclesPage } from '@/features/vehicles/VehiclesPage';
 import { WorkshopSettingsPage } from '@/features/workshop/WorkshopSettingsPage';
+import { ChangePasswordPage } from '@/pages/ChangePasswordPage';
 import { HomePage } from '@/pages/HomePage';
 import { LoginPage } from '@/pages/LoginPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
@@ -45,6 +46,11 @@ export const routes: RouteObject[] = [
   {
     element: <RequireAuth />,
     children: [
+      {
+        // Outside the app shell: after a password reset, nothing else is reachable until it's done.
+        element: <AuthLayout />,
+        children: [{ path: CHANGE_PASSWORD_PATH, element: <ChangePasswordPage /> }],
+      },
       {
         element: <AppShell />,
         children: [

@@ -21,7 +21,8 @@
     "api:gen": "openapi-typescript openapi/auth.json -o src/api/schema/auth.ts && openapi-typescript openapi/appointment.json -o src/api/schema/appointment.ts && openapi-typescript openapi/workshop.json -o src/api/schema/workshop.ts",
     "api:update": "pnpm api:pull && pnpm api:gen",
     "e2e": "playwright test",
-    "e2e:install": "playwright install --with-deps chromium"
+    "e2e:install": "playwright install --with-deps chromium",
+    "demo:record": "playwright test -c playwright.demo.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.6",

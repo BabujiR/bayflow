@@ -1,5 +1,5 @@
 import { request } from './http';
-import type { LoginRequest, RegisterRequest, TokenResponse, User } from './types';
+import type { ChangePasswordRequest, LoginRequest, RegisterRequest, TokenResponse, User } from './types';
 
 const BASE = '/api/v1/auth';
 
@@ -13,4 +13,7 @@ export const authApi = {
   refresh: () => request<TokenResponse>(`${BASE}/refresh`, { method: 'POST', auth: false }),
   logout: () => request<void>(`${BASE}/logout`, { method: 'POST', auth: false }),
   me: () => request<User>(`${BASE}/me`),
+  /** Ends the user's other sessions; returns this one's new token (and sets a new cookie). */
+  changePassword: (body: ChangePasswordRequest) =>
+    request<TokenResponse>(`${BASE}/me/password`, { method: 'POST', body }),
 };

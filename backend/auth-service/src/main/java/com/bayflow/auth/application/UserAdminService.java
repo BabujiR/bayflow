@@ -1,37 +1,82 @@
 package com.bayflow.auth.application;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.bayflow.auth.config.AuthProperties;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.User;
 import com.bayflow.auth.infrastructure.RefreshTokenRepository;
 import com.bayflow.auth.infrastructure.UserRepository;
+import com.bayflow.security.CurrentUser;
 
-/** Account management, used by admins. */
+/** Account management, used by admins (and password resets, by the staff who serve customers). */
 @Service
 public class UserAdminService {
+
+    private static final Logger log = LoggerFactory.getLogger(UserAdminService.class);
+
+    /** A reset's temporary password, shown once to the staff member who asked for it. */
+    public record TemporaryPassword(User user, String password, Instant expiresAt) {
+    }
 
     private final AuthService authService;
     private final UserRepository users;
     private final RefreshTokenRepository refreshTokens;
     private final UserLocationService userLocations;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthProperties properties;
     private final Clock clock;
 
     public UserAdminService(AuthService authService, UserRepository users, RefreshTokenRepository refreshTokens,
-            UserLocationService userLocations, Clock clock) {
+            UserLocationService userLocations, PasswordEncoder passwordEncoder, AuthProperties properties,
+            Clock clock) {
         this.authService = authService;
         this.users = users;
         this.refreshTokens = refreshTokens;
         this.userLocations = userLocations;
+        this.passwordEncoder = passwordEncoder;
+        this.properties = properties;
         this.clock = clock;
+    }
+
+    /**
+     * Gives the account a temporary password that must be replaced at the next sign-in, lifts a
+     * lockout and ends all of its sessions. An ADMIN may reset anyone else's password; a MANAGER
+     * or SERVICE_ADVISOR only a customer's. Nobody resets their own (they change it instead).
+     */
+    @Transactional
+    public TemporaryPassword resetPassword(UUID userId, CurrentUser actor) {
+        UUID actorId = UUID.fromString(actor.subject());
+        if (userId.equals(actorId)) {
+            throw ApiException.conflict("cannot-reset-self",
+                    "Use Change password in your account menu to change your own password.");
+        }
+        User user = users.findById(userId).orElseThrow(() -> ApiException.notFound("User"));
+        if (!actor.isAdmin() && !user.getRoles().equals(Set.of(Role.CUSTOMER))) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "forbidden", "Forbidden",
+                    "Only an admin can reset a staff member's password.");
+        }
+        String password = SecureTokens.temporaryPassword();
+        Instant now = clock.instant();
+        Instant expiresAt = now.plus(properties.getTemporaryPasswordTtl());
+        user.resetPassword(passwordEncoder.encode(password), expiresAt, now);
+        users.saveAndFlush(user);
+        refreshTokens.revokeAllForUser(userId);
+        log.info("Password of account {} reset by {}", userId, actorId);
+        return new TemporaryPassword(user, password, expiresAt);
     }
 
     /** A staff account with its locations (MANAGER, SERVICE_ADVISOR, MECHANIC) in one transaction. */

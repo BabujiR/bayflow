@@ -24,6 +24,8 @@ import { useLocationLookup, useLocations } from '@/features/locations/use-locati
 import { formatDate } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
+import { ResetPasswordButton } from './ResetPasswordButton';
+
 const STAFF_ROLES = ['SERVICE_ADVISOR', 'MECHANIC', 'MANAGER', 'ADMIN'] as const;
 
 const staffSchema = z.object({
@@ -65,7 +67,7 @@ export function UsersPage() {
     <>
       <PageHeader
         title="User accounts"
-        description="Customers register themselves; staff accounts are created here. Disabling an account signs it out everywhere."
+        description="Customers register themselves; staff accounts are created here. Reset password gives someone who forgot theirs a temporary one; disabling an account signs it out everywhere."
         actions={
           <Dialog open={creating} onOpenChange={setCreating}>
             <DialogTrigger asChild>
@@ -115,6 +117,7 @@ export function UsersPage() {
                     <TableCell>{formatDate(u.createdAt)}</TableCell>
                     <TableCell className="text-right">
                       {lookup.hasSeveral && isLocationScoped(u) && <EditLocations user={u} />}
+                      {u.id !== me?.id && <ResetPasswordButton userId={u.id} name={u.username} />}
                       {u.id !== me?.id && (
                         <Button
                           size="sm"
