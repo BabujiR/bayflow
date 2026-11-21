@@ -117,6 +117,11 @@ test('Ramplight for customers', async ({ presenter: p }) => {
   await expect(page.getByRole('heading', { name: 'Service history' })).toBeVisible();
   await p.point(page.getByRole('heading', { name: 'Service history' }));
   await p.pause(2500);
+
+  await p.say('Next time she can sign in with her email address instead of her username.');
+  await p.signOut();
+  await p.signIn(`${username}@example.com`, password, username);
+  await p.say("And if she ever forgets her password, the shop resets it for her (see the advisor's video).");
   await p.card(
     'Ramplight',
     `Online booking for your customers. Start free at ${SITE_HOST}.`,

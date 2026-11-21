@@ -28,9 +28,10 @@ import {
  * The full product walkthrough (10–15 minutes): an auto shop owner signs up and sets up the
  * workshop, a customer books online, the service advisor checks the car in and sends an
  * estimate, the customer approves part of it, the mechanic does the work, the customer
- * collects the car and sees the service history, and the owner looks over the day.
+ * collects the car and sees the service history, forgets his password and the advisor resets it,
+ * and the owner looks over the day.
  *
- * Creates the workshop DEMO_SLUG (default summit-auto) on the live site; run it once per slug.
+ * Creates the workshop DEMO_SLUG (default summit-autocare) on the live site; run it once per slug.
  */
 test('Ramplight walkthrough: one auto shop, from sign-up to service history', async ({ presenter: p }) => {
   test.setTimeout(45 * 60_000);
@@ -356,6 +357,53 @@ test('Ramplight walkthrough: one auto shop, from sign-up to service history', as
   await p.say('Next time, the advisor can remind him about those wipers.');
   await p.signOut();
 
+  // ---- 8. A forgotten password ------------------------------------------------------------------
+  await p.chapter(
+    'Forgot a password? Sorted in a minute',
+    'Customers sign in with their username or e-mail, and the shop resets a forgotten password.',
+  );
+  await p.say("A few weeks later John can't remember his username, so he uses his email address.");
+  await p.type(page.getByLabel('Username or email'), CUSTOMER.email);
+  await p.fill(page.getByLabel('Password'), 'NotMyPassword-1');
+  await p.click(page.getByRole('button', { name: 'Sign in' }));
+  await expect(page.getByText('Username or password is incorrect.')).toBeVisible();
+  await p.say("But he can't remember the password either. The sign-in page tells him what to do: ask the shop.");
+  await p.point(page.getByText(/Forgot your password\?/));
+  await p.pause(1500);
+
+  await p.say(`He calls Summit. ${ADVISOR.name} finds him under Customers.`);
+  await p.signIn(ADVISOR.username, password);
+  await p.nav('Customers', '/customers');
+  await p.type(page.getByLabel('Search'), 'John');
+  await p.click(page.getByRole('link', { name: CUSTOMER.name }).first());
+  await expect(page.getByRole('heading', { name: CUSTOMER.name })).toBeVisible();
+  await p.say('One click on Reset password gives John a temporary password and signs him out everywhere.');
+  await p.click(page.getByRole('button', { name: `Reset password for ${CUSTOMER.name}` }));
+  const resetDialog = page.getByRole('dialog', { name: `Reset password for ${CUSTOMER.name}?` });
+  await p.click(resetDialog.getByRole('button', { name: 'Reset password' }));
+  const shown = page.getByTestId('temporary-password');
+  await expect(shown).toBeVisible();
+  const temporaryPassword = (await shown.textContent())?.trim() ?? '';
+  await p.point(shown);
+  await p.say('She reads it to him over the phone. It is shown only once and works for 72 hours.');
+  await p.click(page.getByRole('button', { name: 'Done' }));
+  await p.signOut();
+
+  await p.say('John signs in with his email and the temporary password...');
+  await p.type(page.getByLabel('Username or email'), CUSTOMER.email);
+  await p.fill(page.getByLabel('Password'), temporaryPassword);
+  await p.click(page.getByRole('button', { name: 'Sign in' }));
+  await expect(page.getByRole('heading', { name: 'Choose a new password' })).toBeVisible();
+  await p.say('...and must choose his own before anything else.');
+  await p.fill(page.getByLabel('Temporary password'), temporaryPassword);
+  await p.fill(page.getByLabel('New password', { exact: true }), password);
+  await p.fill(page.getByLabel('Confirm new password'), password);
+  await p.click(page.getByRole('button', { name: 'Save new password' }));
+  await p.expectToast('Password changed');
+  await expect(page.getByRole('button', { name: `Account menu for ${CUSTOMER.username}` })).toBeVisible();
+  await p.say('Back in, with a password only he knows. The temporary one no longer works.');
+  await p.signOut();
+
   // ---- 8. The owner's view ----------------------------------------------------------------------------
   await p.chapter("The owner's view", 'Every location, every booking and every job, at a glance.');
   await p.signIn(OWNER.username, password);
@@ -374,11 +422,15 @@ test('Ramplight walkthrough: one auto shop, from sign-up to service history', as
   await p.say('Customers: everyone who has booked, with their cars and history.');
   await p.nav('Customers', '/customers');
   await p.pause(2500);
+  await p.say('User accounts: she can reset any team member’s password the same way, or disable an account.');
+  await p.nav('User accounts', '/users');
+  await p.point(page.getByRole('button', { name: `Reset password for ${ADVISOR.username}` }));
+  await p.pause(2000);
 
   await p.card(
     'Ramplight',
-    `Online booking · check-in · digital estimates · job cards · service history · your brand, ` +
-      `at your own address. Start free at ${SITE_HOST}.`,
+    `Online booking · check-in · digital estimates · job cards · service history · easy password ` +
+      `resets · your brand, at your own address. Start free at ${SITE_HOST}.`,
     'Thanks for watching',
     10000,
   );

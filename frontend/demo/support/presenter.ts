@@ -1,9 +1,11 @@
-import { copyFile, mkdir } from 'node:fs/promises';
+import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
 import { expect, test as base, type Locator, type Page } from '@playwright/test';
 
 import '../../e2e/support/localhost-dns';
+
+import { createNarrator, joinWithVideo, narrationTrack, type Clip, type Cue, type Narrator } from './narrator';
 
 /**
  * Harness for the recorded product demo (see demo/README.md). One browser page per video;
@@ -17,7 +19,7 @@ const scaled = (ms: number) => Math.round(ms * PACE);
 
 /** The public site; workshops are at <slug>.<host>. */
 export const SITE_URL = (process.env.DEMO_SITE_URL ?? 'https://getramplight.com').replace(/\/$/, '');
-export const SLUG = process.env.DEMO_SLUG ?? 'summit-auto';
+export const SLUG = process.env.DEMO_SLUG ?? 'summit-autocare';
 export const SITE_HOST = new URL(SITE_URL).host;
 export const WORKSHOP_URL = `${new URL(SITE_URL).protocol}//${SLUG}.${SITE_HOST}`;
 export const VIEWPORT = { width: 1280, height: 800 };
@@ -178,8 +180,13 @@ export class Presenter {
   private chapterName = '';
   private chapterCount = 0;
   private readonly startedAt = Date.now();
+  /** What the voice says, and when (empty without a narrator). */
+  readonly cues: Cue[] = [];
 
-  constructor(readonly page: Page) {
+  constructor(
+    readonly page: Page,
+    private readonly narrator: Narrator | null = createNarrator(),
+  ) {
     // A full page load (e.g. sign-up → the new workshop's address) starts a new document:
     // draw the caption again.
     page.on('domcontentloaded', () => {
@@ -198,26 +205,37 @@ export class Presenter {
     this.chapterCount += 1;
     this.chapterName = title;
     console.log(`  ${this.elapsed}  Chapter ${this.chapterCount}: ${title}`);
-    await this.page
-      .evaluate(drawCard, { title, subtitle, step: `Chapter ${this.chapterCount}` })
-      .catch(() => undefined);
-    await this.page.waitForTimeout(scaled(holdMs));
-    await this.page.evaluate(drawCard, null).catch(() => undefined);
+    await this.card(title, subtitle, `Chapter ${this.chapterCount}`, holdMs);
   }
 
-  /** A title card without a chapter number (opening and closing). */
+  /** A title card without a chapter number (opening and closing); the voice reads it. */
   async card(title: string, subtitle: string, step: string, holdMs = 8000): Promise<void> {
+    const spoken = await this.prepareVoice(`${title}. ${subtitle}`);
     await this.page.evaluate(drawCard, { title, subtitle, step }).catch(() => undefined);
-    await this.page.waitForTimeout(scaled(holdMs));
+    await this.holdFor(scaled(holdMs), spoken);
     await this.page.evaluate(drawCard, null).catch(() => undefined);
   }
 
-  /** A caption at the bottom; stays until the next one. Holds long enough to read. */
+  /** A caption at the bottom; stays until the next one. Holds long enough to read (and hear). */
   async say(text: string, holdMs?: number): Promise<void> {
+    const spoken = await this.prepareVoice(text);
     this.caption = { chapter: this.chapterName, text };
     await this.page.evaluate(drawCaption, this.caption).catch(() => undefined);
     const words = text.split(/\s+/).length;
-    await this.page.waitForTimeout(scaled(holdMs ?? Math.max(3500, words * 380)));
+    await this.holdFor(scaled(holdMs ?? Math.max(3500, words * 380)), spoken);
+  }
+
+  /** The voice for the next caption or card (fetched before it shows, so they stay in step). */
+  private async prepareVoice(text: string): Promise<Clip | null> {
+    return this.narrator ? this.narrator.speak(text) : null;
+  }
+
+  /** Starts the voice now (on the video's timeline) and waits until both it and `ms` are done. */
+  private async holdFor(ms: number, clip: Clip | null): Promise<void> {
+    if (clip) {
+      this.cues.push({ atMs: Date.now() - this.startedAt, clip });
+    }
+    await this.page.waitForTimeout(Math.max(ms, clip ? clip.ms + 500 : 0));
   }
 
   async pause(ms: number): Promise<void> {
@@ -326,11 +344,12 @@ export class Presenter {
 
   // ---- Signing in and out at the workshop address ----------------------------------------------
 
-  async signIn(username: string, password: string): Promise<void> {
+  /** Signs in with the username, or with the e-mail address (then pass the username too). */
+  async signIn(usernameOrEmail: string, password: string, username = usernameOrEmail): Promise<void> {
     if (!/\/login/.test(this.page.url())) {
       await this.goto(`${WORKSHOP_URL}/login`);
     }
-    await this.type(this.page.getByLabel('Username'), username);
+    await this.type(this.page.getByLabel('Username or email'), usernameOrEmail);
     await this.fill(this.page.getByLabel('Password'), password);
     await this.click(this.page.getByRole('button', { name: 'Sign in' }));
     await expect(this.page.getByRole('button', { name: `Account menu for ${username}` })).toBeVisible();
@@ -387,6 +406,19 @@ export const test = base.extend<{ presenter: Presenter }>({
       const target = join(VIDEO_DIR, `${name}${status}.webm`);
       await copyFile(recorded, target);
       console.log(`  Video: ${target} (${presenter.elapsed})`);
+      if (presenter.cues.length > 0) {
+        const narration = join(VIDEO_DIR, `${name}${status}.narration.wav`);
+        await writeFile(narration, narrationTrack(presenter.cues));
+        const mp4 = join(VIDEO_DIR, `${name}${status}.mp4`);
+        if (joinWithVideo(target, narration, mp4)) {
+          console.log(`  With voice: ${mp4}`);
+        } else {
+          console.log(
+            `  Voice track: ${narration}. Install ffmpeg (winget install Gyan.FFmpeg) to join it ` +
+              'to the video automatically.',
+          );
+        }
+      }
     }
   },
 });
