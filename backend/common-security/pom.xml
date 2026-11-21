@@ -41,6 +41,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- SharedSchemaMigrations; every service brings Flyway through its Flyway starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-flyway</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security-test</artifactId>
