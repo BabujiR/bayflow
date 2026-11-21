@@ -28,7 +28,7 @@ describe('signing in and out', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Sign in' }));
 
-    expect(await screen.findByText('Enter your username')).toBeInTheDocument();
+    expect(await screen.findByText('Enter your username or email')).toBeInTheDocument();
     expect(screen.getByText('Enter your password')).toBeInTheDocument();
   });
 
@@ -41,7 +41,7 @@ describe('signing in and out', () => {
     );
     renderApp('/login');
 
-    await userEvent.type(await screen.findByLabelText('Username'), 'customer1');
+    await userEvent.type(await screen.findByLabelText('Username or email'), 'customer1');
     await userEvent.type(screen.getByLabelText('Password'), 'wrong-password');
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
@@ -58,7 +58,7 @@ describe('signing in and out', () => {
     );
     const { router } = renderApp('/vehicles');
 
-    await userEvent.type(await screen.findByLabelText('Username'), 'customer1');
+    await userEvent.type(await screen.findByLabelText('Username or email'), 'customer1');
     await userEvent.type(screen.getByLabelText('Password'), 'Bayflow!2026');
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
 
@@ -113,7 +113,7 @@ describe('signing in and out', () => {
     );
     renderApp('/register');
 
-    await userEvent.type(await screen.findByLabelText('Username'), 'customer1');
+    await userEvent.type(await screen.findByLabelText('Username or email'), 'customer1');
     await userEvent.type(screen.getByLabelText('Email'), 'c1@example.com');
     await userEvent.type(screen.getByLabelText('Password'), 'Correct-Horse-1');
     await userEvent.type(screen.getByLabelText('Confirm password'), 'Different-1');

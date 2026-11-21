@@ -19,6 +19,8 @@ public class AuthProperties {
     private Duration accessTokenTtl = Duration.ofMinutes(15);
     private Duration refreshTokenTtl = Duration.ofDays(7);
     private Duration systemTokenTtl = Duration.ofMinutes(10);
+    /** How long a temporary password from a staff reset works (it must be replaced at sign-in). */
+    private Duration temporaryPasswordTtl = Duration.ofHours(72);
 
     private final Keys keys = new Keys();
     private final CookieSettings cookie = new CookieSettings();
@@ -43,6 +45,8 @@ public class AuthProperties {
     public Duration getAccessTokenTtl() { return accessTokenTtl; }
     public void setAccessTokenTtl(Duration accessTokenTtl) { this.accessTokenTtl = accessTokenTtl; }
     public Duration getRefreshTokenTtl() { return refreshTokenTtl; }
+    public Duration getTemporaryPasswordTtl() { return temporaryPasswordTtl; }
+    public void setTemporaryPasswordTtl(Duration temporaryPasswordTtl) { this.temporaryPasswordTtl = temporaryPasswordTtl; }
     public void setRefreshTokenTtl(Duration refreshTokenTtl) { this.refreshTokenTtl = refreshTokenTtl; }
     public Duration getSystemTokenTtl() { return systemTokenTtl; }
     public void setSystemTokenTtl(Duration systemTokenTtl) { this.systemTokenTtl = systemTokenTtl; }

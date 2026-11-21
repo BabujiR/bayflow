@@ -87,14 +87,19 @@ public class AuthService {
         return users.save(user);
     }
 
+    /**
+     * Signs in with the username or, when it contains "@", the e-mail address (usernames can't
+     * contain "@", so the two never mix).
+     */
     @Transactional(noRollbackFor = AuthenticationFailedException.class)
-    public Session login(String username, String password, String clientIp) {
-        String normalized = User.normalizeUsername(username);
+    public Session login(String usernameOrEmail, String password, String clientIp) {
+        boolean byEmail = usernameOrEmail != null && usernameOrEmail.contains("@");
+        String normalized = byEmail ? User.normalizeEmail(usernameOrEmail) : User.normalizeUsername(usernameOrEmail);
         // Per workshop: the same username in two workshops is two different people.
         rateLimiter.check(TenantContext.require() + "|" + normalized + "|" + clientIp);
         Instant now = clock.instant();
 
-        Optional<User> found = users.findByUsername(normalized);
+        Optional<User> found = byEmail ? users.findByEmail(normalized) : users.findByUsername(normalized);
         if (found.isEmpty()) {
             passwordEncoder.matches(password, dummyHash);
             throw AuthenticationFailedException.invalidCredentials();
@@ -112,6 +117,9 @@ public class AuthService {
         }
         if (!user.isEnabled()) {
             throw AuthenticationFailedException.accountDisabled();
+        }
+        if (user.isTemporaryPasswordExpired(now)) {
+            throw AuthenticationFailedException.temporaryPasswordExpired();
         }
         // Staff without a location can't work anywhere yet: refuse before counting the login.
         LocationAccess access = userLocations.forToken(user);
@@ -139,7 +147,7 @@ public class AuthService {
         }
         User user = users.findById(current.getUserId())
                 .orElseThrow(AuthenticationFailedException::invalidRefreshToken);
-        if (!user.isEnabled() || user.isLocked(now)) {
+        if (!user.isEnabled() || user.isLocked(now) || user.isTemporaryPasswordExpired(now)) {
             refreshTokens.revokeFamily(current.getFamilyId());
             throw AuthenticationFailedException.invalidRefreshToken();
         }
@@ -151,6 +159,29 @@ public class AuthService {
         refreshTokens.save(current.rotate(SecureTokens.sha256(raw), expiresAt, now));
         return new Session(tokenService.forUser(user, slugOf(user), access.claim()), raw, expiresAt, user, now,
                 access);
+    }
+
+    /**
+     * The signed-in user replaces their password (and a temporary one from a reset). Every other
+     * session of theirs ends; this one continues with a new session, returned here.
+     */
+    @Transactional
+    public Session changePassword(UUID userId, String currentPassword, String newPassword, String clientIp) {
+        User user = users.findById(userId).orElseThrow(() -> ApiException.notFound("User"));
+        // The same limit as sign-in, so this can't be used to guess the current password.
+        rateLimiter.check(TenantContext.require() + "|" + user.getUsername() + "|" + clientIp);
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw ApiException.badRequest("current-password-incorrect", "Your current password is not correct.");
+        }
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw ApiException.badRequest("password-unchanged",
+                    "Choose a new password that is different from the current one.");
+        }
+        Instant now = clock.instant();
+        user.changePassword(passwordEncoder.encode(newPassword), now);
+        users.saveAndFlush(user);
+        refreshTokens.revokeAllForUser(user.getId());
+        return startSession(user, userLocations.forToken(user), now);
     }
 
     /** Ends the session the refresh token belongs to. Unknown or missing tokens are ignored. */

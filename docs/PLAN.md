@@ -686,6 +686,19 @@ in the page `<meta name="description">`.
     - Not built (decided against for now): audience (customers/staff only) and per-location
       announcements, and customers dismissing one.
 
+28. **Forgotten usernames and passwords (account recovery, phase 1).** Sign-in accepts the
+    username or the e-mail address (a value with "@" is looked up as an e-mail; usernames can't
+    contain "@"). Staff reset a forgotten password: ADMIN for anyone but themselves, MANAGER and
+    SERVICE_ADVISOR for customers only (`POST /api/v1/auth/users/{id}/password-reset`). The reset
+    shows a 12-character temporary password once (no I, L, O, 0 or 1, grouped as `XXXX-XXXX-XXXX`
+    so it can be read out), lifts a lockout and revokes all of the account's refresh tokens. It
+    works for `bayflow.auth.temporary-password-ttl` (72 hours) and marks the account
+    `must_change_password` (V11): the web app then shows only *Choose a new password* until
+    `POST /api/v1/auth/me/password` replaces it. That endpoint needs the current password, is
+    rate-limited like sign-in and ends the user's other sessions. The other services do not yet
+    refuse a token whose user must change their password; the temporary password's expiry bounds
+    that. Self-service reset by e-mail link comes with e-mail notifications (N2).
+
 ---
 
 ## 10. Milestones

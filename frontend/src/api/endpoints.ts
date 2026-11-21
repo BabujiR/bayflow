@@ -29,6 +29,7 @@ import type {
   SignupRequest,
   SignupResponse,
   SlugAvailability,
+  TemporaryPassword,
   UpdateBrandingRequest,
   UpdateVehicleRequest,
   UpdateWorkshopSettingsRequest,
@@ -136,6 +137,8 @@ export const usersApi = {
   /** Where a MANAGER, SERVICE_ADVISOR or MECHANIC works (at least one location). */
   setLocations: (id: string, locationIds: string[]) =>
     http.put<User>(`/api/v1/auth/users/${id}/locations`, { locationIds }),
+  /** ADMIN: anyone else; MANAGER and SERVICE_ADVISOR: customers. Returns the temporary password once. */
+  resetPassword: (id: string) => http.post<TemporaryPassword>(`/api/v1/auth/users/${id}/password-reset`),
 };
 
 export const workshopApi = {

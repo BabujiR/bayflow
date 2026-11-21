@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 
 import { authApi } from '@/api/auth';
 import { configureSession, refreshSession, setAccessToken } from '@/api/http';
-import type { LoginRequest, RegisterRequest, Role, TokenResponse, User } from '@/api/types';
+import type { ChangePasswordRequest, LoginRequest, RegisterRequest, Role, TokenResponse, User } from '@/api/types';
 import { PUBLIC_WORKSHOP_QUERY_KEY } from '@/features/workshop/use-public-workshop';
 
 import { AuthContext, type AuthContextValue, type AuthStatus } from './auth-context';
@@ -88,6 +88,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [login],
   );
 
+  const changePassword = useCallback(
+    async (request: ChangePasswordRequest) => {
+      const token = await authApi.changePassword(request);
+      startSession(token);
+      return token.user;
+    },
+    [startSession],
+  );
+
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
@@ -102,8 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthContextValue>(
-    () => ({ status, user, login, register, logout, hasRole }),
-    [status, user, login, register, logout, hasRole],
+    () => ({ status, user, login, register, logout, changePassword, hasRole }),
+    [status, user, login, register, logout, changePassword, hasRole],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

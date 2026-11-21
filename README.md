@@ -238,6 +238,14 @@ service's Swagger UI and paste it.
   `.env` when no admin exists yet.
 - Login is protected by a rate limit (10 attempts/minute per username + IP)
   and a 15-minute lock after 5 wrong passwords.
+- **Signing in and forgotten passwords:** people sign in with their username or their
+  e-mail address. Someone who forgot their password asks the workshop: an ADMIN can reset
+  anyone else's password (*User accounts → Reset password*), and advisors and managers a
+  customer's (the customer's page). The reset shows a temporary password once
+  (`POST /api/v1/auth/users/{id}/password-reset`); it unlocks the account, signs it out
+  everywhere, works for 72 hours (`bayflow.auth.temporary-password-ttl`) and must be replaced
+  at the next sign-in. Anyone can change their own password from the account menu
+  (`POST /api/v1/auth/me/password`, which signs out their other devices).
 - Signing key: without configuration, auth-service generates a throwaway key at
   startup (tokens stop working after a restart). For a stable key run
   `scripts/generate-dev-keys.sh` (or `.ps1`) and set the two

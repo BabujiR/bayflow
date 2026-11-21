@@ -163,7 +163,7 @@ describe("a workshop's sign-in page", () => {
     renderApp('/login');
 
     expect(await screen.findByText(/account is suspended, so nobody can sign in/)).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText('Username'), 'admin1');
+    await userEvent.type(screen.getByLabelText('Username or email'), 'admin1');
     await userEvent.type(screen.getByLabelText('Password'), 'Bayflow!2026');
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(

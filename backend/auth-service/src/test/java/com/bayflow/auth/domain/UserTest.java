@@ -95,4 +95,36 @@ class UserTest {
         assertThat(Role.ADMIN.isStaff()).isTrue();
         assertThat(Role.CUSTOMER.isStaff()).isFalse();
     }
+
+    @Test
+    void aResetGivesATemporaryPasswordThatExpiresAndLiftsTheLock() {
+        User user = user();
+        for (int i = 0; i < 5; i++) {
+            user.registerFailedLogin(NOW, 5, LOCK);
+        }
+        assertThat(user.isLocked(NOW)).isTrue();
+
+        Instant expires = NOW.plus(Duration.ofHours(72));
+        user.resetPassword("{bcrypt}temporary", expires, NOW);
+
+        assertThat(user.getPasswordHash()).isEqualTo("{bcrypt}temporary");
+        assertThat(user.isMustChangePassword()).isTrue();
+        assertThat(user.isLocked(NOW)).isFalse();
+        assertThat(user.isTemporaryPasswordExpired(expires.minusSeconds(1))).isFalse();
+        assertThat(user.isTemporaryPasswordExpired(expires)).isTrue();
+    }
+
+    @Test
+    void choosingAPasswordEndsTheTemporaryOne() {
+        User user = user();
+        Instant expires = NOW.plus(Duration.ofHours(72));
+        user.resetPassword("{bcrypt}temporary", expires, NOW);
+
+        user.changePassword("{bcrypt}own", NOW);
+
+        assertThat(user.getPasswordHash()).isEqualTo("{bcrypt}own");
+        assertThat(user.isMustChangePassword()).isFalse();
+        assertThat(user.getTemporaryPasswordExpiresAt()).isNull();
+        assertThat(user.isTemporaryPasswordExpired(expires.plusSeconds(1))).isFalse();
+    }
 }
