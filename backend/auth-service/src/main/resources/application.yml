@@ -64,6 +64,8 @@ bayflow:
     access-token-ttl: 15m
     refresh-token-ttl: 7d
     system-token-ttl: 10m
+    # A staff password reset gives a temporary password that works this long.
+    temporary-password-ttl: 72h
     keys:
       private-key-path: ${BAYFLOW_JWT_PRIVATE_KEY_PATH:}
       public-key-path: ${BAYFLOW_JWT_PUBLIC_KEY_PATH:}

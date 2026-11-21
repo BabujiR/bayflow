@@ -56,6 +56,14 @@ public class User {
     @Column(name = "locked_until")
     private Instant lockedUntil;
 
+    /** Set by a staff reset: the next sign-in must choose a new password. */
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword;
+
+    /** When the temporary password from a reset stops working (null when there is none). */
+    @Column(name = "temporary_password_expires_at")
+    private Instant temporaryPasswordExpiresAt;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "auth_user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)
@@ -138,6 +146,34 @@ public class User {
         }
     }
 
+    // ---- passwords ----------------------------------------------------------
+
+    /**
+     * A staff reset: a temporary password that works until {@code expiresAt} and must be
+     * replaced at the next sign-in. Also lifts a lockout, since the person asked for help.
+     */
+    public void resetPassword(String temporaryPasswordHash, Instant expiresAt, Instant now) {
+        this.passwordHash = Objects.requireNonNull(temporaryPasswordHash);
+        this.mustChangePassword = true;
+        this.temporaryPasswordExpiresAt = Objects.requireNonNull(expiresAt);
+        this.failedAttempts = 0;
+        this.lockedUntil = null;
+        this.updatedAt = now;
+    }
+
+    /** The person's own new password; ends any temporary one. */
+    public void changePassword(String newPasswordHash, Instant now) {
+        this.passwordHash = Objects.requireNonNull(newPasswordHash);
+        this.mustChangePassword = false;
+        this.temporaryPasswordExpiresAt = null;
+        this.updatedAt = now;
+    }
+
+    /** A temporary password from a reset that was not replaced in time. */
+    public boolean isTemporaryPasswordExpired(Instant now) {
+        return mustChangePassword && temporaryPasswordExpiresAt != null && !temporaryPasswordExpiresAt.isAfter(now);
+    }
+
     public void setEnabled(boolean enabled, Instant now) {
         this.enabled = enabled;
         this.updatedAt = now;
@@ -153,6 +189,8 @@ public class User {
     public boolean isEnabled() { return enabled; }
     public int getFailedAttempts() { return failedAttempts; }
     public Instant getLockedUntil() { return lockedUntil; }
+    public boolean isMustChangePassword() { return mustChangePassword; }
+    public Instant getTemporaryPasswordExpiresAt() { return temporaryPasswordExpiresAt; }
     public Set<Role> getRoles() { return Collections.unmodifiableSet(roles); }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

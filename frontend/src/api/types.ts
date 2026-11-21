@@ -38,7 +38,23 @@ export type User = Present<
   /** Works with every location (ADMIN, CUSTOMER); otherwise at locationIds. Hand-written (L2). */
   allLocations?: boolean;
   locationIds?: string[];
+  /** Signed in with a temporary password from a staff reset: must choose a new one first. */
+  mustChangePassword?: boolean;
 };
+
+/** A staff password reset's result: shown once, then gone. */
+export interface TemporaryPassword {
+  userId: string;
+  username: string;
+  temporaryPassword: string;
+  expiresAt: string;
+}
+
+export interface ChangePasswordRequest {
+  /** The temporary password after a reset. */
+  currentPassword: string;
+  newPassword: string;
+}
 
 export type TokenResponse = Present<
   Omit<A['TokenResponse'], 'user'>,

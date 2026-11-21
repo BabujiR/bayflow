@@ -22,6 +22,24 @@ public final class SecureTokens {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
+    /** Letters and digits that can't be mistaken for each other when read out (no I, L, O, 0, 1). */
+    private static final String READABLE = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+    /**
+     * A temporary password a person can read out over the phone: 12 characters from
+     * {@link #READABLE} in groups of four, e.g. {@code K7QH-3MZD-W9PT} (about 59 bits).
+     */
+    public static String temporaryPassword() {
+        StringBuilder password = new StringBuilder(14);
+        for (int i = 0; i < 12; i++) {
+            if (i > 0 && i % 4 == 0) {
+                password.append('-');
+            }
+            password.append(READABLE.charAt(RANDOM.nextInt(READABLE.length())));
+        }
+        return password.toString();
+    }
+
     /** Lower-case hex SHA-256 (64 characters). */
     public static String sha256(String value) {
         try {

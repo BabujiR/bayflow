@@ -128,7 +128,16 @@ The web app has its domain built in at build time.
 gcloud compute ssh ramplight-vm --zone=$ZONE --tunnel-through-iap      # from the laptop
 ```
 
-On the VM, get the repository. A read-only **deploy key** is the safest way for a private repo:
+On the VM, install git (the Debian image has none) and get the repository:
+
+```bash
+sudo apt-get update && sudo apt-get install -y git
+sudo mkdir -p /opt/bayflow && sudo chown "$USER": /opt/bayflow
+```
+
+**Public repository:** `git clone https://github.com/<owner>/<repo>.git /opt/bayflow`
+
+**Private repository:** use a read-only **deploy key**:
 
 ```bash
 ssh-keygen -t ed25519 -N "" -f ~/.ssh/github_deploy
@@ -136,8 +145,12 @@ cat ~/.ssh/github_deploy.pub
 # GitHub: repository Settings → Deploy keys → Add deploy key (read-only), paste the key.
 printf 'Host github.com\n  IdentityFile ~/.ssh/github_deploy\n' >> ~/.ssh/config
 
-sudo mkdir -p /opt/bayflow && sudo chown "$USER": /opt/bayflow
 git clone git@github.com:<owner>/<repo>.git /opt/bayflow
+```
+
+Then, either way:
+
+```bash
 bash /opt/bayflow/deploy/gcp/scripts/setup-vm.sh
 ```
 

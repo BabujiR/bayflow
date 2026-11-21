@@ -25,6 +25,11 @@ public class AuthenticationFailedException extends ApiException {
         return new AuthenticationFailedException("account-disabled", "This account has been disabled.");
     }
 
+    public static AuthenticationFailedException temporaryPasswordExpired() {
+        return new AuthenticationFailedException("temporary-password-expired",
+                "This temporary password has expired. Ask the workshop to reset your password again.");
+    }
+
     public static AuthenticationFailedException invalidRefreshToken() {
         return new AuthenticationFailedException("invalid-refresh-token",
                 "The session has expired or is no longer valid. Please sign in again.");

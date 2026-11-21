@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 
-import type { LoginRequest, RegisterRequest, Role, User } from '@/api/types';
+import type { ChangePasswordRequest, LoginRequest, RegisterRequest, Role, User } from '@/api/types';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'anonymous';
 
@@ -11,6 +11,8 @@ export interface AuthContextValue {
   /** Creates a customer account and signs it in. */
   register: (details: RegisterRequest) => Promise<User>;
   logout: () => Promise<void>;
+  /** Replaces the password (and a temporary one); this session continues, others end. */
+  changePassword: (request: ChangePasswordRequest) => Promise<User>;
   hasRole: (...roles: Role[]) => boolean;
 }
 

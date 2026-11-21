@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOutIcon, UserIcon } from '@/components/ui/icons';
+import { KeyIcon, LogOutIcon, UserIcon } from '@/components/ui/icons';
 
 export function UserMenu() {
   const { user, logout } = useAuth();
@@ -51,6 +51,9 @@ export function UserMenu() {
           <span className="block text-xs text-muted-foreground">{user.email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => navigate('/change-password')}>
+          <KeyIcon className="size-4" /> Change password
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => void signOut()}>
           <LogOutIcon className="size-4" /> Sign out
         </DropdownMenuItem>

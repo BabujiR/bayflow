@@ -15,7 +15,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { PRODUCT_NAME } from '@/lib/brand';
 
 const schema = z.object({
-  username: z.string().trim().min(1, 'Enter your username'),
+  username: z.string().trim().min(1, 'Enter your username or email'),
   password: z.string().min(1, 'Enter your password'),
 });
 
@@ -74,10 +74,14 @@ export function LoginPage() {
             </Alert>
           )}
           {formError && <Alert>{formError}</Alert>}
-          <Field label="Username" error={errors.username?.message}>
+          <Field label="Username or email" error={errors.username?.message}>
             <Input autoComplete="username" autoFocus {...register('username')} />
           </Field>
-          <Field label="Password" error={errors.password?.message}>
+          <Field
+            label="Password"
+            error={errors.password?.message}
+            hint="Forgot your password? Ask the workshop to reset it; they'll give you a temporary one."
+          >
             <Input type="password" autoComplete="current-password" {...register('password')} />
           </Field>
           {import.meta.env.DEV && (
