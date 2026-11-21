@@ -24,7 +24,9 @@ export function RequireAuth() {
     return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   }
   if (user?.mustChangePassword && location.pathname !== CHANGE_PASSWORD_PATH) {
-    return <Navigate to={CHANGE_PASSWORD_PATH} replace state={{ from: location.pathname + location.search }} />;
+    return (
+      <Navigate to={CHANGE_PASSWORD_PATH} replace state={{ from: location.pathname + location.search }} />
+    );
   }
   return <Outlet />;
 }

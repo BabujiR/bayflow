@@ -13,7 +13,16 @@ import {
   WORKSHOP,
   workshopExists,
 } from './support/data';
-import { demoPassword, expect, SITE_HOST, SITE_URL, SLUG, test, WORKSHOP_URL, type Presenter } from './support/presenter';
+import {
+  demoPassword,
+  expect,
+  SITE_HOST,
+  SITE_URL,
+  SLUG,
+  test,
+  WORKSHOP_URL,
+  type Presenter,
+} from './support/presenter';
 
 /**
  * The full product walkthrough (10–15 minutes): an auto shop owner signs up and sets up the
@@ -48,10 +57,15 @@ test('Ramplight walkthrough: one auto shop, from sign-up to service history', as
   );
 
   // ---- 1. Sign up -----------------------------------------------------------------------------------
-  await p.chapter('Set up your shop in two minutes', 'The owner signs up on getramplight.com. No installation, no IT.');
+  await p.chapter(
+    'Set up your shop in two minutes',
+    'The owner signs up on getramplight.com. No installation, no IT.',
+  );
   await p.say('This is getramplight.com, where any auto shop can start.');
   await p.scrollBy(500);
-  await p.say('Online booking, check-in, digital estimates, job cards and service history, all in one place.');
+  await p.say(
+    'Online booking, check-in, digital estimates, job cards and service history, all in one place.',
+  );
   await p.scrollBy(500);
   await p.pause(1500);
   await p.scrollToTop();
@@ -79,7 +93,10 @@ test('Ramplight walkthrough: one auto shop, from sign-up to service history', as
   await p.say('Done. The shop is live at its own address, ready to sign in.');
 
   // ---- 2. Make it yours -------------------------------------------------------------------------
-  await p.chapter('Make it yours', 'Labour rate, logo, colours, announcements, a second location and the team.');
+  await p.chapter(
+    'Make it yours',
+    'Labour rate, logo, colours, announcements, a second location and the team.',
+  );
   await p.signIn(OWNER.username, password);
   await p.say('Dana signs in as the owner. First stop: Workshop settings.');
   await p.nav('Workshop settings', '/settings');
@@ -147,7 +164,9 @@ test('Ramplight walkthrough: one auto shop, from sign-up to service history', as
 
   // ---- 3. The customer books online -----------------------------------------------------------------
   await p.chapter('Your customers book online', "On the shop's own branded site, any time of day.");
-  await p.say("This is what John, a customer, sees at Summit's address: their logo, photo and announcements.");
+  await p.say(
+    "This is what John, a customer, sees at Summit's address: their logo, photo and announcements.",
+  );
   const banner = page.getByTestId('workshop-banner');
   const more = banner.getByRole('button', { name: /more/ });
   if (await more.isVisible().catch(() => false)) {
@@ -193,7 +212,10 @@ test('Ramplight walkthrough: one auto shop, from sign-up to service history', as
   await p.signOut();
 
   // ---- 4. The advisor checks the car in ----------------------------------------------------------
-  await p.chapter('The service advisor takes over', 'New booking, check-in, inspection and a digital estimate.');
+  await p.chapter(
+    'The service advisor takes over',
+    'New booking, check-in, inspection and a digital estimate.',
+  );
   await p.signIn(ADVISOR.username, password);
   await p.say(`${ADVISOR.name} signs in. The bell already shows John's new booking.`);
   await p.openBellWhenNotified(`New booking: ${car.registration}`);
@@ -234,7 +256,9 @@ test('Ramplight walkthrough: one auto shop, from sign-up to service history', as
     await expect(jobCardLink).toBeVisible({ timeout: 3_000 });
   }).toPass({ timeout: 90_000, intervals: [2_000, 4_000] });
   await p.click(jobCardLink);
-  await expect(page.getByRole('heading', { name: new RegExp(`Job card · ${car.registration}`) })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: new RegExp(`Job card · ${car.registration}`) }),
+  ).toBeVisible();
 
   await p.say('She inspects the car and records what she finds.');
   const finding = page.getByRole('form', { name: 'Add finding' });
@@ -258,7 +282,10 @@ test('Ramplight walkthrough: one auto shop, from sign-up to service history', as
   await p.signOut();
 
   // ---- 5. The customer approves ----------------------------------------------------------------------
-  await p.chapter('The customer approves on their phone', 'Item by item, with the price of each, recorded in writing.');
+  await p.chapter(
+    'The customer approves on their phone',
+    'Item by item, with the price of each, recorded in writing.',
+  );
   await p.signIn(CUSTOMER.username, password);
   await p.say('John gets a notification: his estimate is ready.');
   const estimate = await p.openBellWhenNotified('Your estimate is ready');

@@ -31,7 +31,11 @@ export const CUSTOMER = {
 };
 
 /** The two jobs the advisor recommends in the walkthrough. */
-export const BRAKES = { description: 'Replace front brake pads and resurface rotors', parts: '145.00', hours: '1.5' };
+export const BRAKES = {
+  description: 'Replace front brake pads and resurface rotors',
+  parts: '145.00',
+  hours: '1.5',
+};
 export const WIPERS = { description: 'Replace wiper blades', parts: '32.00', hours: '0.25' };
 
 const ASSETS = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
@@ -64,8 +68,10 @@ export async function signedIn(username: string, password = demoPassword()): Pro
   const http = await request.newContext({ baseURL: WORKSHOP_URL });
   const response = await http.post('/api/v1/auth/login', { data: { username, password } });
   if (!response.ok()) {
-    throw new Error(`Sign-in as ${username} at ${WORKSHOP_URL} failed (${response.status()}). ` +
-      'Record 01-walkthrough first, with the same DEMO_SLUG and DEMO_PASSWORD.');
+    throw new Error(
+      `Sign-in as ${username} at ${WORKSHOP_URL} failed (${response.status()}). ` +
+        'Record 01-walkthrough first, with the same DEMO_SLUG and DEMO_PASSWORD.',
+    );
   }
   const { accessToken } = (await response.json()) as { accessToken: string };
   return new Api(http, username, accessToken);

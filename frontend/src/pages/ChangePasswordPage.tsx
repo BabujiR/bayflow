@@ -95,7 +95,12 @@ export function ChangePasswordPage() {
             label={forced ? 'Temporary password' : 'Current password'}
             error={errors.currentPassword?.message}
           >
-            <Input type="password" autoComplete="current-password" autoFocus {...register('currentPassword')} />
+            <Input
+              type="password"
+              autoComplete="current-password"
+              autoFocus
+              {...register('currentPassword')}
+            />
           </Field>
           <Field label="New password" error={errors.newPassword?.message} hint="At least 8 characters.">
             <Input type="password" autoComplete="new-password" {...register('newPassword')} />

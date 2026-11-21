@@ -3,13 +3,13 @@
 Playwright scripts that record the Ramplight demo videos on the live site, with a visible
 cursor, on-screen captions and chapter cards (no voiceover).
 
-| File | Video | Length (approx.) |
-|---|---|---|
-| `01-walkthrough.spec.ts` | Full tour: owner signs up and sets up Summit Auto Care, customer books, advisor checks in and estimates, customer approves, mechanic works, pick-up and history, owner's view | 12–15 min |
-| `02-owner.spec.ts` | Owner clip: settings, branding, locations, team, overview | 2–3 min |
-| `03-customer.spec.ts` | Customer clip: sign up, add car, book, approve, history | 3–4 min |
-| `04-advisor.spec.ts` | Advisor clip: new booking, board, confirm, check-in, inspection, estimate | 3–4 min |
-| `05-mechanic.spec.ts` | Mechanic clip: approved jobs, start, log work, parts, labour, complete | 2–3 min |
+| File                     | Video                                                                                                                                                                         | Length (approx.) |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `01-walkthrough.spec.ts` | Full tour: owner signs up and sets up Summit Auto Care, customer books, advisor checks in and estimates, customer approves, mechanic works, pick-up and history, owner's view | 12–15 min        |
+| `02-owner.spec.ts`       | Owner clip: settings, branding, locations, team, overview                                                                                                                     | 2–3 min          |
+| `03-customer.spec.ts`    | Customer clip: sign up, add car, book, approve, history                                                                                                                       | 3–4 min          |
+| `04-advisor.spec.ts`     | Advisor clip: new booking, board, confirm, check-in, inspection, estimate                                                                                                     | 3–4 min          |
+| `05-mechanic.spec.ts`    | Mechanic clip: approved jobs, start, log work, parts, labour, complete                                                                                                        | 2–3 min          |
 
 `01` creates the workshop **summit-auto.getramplight.com** with its owner (`owner`), advisor
 (`sara`) and mechanic (`mike`), and the customer `john-carter`. The clips reuse that workshop

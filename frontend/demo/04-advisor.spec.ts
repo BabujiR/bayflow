@@ -90,5 +90,10 @@ test('Ramplight for service advisors', async ({ presenter: p }) => {
   await p.click(page.getByRole('button', { name: 'Send to customer for approval' }));
   await expect(page.getByRole('heading', { name: /Job card ·/ })).toContainText('Awaiting approval');
   await p.say("You're told the moment they decide, and the mechanics see the approved work.");
-  await p.card('Ramplight', `Less phone tag, more cars through the bays. ${SITE_HOST}`, 'For service advisors', 7000);
+  await p.card(
+    'Ramplight',
+    `Less phone tag, more cars through the bays. ${SITE_HOST}`,
+    'For service advisors',
+    7000,
+  );
 });

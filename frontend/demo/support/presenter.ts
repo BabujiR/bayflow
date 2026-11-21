@@ -250,7 +250,11 @@ export class Presenter {
     const box = await target.boundingBox().catch(() => null);
     if (box) {
       await this.page
-        .evaluate(moveCursor, { x: box.x + Math.min(box.width / 2, 120), y: box.y + box.height / 2, pulse: true })
+        .evaluate(moveCursor, {
+          x: box.x + Math.min(box.width / 2, 120),
+          y: box.y + box.height / 2,
+          pulse: true,
+        })
         .catch(() => undefined);
     }
     await target.click();

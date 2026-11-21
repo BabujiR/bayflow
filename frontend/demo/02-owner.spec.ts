@@ -15,7 +15,7 @@ test('Ramplight for owners', async ({ presenter: p }) => {
     'Ramplight · Owner',
   );
   await p.chapter('Your shop, your settings', `${WORKSHOP.name} at ${SLUG}.${SITE_HOST}`, 5000);
-  await p.say("Your customers sign in on your own branded page: your logo, your photo, your announcements.");
+  await p.say('Your customers sign in on your own branded page: your logo, your photo, your announcements.');
   await p.signIn(OWNER.username, password);
 
   await p.nav('Workshop settings', '/settings');

@@ -76,7 +76,11 @@ test('Ramplight for customers', async ({ presenter: p }) => {
     { description: alignment, parts: 0, hours: 1 },
   ]);
 
-  await p.chapter('Approve work from your phone', 'See every item and its price before any work starts.', 5000);
+  await p.chapter(
+    'Approve work from your phone',
+    'See every item and its price before any work starts.',
+    5000,
+  );
   await p.say('Emma is told her booking is confirmed, her car is checked in, and her estimate is ready.');
   const estimate = await p.openBellWhenNotified('Your estimate is ready');
   await p.pause(2000);
@@ -113,5 +117,10 @@ test('Ramplight for customers', async ({ presenter: p }) => {
   await expect(page.getByRole('heading', { name: 'Service history' })).toBeVisible();
   await p.point(page.getByRole('heading', { name: 'Service history' }));
   await p.pause(2500);
-  await p.card('Ramplight', `Online booking for your customers. Start free at ${SITE_HOST}.`, 'For customers', 7000);
+  await p.card(
+    'Ramplight',
+    `Online booking for your customers. Start free at ${SITE_HOST}.`,
+    'For customers',
+    7000,
+  );
 });

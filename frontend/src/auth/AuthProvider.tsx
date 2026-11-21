@@ -3,7 +3,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 
 import { authApi } from '@/api/auth';
 import { configureSession, refreshSession, setAccessToken } from '@/api/http';
-import type { ChangePasswordRequest, LoginRequest, RegisterRequest, Role, TokenResponse, User } from '@/api/types';
+import type {
+  ChangePasswordRequest,
+  LoginRequest,
+  RegisterRequest,
+  Role,
+  TokenResponse,
+  User,
+} from '@/api/types';
 import { PUBLIC_WORKSHOP_QUERY_KEY } from '@/features/workshop/use-public-workshop';
 
 import { AuthContext, type AuthContextValue, type AuthStatus } from './auth-context';
