@@ -184,6 +184,12 @@ public class AuthService {
         return startSession(user, userLocations.forToken(user), now);
     }
 
+    /** A new session for a user who proved who they are another way (a password-reset link). */
+    @Transactional
+    public Session sessionFor(User user) {
+        return startSession(user, userLocations.forToken(user), clock.instant());
+    }
+
     /** Ends the session the refresh token belongs to. Unknown or missing tokens are ignored. */
     @Transactional
     public void logout(String rawRefreshToken) {

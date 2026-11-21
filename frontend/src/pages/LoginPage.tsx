@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { usePublicWorkshop } from '@/features/workshop/use-public-workshop';
 import { PRODUCT_NAME } from '@/lib/brand';
 
 const schema = z.object({
@@ -44,6 +45,8 @@ export function LoginPage() {
   const [params] = useSearchParams();
   const welcome = params.get('welcome') === '1';
   const [formError, setFormError] = useState<string | null>(null);
+  // "Forgot password?" by e-mail, when the installation sends e-mail.
+  const resetByEmail = !!usePublicWorkshop().data?.passwordResetByEmail;
   const {
     register,
     handleSubmit,
@@ -80,7 +83,18 @@ export function LoginPage() {
           <Field
             label="Password"
             error={errors.password?.message}
-            hint="Forgot your password? Ask the workshop to reset it; they'll give you a temporary one."
+            hint={
+              resetByEmail ? (
+                <>
+                  Forgot your password?{' '}
+                  <Link to="/forgot-password" className="font-medium text-primary hover:underline">
+                    Reset it by email
+                  </Link>
+                </>
+              ) : (
+                "Forgot your password? Ask the workshop to reset it; they'll give you a temporary one."
+              )
+            }
           >
             <Input type="password" autoComplete="current-password" {...register('password')} />
           </Field>

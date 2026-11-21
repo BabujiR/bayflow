@@ -367,7 +367,9 @@ test('Ramplight walkthrough: one auto shop, from sign-up to service history', as
   await p.fill(page.getByLabel('Password'), 'NotMyPassword-1');
   await p.click(page.getByRole('button', { name: 'Sign in' }));
   await expect(page.getByText('Username or password is incorrect.')).toBeVisible();
-  await p.say("But he can't remember the password either. The sign-in page tells him what to do: ask the shop.");
+  await p.say(
+    "But he can't remember the password either. The sign-in page tells him what to do: ask the shop.",
+  );
   await p.point(page.getByText(/Forgot your password\?/));
   await p.pause(1500);
 

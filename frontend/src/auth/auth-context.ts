@@ -1,6 +1,13 @@
 import { createContext, useContext } from 'react';
 
-import type { ChangePasswordRequest, LoginRequest, RegisterRequest, Role, User } from '@/api/types';
+import type {
+  ChangePasswordRequest,
+  LoginRequest,
+  RegisterRequest,
+  ResetPasswordRequest,
+  Role,
+  User,
+} from '@/api/types';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'anonymous';
 
@@ -13,6 +20,8 @@ export interface AuthContextValue {
   logout: () => Promise<void>;
   /** Replaces the password (and a temporary one); this session continues, others end. */
   changePassword: (request: ChangePasswordRequest) => Promise<User>;
+  /** Sets a new password through an e-mailed reset link, and signs in. */
+  resetPassword: (request: ResetPasswordRequest) => Promise<User>;
   hasRole: (...roles: Role[]) => boolean;
 }
 

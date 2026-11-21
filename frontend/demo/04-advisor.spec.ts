@@ -103,7 +103,9 @@ test('Ramplight for service advisors', async ({ presenter: p }) => {
   await p.click(dialog2.getByRole('button', { name: 'Reset password' }));
   await expect(page.getByTestId('temporary-password')).toBeVisible();
   await p.point(page.getByTestId('temporary-password'));
-  await p.say('Read her the temporary password. It works for 72 hours and she must replace it when she signs in.');
+  await p.say(
+    'Read her the temporary password. It works for 72 hours and she must replace it when she signs in.',
+  );
   await p.click(page.getByRole('button', { name: 'Done' }));
   await p.card(
     'Ramplight',

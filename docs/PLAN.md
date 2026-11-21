@@ -699,6 +699,20 @@ in the page `<meta name="description">`.
     refuse a token whose user must change their password; the temporary password's expiry bounds
     that. Self-service reset by e-mail link comes with e-mail notifications (N2).
 
+29. **Forgot password by e-mail (account recovery, phase 2).** `POST /api/v1/auth/password/forgot`
+    `{email}` always answers 202. For an enabled account it stores the SHA-256 of a 256-bit token
+    (`auth_password_resets`, V12; earlier links for the account are deleted) and e-mails
+    `<scheme>://<slug>.<site host>/reset-password?token=…` (`BAYFLOW_SITE_URL`). Limits: 3 e-mails
+    per address per hour (silently, whether or not the address has an account) and 10 requests
+    per IP per hour (429). `POST /api/v1/auth/password/reset` `{token, newPassword}`: the link
+    works once, for 60 minutes; the account is unlocked, every session revoked, a new one started,
+    and a "password changed" e-mail sent. E-mails go through `auth_mail_outbox` (sent after commit
+    in the background, retried with backoff by `auth_due_mail`, dropped after an hour) and their
+    bodies are cleared once sent. SMTP via Jakarta Mail (`spring-boot-starter-mail`), configured
+    only by `BAYFLOW_MAIL_*`: Mailpit locally, Gmail for demos, SES/SendGrid later. The feature is
+    off (503, and the sign-in page keeps the "ask the workshop" hint) while no mail host is set;
+    `GET /api/v1/tenants/current` says which with `passwordResetByEmail`.
+
 ---
 
 ## 10. Milestones

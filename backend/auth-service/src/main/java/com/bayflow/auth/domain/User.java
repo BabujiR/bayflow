@@ -169,6 +169,16 @@ public class User {
         this.updatedAt = now;
     }
 
+    /**
+     * A new password through an e-mailed reset link: ends any temporary password and lifts a
+     * lockout (the person proved they read the account's mailbox).
+     */
+    public void completeReset(String newPasswordHash, Instant now) {
+        changePassword(newPasswordHash, now);
+        this.failedAttempts = 0;
+        this.lockedUntil = null;
+    }
+
     /** A temporary password from a reset that was not replaced in time. */
     public boolean isTemporaryPasswordExpired(Instant now) {
         return mustChangePassword && temporaryPasswordExpiresAt != null && !temporaryPasswordExpiresAt.isAfter(now);

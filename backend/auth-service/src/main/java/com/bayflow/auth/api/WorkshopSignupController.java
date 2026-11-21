@@ -36,6 +36,7 @@ import com.bayflow.auth.application.ApiException;
 import com.bayflow.auth.application.AnnouncementService;
 import com.bayflow.auth.application.BrandingService;
 import com.bayflow.auth.application.BrandingService.BrandingView;
+import com.bayflow.auth.application.PasswordResetService;
 import com.bayflow.auth.application.SignupRateLimiter;
 import com.bayflow.auth.application.SignupService;
 import com.bayflow.auth.application.SignupService.Availability;
@@ -74,9 +75,12 @@ public class WorkshopSignupController {
     public record AvailabilityResponse(String slug, boolean available, String reason) {
     }
 
-    /** What the sign-in page of a workshop's address shows. */
+    /**
+     * What the sign-in page of a workshop's address shows. {@code passwordResetByEmail}: e-mail is
+     * set up, so the page offers "Forgot password?".
+     */
     public record PublicWorkshop(String slug, String name, String displayName, boolean active,
-            PublicBranding branding) {
+            PublicBranding branding, boolean passwordResetByEmail) {
     }
 
     /**
@@ -96,10 +100,12 @@ public class WorkshopSignupController {
     private final TenantSettingsService settings;
     private final BrandingService branding;
     private final AnnouncementService announcements;
+    private final PasswordResetService passwordResets;
 
     public WorkshopSignupController(SignupService signups, SignupRateLimiter rateLimiter,
             RequestTenants requestTenants, TenantSettingsService settings, BrandingService branding,
-            AnnouncementService announcements) {
+            AnnouncementService announcements, PasswordResetService passwordResets) {
+        this.passwordResets = passwordResets;
         this.signups = signups;
         this.rateLimiter = rateLimiter;
         this.requestTenants = requestTenants;
@@ -145,7 +151,8 @@ public class WorkshopSignupController {
         String displayName = TenantContext.call(tenant.getId(), () -> settings.current().settings().getDisplayName());
         BrandingView view = TenantContext.call(tenant.getId(), branding::current);
         return new PublicWorkshop(tenant.getSlug(), tenant.getName(), displayName, tenant.isActive(),
-                publicBranding(view, TenantContext.call(tenant.getId(), announcements::live)));
+                publicBranding(view, TenantContext.call(tenant.getId(), announcements::live)),
+                passwordResets.isAvailable());
     }
 
     @GetMapping("/current/{kind:logo|cover}")

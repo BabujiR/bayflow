@@ -44,6 +44,15 @@ public final class AuthDtos {
             @NotBlank @Size(min = 8, max = 100) String newPassword) {
     }
 
+    /** "Forgot password?": the answer is the same whether or not the address has an account. */
+    public record ForgotPasswordRequest(@NotBlank @Email @Size(max = 254) String email) {
+    }
+
+    /** The token from the e-mailed link and the new password. */
+    public record ResetPasswordRequest(@NotBlank @Size(max = 100) String token,
+            @NotBlank @Size(min = 8, max = 100) String newPassword) {
+    }
+
     /** Shown once to the staff member who reset the password; never stored in plain text. */
     public record TemporaryPasswordResponse(UUID userId, String username, String temporaryPassword,
             Instant expiresAt) {

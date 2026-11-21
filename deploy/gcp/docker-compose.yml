@@ -92,6 +92,13 @@ services:
       BAYFLOW_JWT_PUBLIC_KEY_PATH: /run/keys/jwt-public.pem
       BAYFLOW_JWT_ALLOW_EPHEMERAL: "false"
       BAYFLOW_COOKIE_SECURE: "true"
+      # "Forgot password?" e-mails: off while BAYFLOW_MAIL_HOST is empty (see .env.example).
+      BAYFLOW_MAIL_HOST: ${BAYFLOW_MAIL_HOST:-}
+      BAYFLOW_MAIL_PORT: ${BAYFLOW_MAIL_PORT:-587}
+      BAYFLOW_MAIL_USERNAME: ${BAYFLOW_MAIL_USERNAME:-}
+      BAYFLOW_MAIL_PASSWORD: ${BAYFLOW_MAIL_PASSWORD:-}
+      BAYFLOW_MAIL_FROM: ${BAYFLOW_MAIL_FROM:-}
+      BAYFLOW_SITE_URL: https://${BAYFLOW_BASE_DOMAIN}
     volumes:
       - ./keys:/run/keys:ro
 

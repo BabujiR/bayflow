@@ -61,16 +61,20 @@ export class Narrator {
     if (!existsSync(wavFile)) {
       const textFile = resolve(join(CACHE_DIR, `${key}.txt`));
       await writeFile(textFile, spoken, 'utf8');
-      const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', SPEAK_SCRIPT], {
-        env: {
-          ...process.env,
-          DEMO_TTS_TEXT: textFile,
-          DEMO_TTS_OUT: wavFile,
-          DEMO_TTS_VOICE: VOICE,
-          DEMO_TTS_RATE: String(RATE),
+      const result = spawnSync(
+        'powershell.exe',
+        ['-NoProfile', '-NonInteractive', '-Command', SPEAK_SCRIPT],
+        {
+          env: {
+            ...process.env,
+            DEMO_TTS_TEXT: textFile,
+            DEMO_TTS_OUT: wavFile,
+            DEMO_TTS_VOICE: VOICE,
+            DEMO_TTS_RATE: String(RATE),
+          },
+          encoding: 'utf8',
         },
-        encoding: 'utf8',
-      });
+      );
       if (result.error || result.status !== 0 || !existsSync(wavFile)) {
         throw new Error(
           `Windows could not speak "${spoken}" with voice ${VOICE}: ` +
@@ -153,9 +157,32 @@ export function narrationTrack(cues: Cue[]): Buffer {
 export function joinWithVideo(video: string, narration: string, output: string): boolean {
   const result = spawnSync(
     'ffmpeg',
-    ['-y', '-loglevel', 'error', '-i', video, '-i', narration, '-map', '0:v', '-map', '1:a',
-      '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p',
-      '-c:a', 'aac', '-b:a', '160k', output],
+    [
+      '-y',
+      '-loglevel',
+      'error',
+      '-i',
+      video,
+      '-i',
+      narration,
+      '-map',
+      '0:v',
+      '-map',
+      '1:a',
+      '-c:v',
+      'libx264',
+      '-preset',
+      'veryfast',
+      '-crf',
+      '20',
+      '-pix_fmt',
+      'yuv420p',
+      '-c:a',
+      'aac',
+      '-b:a',
+      '160k',
+      output,
+    ],
     { stdio: 'inherit' },
   );
   if (result.error) {

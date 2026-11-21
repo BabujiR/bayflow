@@ -234,6 +234,30 @@ Try a restore on a spare VM now and then; a backup you never restored is a hope,
 **Build on the VM** (no GHCR images, or to test a branch): `docker compose up -d --build`.
 The Java builds take several minutes on this VM size; the result is the same.
 
+## E-mail: "Forgot password?" with Gmail (VM)
+
+Until e-mail is set up, the sign-in pages say "ask the workshop to reset it". For demos a Gmail
+account is enough (about 500 e-mails a day); move to Amazon SES or SendGrid before real customers.
+
+1. Use a separate Gmail account for Ramplight. Turn on **2-Step Verification** (Google Account →
+   Security), then create an **App Password** (search "App passwords" there). Copy the 16 characters.
+2. On the VM, in `/opt/bayflow/deploy/gcp/.env`:
+   ```
+   BAYFLOW_MAIL_HOST=smtp.gmail.com
+   BAYFLOW_MAIL_PORT=587
+   BAYFLOW_MAIL_USERNAME=ramplight.demo@gmail.com
+   BAYFLOW_MAIL_PASSWORD=<the App Password, without spaces>
+   BAYFLOW_MAIL_FROM=ramplight.demo@gmail.com
+   ```
+   (With Gmail the sender must be the Gmail address itself; e-mails show the workshop's name.)
+3. `docker compose up -d auth-service`, then on a workshop's sign-in page: *Forgot password? Reset
+   it by email*. `docker compose logs auth-service | grep -i mail` shows failures (never addresses
+   or links).
+
+**Moving to SES or SendGrid later:** verify `getramplight.com` with them and add the DNS records they
+give you (SPF, DKIM, DMARC) in Cloudflare; then change the five settings to their SMTP host, user and
+password, with `BAYFLOW_MAIL_FROM=no-reply@getramplight.com`, and restart auth-service. No code change.
+
 ## Security checklist
 
 - [ ] SSH only through IAP (`default-allow-ssh` deleted); only 80/443 open to the internet.

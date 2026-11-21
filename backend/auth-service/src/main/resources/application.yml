@@ -101,6 +101,18 @@ bayflow:
       labour-rate: ${BAYFLOW_LABOUR_RATE:95.00}
       currency: ${BAYFLOW_CURRENCY:USD}
       time-zone: ${BAYFLOW_WORKSHOP_ZONE:America/New_York}
+    # Password-reset e-mails. Off until BAYFLOW_MAIL_HOST is set (smtp.gmail.com, a provider, or
+    # mailpit locally). Gmail: port 587, the full address as username, an App Password.
+    mail:
+      host: ${BAYFLOW_MAIL_HOST:}
+      port: ${BAYFLOW_MAIL_PORT:587}
+      username: ${BAYFLOW_MAIL_USERNAME:}
+      password: ${BAYFLOW_MAIL_PASSWORD:}
+      smtp-auth: ${BAYFLOW_MAIL_SMTP_AUTH:true}
+      start-tls: ${BAYFLOW_MAIL_STARTTLS:true}
+      from: ${BAYFLOW_MAIL_FROM:}
+      # Reset links go to <slug>.<this host>.
+      site-url: ${BAYFLOW_SITE_URL:http://localhost:3000}
     # Self-service sign-up of new workshops (POST /api/v1/tenants/signup).
     signup:
       max-per-hour-per-ip: ${BAYFLOW_SIGNUP_MAX_PER_HOUR:10}

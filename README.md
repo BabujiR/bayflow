@@ -238,8 +238,16 @@ service's Swagger UI and paste it.
   `.env` when no admin exists yet.
 - Login is protected by a rate limit (10 attempts/minute per username + IP)
   and a 15-minute lock after 5 wrong passwords.
+- **Forgot password? by e-mail:** when e-mail is set up (`BAYFLOW_MAIL_*`; locally every
+  e-mail lands in Mailpit at http://localhost:8025), the sign-in page offers *Reset it by email*.
+  The link (`/reset-password?token=…` at the workshop's own address) works once, for 60 minutes;
+  only its hash is stored, the answer never says whether an address has an account, and
+  addresses get at most 3 e-mails an hour. Using it unlocks the account, signs it out everywhere
+  and signs in; a "password changed" e-mail follows. E-mails go through an outbox
+  (`auth_mail_outbox`) and are retried; their bodies are cleared once sent. Any SMTP server works:
+  Gmail for demos, SES or SendGrid later, by settings only (`docs/GCP-DEPLOY.md`, *E-mail*).
 - **Signing in and forgotten passwords:** people sign in with their username or their
-  e-mail address. Someone who forgot their password asks the workshop: an ADMIN can reset
+  e-mail address. Someone who forgot their password can also ask the workshop: an ADMIN can reset
   anyone else's password (*User accounts → Reset password*), and advisors and managers a
   customer's (the customer's page). The reset shows a temporary password once
   (`POST /api/v1/auth/users/{id}/password-reset`); it unlocks the account, signs it out

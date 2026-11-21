@@ -5,7 +5,14 @@ import { expect, test as base, type Locator, type Page } from '@playwright/test'
 
 import '../../e2e/support/localhost-dns';
 
-import { createNarrator, joinWithVideo, narrationTrack, type Clip, type Cue, type Narrator } from './narrator';
+import {
+  createNarrator,
+  joinWithVideo,
+  narrationTrack,
+  type Clip,
+  type Cue,
+  type Narrator,
+} from './narrator';
 
 /**
  * Harness for the recorded product demo (see demo/README.md). One browser page per video;

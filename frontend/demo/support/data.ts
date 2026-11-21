@@ -113,7 +113,10 @@ export async function customerWithBooking(
     throw new Error(`Registering ${username} failed: ${registered.status()} ${await registered.text()}`);
   }
   const api = await signedIn(username, password);
-  const profile = await api.post<{ id: string }>('/api/v1/customers/me', { name, email: `${username}@example.com` });
+  const profile = await api.post<{ id: string }>('/api/v1/customers/me', {
+    name,
+    email: `${username}@example.com`,
+  });
   const registration = `SUM ${id.slice(-3).toUpperCase()}`;
   const mileage = 30_000 + Math.floor(Math.random() * 40_000);
   const vehicle = await api.post<{ id: string }>('/api/v1/vehicles', {
