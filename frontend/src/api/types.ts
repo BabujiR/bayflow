@@ -50,6 +50,16 @@ export interface TemporaryPassword {
   expiresAt: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  /** From the e-mailed link. */
+  token: string;
+  newPassword: string;
+}
+
 export interface ChangePasswordRequest {
   /** The temporary password after a reset. */
   currentPassword: string;
@@ -263,6 +273,8 @@ export interface PublicWorkshop {
   active: boolean;
   /** The workshop's look (Branding). Missing from older servers: then Bayflow's look. */
   branding?: PublicBranding;
+  /** E-mail is set up: the sign-in page offers "Forgot password?". */
+  passwordResetByEmail?: boolean;
 }
 
 // ---- branding (auth-service) -------------------------------------------------------------

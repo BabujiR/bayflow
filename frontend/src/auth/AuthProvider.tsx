@@ -7,6 +7,7 @@ import type {
   ChangePasswordRequest,
   LoginRequest,
   RegisterRequest,
+  ResetPasswordRequest,
   Role,
   TokenResponse,
   User,
@@ -104,6 +105,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [startSession],
   );
 
+  const resetPassword = useCallback(
+    async (request: ResetPasswordRequest) => {
+      const token = await authApi.resetPassword(request);
+      startSession(token);
+      return token.user;
+    },
+    [startSession],
+  );
+
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
@@ -118,8 +128,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthContextValue>(
-    () => ({ status, user, login, register, logout, changePassword, hasRole }),
-    [status, user, login, register, logout, changePassword, hasRole],
+    () => ({ status, user, login, register, logout, changePassword, resetPassword, hasRole }),
+    [status, user, login, register, logout, changePassword, resetPassword, hasRole],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

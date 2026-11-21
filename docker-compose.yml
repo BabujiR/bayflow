@@ -71,6 +71,15 @@ services:
       # Empty = throwaway signing key per start. Run scripts/generate-dev-keys and set these in .env to keep tokens valid across restarts.
       BAYFLOW_JWT_PRIVATE_KEY_PATH: ${BAYFLOW_JWT_PRIVATE_KEY_PATH:-}
       BAYFLOW_JWT_PUBLIC_KEY_PATH: ${BAYFLOW_JWT_PUBLIC_KEY_PATH:-}
+      # E-mail ("Forgot password?" links) goes to Mailpit locally: open http://localhost:8025.
+      BAYFLOW_MAIL_HOST: ${BAYFLOW_MAIL_HOST:-mailpit}
+      BAYFLOW_MAIL_PORT: ${BAYFLOW_MAIL_PORT:-1025}
+      BAYFLOW_MAIL_USERNAME: ${BAYFLOW_MAIL_USERNAME:-}
+      BAYFLOW_MAIL_PASSWORD: ${BAYFLOW_MAIL_PASSWORD:-}
+      BAYFLOW_MAIL_SMTP_AUTH: ${BAYFLOW_MAIL_SMTP_AUTH:-false}
+      BAYFLOW_MAIL_STARTTLS: ${BAYFLOW_MAIL_STARTTLS:-false}
+      BAYFLOW_MAIL_FROM: ${BAYFLOW_MAIL_FROM:-no-reply@bayflow.local}
+      BAYFLOW_SITE_URL: ${BAYFLOW_SITE_URL:-http://localhost:3000}
     volumes:
       - ./keys:/run/keys:ro
     ports:
@@ -197,6 +206,15 @@ services:
       NOTIFICATION_UPSTREAM: notification-service:8084
     ports:
       - "${WEB_PORT:-3000}:8080"
+
+  # A test inbox: catches every e-mail the stack sends (http://localhost:8025); nothing reaches
+  # real people.
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    container_name: bayflow-mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
 
 volumes:
   bayflow-pgdata:

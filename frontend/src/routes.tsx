@@ -21,10 +21,12 @@ import { VehicleDetailPage } from '@/features/vehicles/VehicleDetailPage';
 import { VehiclesPage } from '@/features/vehicles/VehiclesPage';
 import { WorkshopSettingsPage } from '@/features/workshop/WorkshopSettingsPage';
 import { ChangePasswordPage } from '@/pages/ChangePasswordPage';
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
 import { HomePage } from '@/pages/HomePage';
 import { LoginPage } from '@/pages/LoginPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RegisterPage } from '@/pages/RegisterPage';
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 
 /**
  * A workshop's app (`<slug>.localhost`). Role guards mirror the API's rules; the API remains the
@@ -39,9 +41,15 @@ export const routes: RouteObject[] = [
         children: [
           { path: '/login', element: <LoginPage /> },
           { path: '/register', element: <RegisterPage /> },
+          { path: '/forgot-password', element: <ForgotPasswordPage /> },
         ],
       },
     ],
+  },
+  {
+    // Signed in or not: the e-mailed link signs in whoever proves they read that mailbox.
+    element: <AuthLayout />,
+    children: [{ path: '/reset-password', element: <ResetPasswordPage /> }],
   },
   {
     element: <RequireAuth />,

@@ -28,6 +28,7 @@ public class AuthProperties {
     private final BootstrapAdmin bootstrapAdmin = new BootstrapAdmin();
     private final TenantDefaults tenantDefaults = new TenantDefaults();
     private final Signup signup = new Signup();
+    private final Mail mail = new Mail();
     /** appointment-service, asked before a location is archived whether it has upcoming bookings. */
     private String appointmentUrl = "http://localhost:8081";
     /**
@@ -56,6 +57,7 @@ public class AuthProperties {
     public BootstrapAdmin getBootstrapAdmin() { return bootstrapAdmin; }
     public TenantDefaults getTenantDefaults() { return tenantDefaults; }
     public Signup getSignup() { return signup; }
+    public Mail getMail() { return mail; }
     public String getAppointmentUrl() { return appointmentUrl; }
     public void setAppointmentUrl(String appointmentUrl) { this.appointmentUrl = appointmentUrl; }
     public String getFallbackWorkshop() { return fallbackWorkshop; }
@@ -122,6 +124,74 @@ public class AuthProperties {
         public void setSecure(boolean secure) { this.secure = secure; }
         public String getSameSite() { return sameSite; }
         public void setSameSite(String sameSite) { this.sameSite = sameSite; }
+    }
+
+    /**
+     * Outgoing e-mail (password reset links) over SMTP. Off until {@code host} is set; then
+     * "Forgot password?" appears on the sign-in pages.
+     */
+    public static class Mail {
+        /** SMTP server, e.g. smtp.gmail.com, email-smtp.us-east-1.amazonaws.com, mailpit. Empty = no e-mail. */
+        private String host = "";
+        private int port = 587;
+        private String username = "";
+        private String password = "";
+        private boolean smtpAuth = true;
+        /** STARTTLS on port 587 (required by Gmail and the providers; off for Mailpit). */
+        private boolean startTls = true;
+        /** Sender address; with Gmail it must be the Gmail account itself. */
+        private String from = "";
+        /** The public site, e.g. https://getramplight.com; links go to https://<slug>.getramplight.com. */
+        private String siteUrl = "http://localhost:3000";
+        /** How long a reset link works. */
+        private Duration resetLinkTtl = Duration.ofMinutes(60);
+        /** Reset e-mails per address per hour, and requests per IP address per hour. */
+        private int maxPerEmailPerHour = 3;
+        private int maxPerIpPerHour = 10;
+        /** Send right after the request commits (tests turn this off and send by hand). */
+        private boolean sendImmediately = true;
+        /** Retry delivery: every {@code bayflow.auth.mail.interval-ms}, with backoff. */
+        private boolean dispatcherEnabled = true;
+        private int batchSize = 20;
+        private Duration initialBackoff = Duration.ofSeconds(30);
+        private Duration maxBackoff = Duration.ofMinutes(10);
+        /** Undelivered after this long: dropped (a reset link would have expired anyway). */
+        private Duration giveUpAfter = Duration.ofHours(1);
+
+        public String getHost() { return host; }
+        public void setHost(String host) { this.host = host; }
+        public int getPort() { return port; }
+        public void setPort(int port) { this.port = port; }
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
+        public String getPassword() { return password; }
+        public void setPassword(String password) { this.password = password; }
+        public boolean isSmtpAuth() { return smtpAuth; }
+        public void setSmtpAuth(boolean smtpAuth) { this.smtpAuth = smtpAuth; }
+        public boolean isStartTls() { return startTls; }
+        public void setStartTls(boolean startTls) { this.startTls = startTls; }
+        public String getFrom() { return from; }
+        public void setFrom(String from) { this.from = from; }
+        public String getSiteUrl() { return siteUrl; }
+        public void setSiteUrl(String siteUrl) { this.siteUrl = siteUrl; }
+        public Duration getResetLinkTtl() { return resetLinkTtl; }
+        public void setResetLinkTtl(Duration resetLinkTtl) { this.resetLinkTtl = resetLinkTtl; }
+        public int getMaxPerEmailPerHour() { return maxPerEmailPerHour; }
+        public void setMaxPerEmailPerHour(int maxPerEmailPerHour) { this.maxPerEmailPerHour = maxPerEmailPerHour; }
+        public int getMaxPerIpPerHour() { return maxPerIpPerHour; }
+        public void setMaxPerIpPerHour(int maxPerIpPerHour) { this.maxPerIpPerHour = maxPerIpPerHour; }
+        public boolean isSendImmediately() { return sendImmediately; }
+        public void setSendImmediately(boolean sendImmediately) { this.sendImmediately = sendImmediately; }
+        public boolean isDispatcherEnabled() { return dispatcherEnabled; }
+        public void setDispatcherEnabled(boolean dispatcherEnabled) { this.dispatcherEnabled = dispatcherEnabled; }
+        public int getBatchSize() { return batchSize; }
+        public void setBatchSize(int batchSize) { this.batchSize = batchSize; }
+        public Duration getInitialBackoff() { return initialBackoff; }
+        public void setInitialBackoff(Duration initialBackoff) { this.initialBackoff = initialBackoff; }
+        public Duration getMaxBackoff() { return maxBackoff; }
+        public void setMaxBackoff(Duration maxBackoff) { this.maxBackoff = maxBackoff; }
+        public Duration getGiveUpAfter() { return giveUpAfter; }
+        public void setGiveUpAfter(Duration giveUpAfter) { this.giveUpAfter = giveUpAfter; }
     }
 
     /** Brute-force protection. */

@@ -18,8 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.bayflow.auth.api.AuthDtos.ChangePasswordRequest;
 import com.bayflow.auth.api.AuthDtos.ClientTokenRequest;
+import com.bayflow.auth.api.AuthDtos.ForgotPasswordRequest;
 import com.bayflow.auth.api.AuthDtos.LoginRequest;
 import com.bayflow.auth.api.AuthDtos.RegisterRequest;
+import com.bayflow.auth.api.AuthDtos.ResetPasswordRequest;
 import com.bayflow.auth.api.AuthDtos.TokenResponse;
 import com.bayflow.auth.api.AuthDtos.UserResponse;
 import com.bayflow.auth.application.ApiException;
@@ -27,6 +29,7 @@ import com.bayflow.auth.application.AuthService;
 import com.bayflow.auth.application.AuthService.Session;
 import com.bayflow.auth.application.ClientCredentialsService;
 import com.bayflow.auth.application.LocationAccess;
+import com.bayflow.auth.application.PasswordResetService;
 import com.bayflow.auth.domain.User;
 import com.bayflow.auth.application.TokenService.IssuedToken;
 import com.bayflow.security.CurrentUser;
@@ -47,9 +50,11 @@ public class AuthController {
     private final ClientCredentialsService clientCredentials;
     private final RefreshCookies cookies;
     private final RequestTenants tenants;
+    private final PasswordResetService passwordResets;
 
     public AuthController(AuthService authService, ClientCredentialsService clientCredentials,
-            RefreshCookies cookies, RequestTenants tenants) {
+            RefreshCookies cookies, RequestTenants tenants, PasswordResetService passwordResets) {
+        this.passwordResets = passwordResets;
         this.authService = authService;
         this.clientCredentials = clientCredentials;
         this.cookies = cookies;
@@ -92,6 +97,27 @@ public class AuthController {
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, cookies.clear().toString())
                 .build();
+    }
+
+    @PostMapping("/password/forgot")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "Forgot password: e-mail a reset link to this address, if it has an account",
+            description = "Always 202, whether or not the address has an account. 503 when e-mail is not set up; "
+                    + "429 after too many requests from one IP address.")
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request, HttpServletRequest httpRequest) {
+        TenantContext.run(tenants.resolve(httpRequest),
+                () -> passwordResets.requestReset(request.email(), httpRequest.getRemoteAddr()));
+    }
+
+    @PostMapping("/password/reset")
+    @Operation(summary = "Set a new password with the token from the reset e-mail; signs in",
+            description = "The link works once, for 60 minutes. Ends every other session. "
+                    + "400 reset-link-invalid when it expired or was used.")
+    public ResponseEntity<TokenResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request,
+            HttpServletRequest httpRequest) {
+        return sessionResponse(TenantContext.call(tenants.resolve(httpRequest),
+                () -> passwordResets.resetPassword(request.token(), request.newPassword(),
+                        httpRequest.getRemoteAddr())));
     }
 
     @PostMapping("/me/password")

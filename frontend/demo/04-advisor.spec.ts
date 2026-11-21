@@ -90,6 +90,23 @@ test('Ramplight for service advisors', async ({ presenter: p }) => {
   await p.click(page.getByRole('button', { name: 'Send to customer for approval' }));
   await expect(page.getByRole('heading', { name: /Job card ·/ })).toContainText('Awaiting approval');
   await p.say("You're told the moment they decide, and the mechanics see the approved work.");
+
+  await p.chapter('A customer locked out?', 'Reset their password while they are on the phone.', 5000);
+  await p.say(`${prepared.customer.name} calls: she forgot her password. Find her under Customers.`);
+  await p.nav('Customers', '/customers');
+  // Her e-mail is unique, so the search finds just her.
+  await p.type(page.getByLabel('Search'), `${prepared.customer.username}@example.com`);
+  await p.click(page.getByRole('link', { name: prepared.customer.name }).first());
+  await expect(page.getByRole('heading', { name: prepared.customer.name })).toBeVisible();
+  await p.click(page.getByRole('button', { name: `Reset password for ${prepared.customer.name}` }));
+  const dialog2 = page.getByRole('dialog', { name: `Reset password for ${prepared.customer.name}?` });
+  await p.click(dialog2.getByRole('button', { name: 'Reset password' }));
+  await expect(page.getByTestId('temporary-password')).toBeVisible();
+  await p.point(page.getByTestId('temporary-password'));
+  await p.say(
+    'Read her the temporary password. It works for 72 hours and she must replace it when she signs in.',
+  );
+  await p.click(page.getByRole('button', { name: 'Done' }));
   await p.card(
     'Ramplight',
     `Less phone tag, more cars through the bays. ${SITE_HOST}`,

@@ -84,7 +84,7 @@ async function mainLocationId(api: Api): Promise<string | undefined> {
 }
 
 export interface Prepared {
-  customer: { username: string; name: string; api: Api };
+  customer: { id: string; username: string; name: string; api: Api };
   vehicle: { id: string; registration: string; label: string; mileage: number };
   appointmentId: string;
   at: Slot;
@@ -113,7 +113,10 @@ export async function customerWithBooking(
     throw new Error(`Registering ${username} failed: ${registered.status()} ${await registered.text()}`);
   }
   const api = await signedIn(username, password);
-  await api.post('/api/v1/customers/me', { name, email: `${username}@example.com` });
+  const profile = await api.post<{ id: string }>('/api/v1/customers/me', {
+    name,
+    email: `${username}@example.com`,
+  });
   const registration = `SUM ${id.slice(-3).toUpperCase()}`;
   const mileage = 30_000 + Math.floor(Math.random() * 40_000);
   const vehicle = await api.post<{ id: string }>('/api/v1/vehicles', {
@@ -133,7 +136,7 @@ export async function customerWithBooking(
     notes,
   });
   return {
-    customer: { username, name, api },
+    customer: { id: profile.id, username, name, api },
     vehicle: {
       id: vehicle.id,
       registration,

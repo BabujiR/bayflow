@@ -39,6 +39,8 @@ test('Ramplight for owners', async ({ presenter: p }) => {
   await p.nav('User accounts', '/users');
   await p.say('Your team: advisors, mechanics and managers, each at the locations they work at.');
   await p.point(page.getByRole('row', { name: new RegExp(ADVISOR.username) }).first());
+  await p.say('Someone forgot their password? Reset password gives them a temporary one, shown once.');
+  await p.point(page.getByRole('button', { name: `Reset password for ${ADVISOR.username}` }));
   await p.say('Someone leaves? Disable the account and they are signed out everywhere, at once.');
 
   await p.chapter('Everything at a glance', 'Bookings, job cards and customers across every location.', 5000);
