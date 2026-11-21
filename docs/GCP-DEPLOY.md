@@ -202,10 +202,12 @@ docker compose logs caddy  # "certificate obtained successfully" for getrampligh
 **Update** to the newest images (after CD has published them):
 
 ```bash
+cd /opt/bayflow/deploy/gcp
 bash scripts/backup.sh            # a fresh backup first
-git -C /opt/bayflow pull          # picks up changes to these deploy files
+git -C /opt/bayflow pull          # picks up changes to the deploy files
 docker compose pull && docker compose up -d
-docker image prune -f
+docker compose ps                 # wait until all show "healthy"
+docker image prune -f             # then clean up the old versions
 ```
 
 Database migrations run by themselves when the services start.
