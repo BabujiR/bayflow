@@ -2,7 +2,7 @@
   "name": "bayflow-web",
   "private": true,
   "version": "0.1.0",
-  "description": "Bayflow web app: the smarter way to run your auto workshop.",
+  "description": "Ramplight web app (codename Bayflow): the smarter way to run your auto workshop.",
   "type": "module",
   "engines": {
     "node": ">=22.12"

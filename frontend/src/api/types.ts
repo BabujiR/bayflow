@@ -251,27 +251,29 @@ export interface PublicWorkshop {
 
 // ---- branding (auth-service) -------------------------------------------------------------
 
-export type BannerStyle = 'INFO' | 'IMPORTANT';
+export type AnnouncementStyle = 'INFO' | 'IMPORTANT';
 
-/** What every visitor of a workshop's address sees. The banner is present only while it is live. */
+/** A live announcement, as everyone at the workshop's address sees it. */
+export interface PublicAnnouncement {
+  id: string;
+  text: string;
+  style: AnnouncementStyle;
+}
+
+/** What every visitor of a workshop's address sees. */
 export interface PublicBranding {
   logoUrl: string | null;
   coverUrl: string | null;
   /** #rrggbb, or null for Bayflow's colours. */
   primaryColor: string | null;
   showPoweredBy: boolean;
-  banner: { text: string; style: BannerStyle } | null;
+  /** The live ones only, in the order shown (important first); empty when there are none. */
+  announcements: PublicAnnouncement[];
 }
 
-/** The workshop ADMIN's view of the branding. */
+/** The workshop ADMIN's view of the branding (announcements: below). */
 export interface Branding {
   primaryColor: string | null;
-  bannerText: string | null;
-  bannerStyle: BannerStyle;
-  bannerStartsAt: string | null;
-  bannerEndsAt: string | null;
-  /** The banner has text and today is within its dates. */
-  bannerLive: boolean;
   showPoweredBy: boolean;
   logoUrl: string | null;
   coverUrl: string | null;
@@ -280,12 +282,28 @@ export interface Branding {
 
 export interface UpdateBrandingRequest {
   primaryColor: string | null;
-  bannerText: string | null;
-  bannerStyle: BannerStyle;
-  bannerStartsAt: string | null;
-  bannerEndsAt: string | null;
   showPoweredBy: boolean;
   version: number;
+}
+
+/** One of the workshop's announcements, as its ADMIN keeps them (up to 10). */
+export interface Announcement {
+  id: string;
+  text: string;
+  style: AnnouncementStyle;
+  startsAt: string | null;
+  endsAt: string | null;
+  /** Where it is in its dates right now. */
+  state: 'LIVE' | 'SCHEDULED' | 'ENDED';
+  createdAt: string;
+  version: number;
+}
+
+export interface AnnouncementRequest {
+  text: string;
+  style: AnnouncementStyle;
+  startsAt: string | null;
+  endsAt: string | null;
 }
 
 export type BrandingImageKind = 'logo' | 'cover';
@@ -347,4 +365,28 @@ export interface LocationRequest {
   timeZone?: string;
   labourRate?: number;
   version?: number;
+}
+
+// ---- notifications (notification-service, phase N1) --------------------------------------
+
+export type NotificationType =
+  | 'APPOINTMENT_BOOKED'
+  | 'APPOINTMENT_RESCHEDULED'
+  | 'APPOINTMENT_CANCELLED'
+  | 'APPOINTMENT_CONFIRMED'
+  | 'VEHICLE_CHECKED_IN'
+  | 'ESTIMATE_READY'
+  | 'ESTIMATE_DECIDED'
+  | 'WORK_COMPLETED';
+
+/** One unread message to the signed-in user (reading it deletes it). Title and body are plain text. */
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  /** A path in this app, e.g. /job-cards/<id>. */
+  link: string | null;
+  locationId: string | null;
+  createdAt: string;
 }

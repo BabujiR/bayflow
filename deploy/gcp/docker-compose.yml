@@ -1,0 +1,211 @@
+# Ramplight on one Google Cloud VM (GCP option 1): PostgreSQL, the four services, the web app
+# (nginx) and Caddy in front for HTTPS. Only Caddy is reachable from outside (ports 80 and 443).
+# Setup and day-to-day commands: docs/GCP-DEPLOY.md.
+#
+#   docker compose pull && docker compose up -d     start or update (images from GHCR)
+#   docker compose up -d --build                     or build the images on the VM instead
+#   docker compose ps                                health
+#   docker compose logs -f auth-service              logs
+#
+# Every setting comes from .env next to this file (copy .env.example; scripts/setup-vm.sh
+# fills in the passwords and secrets). A ":?" below means the stack refuses to start without it.
+
+name: bayflow
+
+x-logging: &logging
+  logging:
+    driver: local
+    options:
+      max-size: 10m
+      max-file: "5"
+
+# Settings shared by the four Java services.
+x-service: &service
+  restart: unless-stopped
+  <<: *logging
+  # The JVM sizes its heap from this (-XX:MaxRAMPercentage=75 in each Dockerfile).
+  mem_limit: 768m
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+x-db: &db
+  BAYFLOW_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-bayflow}
+  # Runtime login: subject to row-level security. Flyway migrates as the table owner.
+  BAYFLOW_DB_USER: bayflow_app
+  BAYFLOW_DB_PASSWORD: ${BAYFLOW_APP_DB_PASSWORD:?set BAYFLOW_APP_DB_PASSWORD in .env}
+  BAYFLOW_DB_OWNER_USER: ${POSTGRES_USER:-bayflow}
+  BAYFLOW_DB_OWNER_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+  BAYFLOW_BASE_DOMAIN: ${BAYFLOW_BASE_DOMAIN:?set BAYFLOW_BASE_DOMAIN in .env}
+  BAYFLOW_WORKSHOP_ZONE: ${BAYFLOW_WORKSHOP_ZONE:-America/New_York}
+  # The APIs are not browsable in production.
+  SPRINGDOC_SWAGGER_UI_ENABLED: "false"
+  SPRINGDOC_API_DOCS_ENABLED: "false"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    <<: *logging
+    mem_limit: 1g
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bayflow}
+      POSTGRES_USER: ${POSTGRES_USER:-bayflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      BAYFLOW_APP_DB_PASSWORD: ${BAYFLOW_APP_DB_PASSWORD:?set BAYFLOW_APP_DB_PASSWORD in .env}
+      TZ: UTC
+    # No ports: only the services reach it. Use "docker compose exec postgres psql" to look inside.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../../infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  auth-service:
+    <<: *service
+    image: ${IMAGE_PREFIX:-bayflow}/bayflow-auth:${IMAGE_TAG:-latest}
+    build:
+      context: ../../backend
+      dockerfile: auth-service/Dockerfile
+    environment:
+      <<: *db
+      # Anything but "dev": no demo users.
+      SPRING_PROFILES_ACTIVE: prod
+      BAYFLOW_SYSTEM_CLIENT_SECRET: ${BAYFLOW_SYSTEM_CLIENT_SECRET:?set BAYFLOW_SYSTEM_CLIENT_SECRET in .env}
+      BAYFLOW_WORKSHOP_CLIENT_SECRET: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:?set BAYFLOW_WORKSHOP_CLIENT_SECRET in .env}
+      BAYFLOW_NOTIFICATION_CLIENT_SECRET: ${BAYFLOW_NOTIFICATION_CLIENT_SECRET:?set BAYFLOW_NOTIFICATION_CLIENT_SECRET in .env}
+      # No workshop at addresses without one, in production.
+      BAYFLOW_FALLBACK_WORKSHOP: ""
+      BAYFLOW_APPOINTMENT_URL: http://appointment-service:8081
+      BAYFLOW_SIGNUP_MAX_PER_HOUR: ${BAYFLOW_SIGNUP_MAX_PER_HOUR:-10}
+      BAYFLOW_LABOUR_RATE: ${BAYFLOW_LABOUR_RATE:-95.00}
+      BAYFLOW_CURRENCY: ${BAYFLOW_CURRENCY:-USD}
+      BAYFLOW_BOOTSTRAP_ADMIN_USERNAME: ${BAYFLOW_BOOTSTRAP_ADMIN_USERNAME:-admin}
+      BAYFLOW_BOOTSTRAP_ADMIN_EMAIL: ${BAYFLOW_BOOTSTRAP_ADMIN_EMAIL:?set BAYFLOW_BOOTSTRAP_ADMIN_EMAIL in .env}
+      BAYFLOW_BOOTSTRAP_ADMIN_PASSWORD: ${BAYFLOW_BOOTSTRAP_ADMIN_PASSWORD:?set BAYFLOW_BOOTSTRAP_ADMIN_PASSWORD in .env}
+      # A fixed signing key (scripts/setup-vm.sh creates it), so sign-ins survive restarts.
+      BAYFLOW_JWT_PRIVATE_KEY_PATH: /run/keys/jwt-private.pem
+      BAYFLOW_JWT_PUBLIC_KEY_PATH: /run/keys/jwt-public.pem
+      BAYFLOW_JWT_ALLOW_EPHEMERAL: "false"
+      BAYFLOW_COOKIE_SECURE: "true"
+    volumes:
+      - ./keys:/run/keys:ro
+
+  appointment-service:
+    <<: *service
+    image: ${IMAGE_PREFIX:-bayflow}/bayflow-appointment:${IMAGE_TAG:-latest}
+    build:
+      context: ../../backend
+      dockerfile: appointment-service/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    environment:
+      <<: *db
+      BAYFLOW_JWKS_URI: http://auth-service:8083/.well-known/jwks.json
+      BAYFLOW_AUTH_URL: http://auth-service:8083
+      BAYFLOW_WORKSHOP_URL: http://workshop-service:8082
+      BAYFLOW_NOTIFICATION_URL: http://notification-service:8084
+      BAYFLOW_SYSTEM_CLIENT_SECRET: ${BAYFLOW_SYSTEM_CLIENT_SECRET:?set BAYFLOW_SYSTEM_CLIENT_SECRET in .env}
+
+  workshop-service:
+    <<: *service
+    image: ${IMAGE_PREFIX:-bayflow}/bayflow-workshop:${IMAGE_TAG:-latest}
+    build:
+      context: ../../backend
+      dockerfile: workshop-service/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    environment:
+      <<: *db
+      BAYFLOW_JWKS_URI: http://auth-service:8083/.well-known/jwks.json
+      BAYFLOW_LABOUR_RATE: ${BAYFLOW_LABOUR_RATE:-95.00}
+      BAYFLOW_CURRENCY: ${BAYFLOW_CURRENCY:-USD}
+      BAYFLOW_AUTH_URL: http://auth-service:8083
+      BAYFLOW_WORKSHOP_CLIENT_SECRET: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:?set BAYFLOW_WORKSHOP_CLIENT_SECRET in .env}
+      BAYFLOW_NOTIFICATION_URL: http://notification-service:8084
+
+  notification-service:
+    <<: *service
+    image: ${IMAGE_PREFIX:-bayflow}/bayflow-notification:${IMAGE_TAG:-latest}
+    build:
+      context: ../../backend
+      dockerfile: notification-service/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    environment:
+      <<: *db
+      BAYFLOW_JWKS_URI: http://auth-service:8083/.well-known/jwks.json
+      BAYFLOW_AUTH_URL: http://auth-service:8083
+      BAYFLOW_NOTIFICATION_CLIENT_SECRET: ${BAYFLOW_NOTIFICATION_CLIENT_SECRET:?set BAYFLOW_NOTIFICATION_CLIENT_SECRET in .env}
+
+  web:
+    image: ${IMAGE_PREFIX:-bayflow}/bayflow-web:${IMAGE_TAG:-latest}
+    build:
+      context: ../..
+      dockerfile: frontend/Dockerfile
+      args:
+        # Baked into the app at build time: a GHCR image must have been built with the same
+        # domain (repository variable BAYFLOW_BASE_DOMAIN, see .github/workflows/cd.yml).
+        VITE_BASE_DOMAIN: ${BAYFLOW_BASE_DOMAIN:?set BAYFLOW_BASE_DOMAIN in .env}
+    restart: unless-stopped
+    <<: *logging
+    mem_limit: 256m
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      appointment-service:
+        condition: service_healthy
+      workshop-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    environment:
+      AUTH_UPSTREAM: auth-service:8083
+      APPOINTMENT_UPSTREAM: appointment-service:8081
+      WORKSHOP_UPSTREAM: workshop-service:8082
+      NOTIFICATION_UPSTREAM: notification-service:8084
+
+  # HTTPS for the base domain and every workshop address (*.<domain>). Certificates come from
+  # Let's Encrypt through a Cloudflare DNS challenge, which is what a wildcard needs.
+  caddy:
+    build: ./caddy
+    image: bayflow-caddy:local
+    # Built on the VM (Caddy plus its Cloudflare DNS module); "docker compose pull" skips it.
+    pull_policy: build
+    restart: unless-stopped
+    <<: *logging
+    mem_limit: 256m
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      BAYFLOW_BASE_DOMAIN: ${BAYFLOW_BASE_DOMAIN:?set BAYFLOW_BASE_DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:?set CLOUDFLARE_API_TOKEN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates: kept, so a restart doesn't ask Let's Encrypt again.
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  pgdata:
+  caddy-data:
+  caddy-config:

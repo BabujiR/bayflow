@@ -53,6 +53,7 @@ services:
       BAYFLOW_DB_OWNER_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
       BAYFLOW_SYSTEM_CLIENT_SECRET: ${BAYFLOW_SYSTEM_CLIENT_SECRET:-dev-system-secret}
       BAYFLOW_WORKSHOP_CLIENT_SECRET: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:-dev-workshop-secret}
+      BAYFLOW_NOTIFICATION_CLIENT_SECRET: ${BAYFLOW_NOTIFICATION_CLIENT_SECRET:-dev-notification-secret}
       # Workshops live at <slug>.<base domain>: demo.localhost:3000, acme.localhost:3000, ...
       BAYFLOW_BASE_DOMAIN: ${BAYFLOW_BASE_DOMAIN:-localhost}
       # Sign-in at an address without a workshop (Swagger UI on :8083). Empty outside dev.
@@ -103,6 +104,8 @@ services:
       # If workshop-service is down, the request waits in the outbox and is retried.
       BAYFLOW_AUTH_URL: http://auth-service:8083
       BAYFLOW_WORKSHOP_URL: http://workshop-service:8082
+      # Booking changes go to notification-service through the same outbox (retried while it is down).
+      BAYFLOW_NOTIFICATION_URL: http://notification-service:8084
       BAYFLOW_SYSTEM_CLIENT_SECRET: ${BAYFLOW_SYSTEM_CLIENT_SECRET:-dev-system-secret}
     ports:
       - "${APPOINTMENT_PORT:-8081}:8081"
@@ -135,8 +138,39 @@ services:
       BAYFLOW_CURRENCY: ${BAYFLOW_CURRENCY:-USD}
       BAYFLOW_AUTH_URL: http://auth-service:8083
       BAYFLOW_WORKSHOP_CLIENT_SECRET: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:-dev-workshop-secret}
+      # Estimate and completion events go to notification-service through ws_outbox.
+      BAYFLOW_NOTIFICATION_URL: http://notification-service:8084
     ports:
       - "${WORKSHOP_PORT:-8082}:8082"
+
+  notification-service:
+    build:
+      context: ./backend
+      dockerfile: notification-service/Dockerfile
+    image: bayflow-notification:local
+    container_name: bayflow-notification
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    environment:
+      BAYFLOW_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-bayflow}
+      # Runtime login: subject to row-level security. Flyway migrates as the table owner.
+      BAYFLOW_DB_USER: bayflow_app
+      BAYFLOW_DB_PASSWORD: ${BAYFLOW_APP_DB_PASSWORD:-bayflow_app}
+      BAYFLOW_DB_OWNER_USER: ${POSTGRES_USER:-bayflow}
+      BAYFLOW_DB_OWNER_PASSWORD: ${POSTGRES_PASSWORD:-bayflow}
+      BAYFLOW_JWKS_URI: http://auth-service:8083/.well-known/jwks.json
+      BAYFLOW_BASE_DOMAIN: ${BAYFLOW_BASE_DOMAIN:-localhost}
+      # Who works at a location, and each location's name and time zone.
+      BAYFLOW_AUTH_URL: http://auth-service:8083
+      BAYFLOW_NOTIFICATION_CLIENT_SECRET: ${BAYFLOW_NOTIFICATION_CLIENT_SECRET:-dev-notification-secret}
+      # Fallback only, for times in notifications while a location's zone can't be read.
+      BAYFLOW_WORKSHOP_ZONE: ${BAYFLOW_WORKSHOP_ZONE:-America/New_York}
+    ports:
+      - "${NOTIFICATION_PORT:-8084}:8084"
 
   web:
     build:
@@ -154,10 +188,13 @@ services:
         condition: service_healthy
       workshop-service:
         condition: service_healthy
+      notification-service:
+        condition: service_healthy
     environment:
       AUTH_UPSTREAM: auth-service:8083
       APPOINTMENT_UPSTREAM: appointment-service:8081
       WORKSHOP_UPSTREAM: workshop-service:8082
+      NOTIFICATION_UPSTREAM: notification-service:8084
     ports:
       - "${WEB_PORT:-3000}:8080"
 

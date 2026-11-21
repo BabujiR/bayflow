@@ -9,6 +9,9 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Order;
+import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 
@@ -33,7 +36,7 @@ class AppointmentSearchImpl implements AppointmentSearch {
         Root<Appointment> appointment = query.from(Appointment.class);
         query.select(appointment)
                 .where(predicates(cb, appointment, filter))
-                .orderBy(cb.asc(appointment.get("scheduledAt")), cb.asc(appointment.get("id")));
+                .orderBy(order(cb, appointment, filter));
         List<Appointment> content = entityManager.createQuery(query)
                 .setFirstResult((int) pageable.getOffset())
                 .setMaxResults(pageable.getPageSize())
@@ -45,6 +48,27 @@ class AppointmentSearchImpl implements AppointmentSearch {
         long total = entityManager.createQuery(countQuery).getSingleResult();
 
         return new PageImpl<>(content, pageable, total);
+    }
+
+    /** The order of {@code filter.sort()}; the id last, so pages never repeat or skip a row. */
+    private static List<Order> order(CriteriaBuilder cb, Root<Appointment> root, AppointmentFilter filter) {
+        Path<Instant> at = root.get("scheduledAt");
+        return switch (filter.sort()) {
+            case EARLIEST -> List.of(cb.asc(at), cb.asc(root.get("id")));
+            case LATEST -> List.of(cb.desc(at), cb.desc(root.get("id")));
+            case RECENT -> List.of(cb.desc(root.get("createdAt")), cb.desc(root.get("id")));
+            case UPCOMING -> {
+                // Not finished yet (ends after now) first, soonest first; then the past, latest first.
+                Instant now = filter.now() != null ? filter.now() : Instant.now();
+                Predicate ahead = cb.greaterThan(root.<Instant>get("endsAt"), now);
+                Expression<Integer> bucket = cb.<Integer>selectCase().when(ahead, 0).otherwise(1);
+                Expression<Instant> future = cb.<Instant>selectCase().when(ahead, at)
+                        .otherwise(cb.nullLiteral(Instant.class));
+                Expression<Instant> past = cb.<Instant>selectCase().when(ahead, cb.nullLiteral(Instant.class))
+                        .otherwise(at);
+                yield List.of(cb.asc(bucket), cb.asc(future), cb.desc(past), cb.asc(root.get("id")));
+            }
+        };
     }
 
     private static Predicate[] predicates(CriteriaBuilder cb, Root<Appointment> root, AppointmentFilter filter) {

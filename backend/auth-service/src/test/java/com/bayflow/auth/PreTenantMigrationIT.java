@@ -57,6 +57,27 @@ class PreTenantMigrationIT {
                 .isEqualTo("0");
     }
 
+    @Test
+    void theOneBannerBecomesTheFirstAnnouncement() throws Exception {
+        String url = freshDatabase("auth_pre_announcements");
+        flyway(url, "9").migrate();
+        String tenant = Tenants.DEFAULT_TENANT_ID.toString();
+        execute(url, "insert into auth_tenant_branding (id, tenant_id, primary_color, banner_text, banner_style,"
+                + " banner_ends_at, show_powered_by, updated_at) values ('" + UUID.randomUUID() + "', '" + tenant
+                + "', '#be123c', 'Closed on 24 December', 'IMPORTANT', '2026-12-26T00:00:00Z', true, now())");
+
+        flyway(url, null).migrate();
+
+        assertThat(single(url, "select text || '|' || style || '|' || to_char(ends_at at time zone 'UTC',"
+                + " 'YYYY-MM-DD') from auth_tenant_announcements where tenant_id = '" + tenant + "'"))
+                .isEqualTo("Closed on 24 December|IMPORTANT|2026-12-26");
+        // The colour stays on the branding; the banner columns are gone.
+        assertThat(single(url, "select primary_color from auth_tenant_branding where tenant_id = '" + tenant + "'"))
+                .isEqualTo("#be123c");
+        assertThat(single(url, "select count(*) from information_schema.columns where table_name ="
+                + " 'auth_tenant_branding' and column_name like 'banner%'")).isEqualTo("0");
+    }
+
     private static Flyway flyway(String url, String target) {
         var config = Flyway.configure()
                 .dataSource(url, IntegrationTestBase.POSTGRES.getUsername(), IntegrationTestBase.POSTGRES.getPassword())

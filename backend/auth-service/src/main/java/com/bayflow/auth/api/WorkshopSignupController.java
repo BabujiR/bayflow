@@ -4,9 +4,8 @@ import static com.bayflow.auth.api.AuthDtos.USERNAME_MESSAGE;
 import static com.bayflow.auth.api.AuthDtos.USERNAME_PATTERN;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,6 +33,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.bayflow.auth.application.ApiException;
+import com.bayflow.auth.application.AnnouncementService;
 import com.bayflow.auth.application.BrandingService;
 import com.bayflow.auth.application.BrandingService.BrandingView;
 import com.bayflow.auth.application.SignupRateLimiter;
@@ -41,10 +41,10 @@ import com.bayflow.auth.application.SignupService;
 import com.bayflow.auth.application.SignupService.Availability;
 import com.bayflow.auth.application.SignupService.Created;
 import com.bayflow.auth.application.TenantSettingsService;
+import com.bayflow.auth.domain.Announcement;
 import com.bayflow.auth.domain.Tenant;
 import com.bayflow.auth.domain.TenantAsset;
 import com.bayflow.auth.domain.TenantBranding;
-import com.bayflow.auth.domain.TenantBranding.BannerStyle;
 import com.bayflow.security.TenantContext;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -79,12 +79,15 @@ public class WorkshopSignupController {
             PublicBranding branding) {
     }
 
-    /** The workshop's look, for everyone at its address. The banner is only present while it is live. */
+    /**
+     * The workshop's look, for everyone at its address. {@code announcements}: the live ones only,
+     * in the order shown (important first); empty when there are none.
+     */
     public record PublicBranding(String logoUrl, String coverUrl, String primaryColor, boolean showPoweredBy,
-            PublicBanner banner) {
+            List<PublicAnnouncement> announcements) {
     }
 
-    public record PublicBanner(String text, BannerStyle style) {
+    public record PublicAnnouncement(UUID id, String text, Announcement.Style style) {
     }
 
     private final SignupService signups;
@@ -92,16 +95,17 @@ public class WorkshopSignupController {
     private final RequestTenants requestTenants;
     private final TenantSettingsService settings;
     private final BrandingService branding;
-    private final Clock clock;
+    private final AnnouncementService announcements;
 
     public WorkshopSignupController(SignupService signups, SignupRateLimiter rateLimiter,
-            RequestTenants requestTenants, TenantSettingsService settings, BrandingService branding, Clock clock) {
+            RequestTenants requestTenants, TenantSettingsService settings, BrandingService branding,
+            AnnouncementService announcements) {
         this.signups = signups;
         this.rateLimiter = rateLimiter;
         this.requestTenants = requestTenants;
         this.settings = settings;
         this.branding = branding;
-        this.clock = clock;
+        this.announcements = announcements;
     }
 
     @PostMapping("/signup")
@@ -141,7 +145,7 @@ public class WorkshopSignupController {
         String displayName = TenantContext.call(tenant.getId(), () -> settings.current().settings().getDisplayName());
         BrandingView view = TenantContext.call(tenant.getId(), branding::current);
         return new PublicWorkshop(tenant.getSlug(), tenant.getName(), displayName, tenant.isActive(),
-                publicBranding(view, clock.instant()));
+                publicBranding(view, TenantContext.call(tenant.getId(), announcements::live)));
     }
 
     @GetMapping("/current/{kind:logo|cover}")
@@ -168,11 +172,11 @@ public class WorkshopSignupController {
                 .body(asset.getContent());
     }
 
-    static PublicBranding publicBranding(BrandingView view, Instant now) {
+    static PublicBranding publicBranding(BrandingView view, List<Announcement> live) {
         TenantBranding b = view.branding();
-        PublicBanner banner = b.isBannerLive(now) ? new PublicBanner(b.getBannerText(), b.getBannerStyle()) : null;
         return new PublicBranding(BrandingController.imageUrl(TenantAsset.Kind.LOGO, view.logoSha256()),
                 BrandingController.imageUrl(TenantAsset.Kind.COVER, view.coverSha256()), b.getPrimaryColor(),
-                b.isShowPoweredBy(), banner);
+                b.isShowPoweredBy(),
+                live.stream().map(a -> new PublicAnnouncement(a.getId(), a.getText(), a.getStyle())).toList());
     }
 }

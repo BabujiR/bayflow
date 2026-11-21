@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 
-import { appointmentsApi } from '@/api/endpoints';
+import { type AppointmentSort, appointmentsApi } from '@/api/endpoints';
 import type { AppointmentStatus } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -22,17 +22,72 @@ import { AppointmentActions } from './AppointmentActions';
 
 const STATUSES = Object.keys(APPOINTMENT_STATUS_LABELS) as AppointmentStatus[];
 
+export const SORT_LABELS: Record<AppointmentSort, string> = {
+  upcoming: 'Upcoming first',
+  latest: 'Latest first',
+  earliest: 'Earliest first',
+  recent: 'Recently booked',
+};
+const SORTS = Object.keys(SORT_LABELS) as AppointmentSort[];
+/** The last order chosen, remembered in this browser. */
+const SORT_KEY = 'bayflow-appointments-sort';
+
+const isSort = (value: string | null): value is AppointmentSort =>
+  value !== null && (SORTS as string[]).includes(value);
+
+function rememberedSort(): AppointmentSort | null {
+  try {
+    const saved = localStorage.getItem(SORT_KEY);
+    return isSort(saved) ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
+function rememberSort(sort: AppointmentSort) {
+  try {
+    localStorage.setItem(SORT_KEY, sort);
+  } catch {
+    // Private windows may refuse; the choice still applies to this page.
+  }
+}
+
 /** Customers see their bookings; advisors and admins see everyone's, with filters. */
 export function AppointmentsPage() {
   const { hasRole } = useAuth();
   const staff = hasRole('SERVICE_ADVISOR', 'ADMIN');
   const canBook = hasRole('CUSTOMER', 'SERVICE_ADVISOR');
-  const [date, setDate] = useState('');
-  const [status, setStatus] = useState<AppointmentStatus | ''>('');
+  // Day, status and order live in the address, so reloading, Back and shared links keep them.
+  const [params, setParams] = useSearchParams();
+  const date = params.get('day') ?? '';
+  const statusParam = params.get('status');
+  const status: AppointmentStatus | '' =
+    statusParam && (STATUSES as string[]).includes(statusParam) ? (statusParam as AppointmentStatus) : '';
+  const sortParam = params.get('sort');
+  const chosenSort = isSort(sortParam) ? sortParam : rememberedSort();
+  // Unless chosen: one day reads in time order, everything else starts with what's coming up.
+  const sort: AppointmentSort = chosenSort ?? (date ? 'earliest' : 'upcoming');
   const [page, setPage] = useState(0);
+  const update = (changes: Record<string, string>) => {
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        for (const [key, value] of Object.entries(changes)) {
+          if (value) {
+            next.set(key, value);
+          } else {
+            next.delete(key);
+          }
+        }
+        return next;
+      },
+      { replace: true },
+    );
+    setPage(0);
+  };
   // Several locations: each booking shows where it is, and its time in that location's zone.
   const locations = useLocationLookup();
-  const filters = { date: date || undefined, status: status || undefined, page, size: 20 };
+  const filters = { date: date || undefined, status: status || undefined, sort, page, size: 20 };
   const appointments = useQuery({
     queryKey: ['appointments', filters],
     queryFn: () => appointmentsApi.list(filters),
@@ -42,7 +97,7 @@ export function AppointmentsPage() {
     <>
       <PageHeader
         title="Appointments"
-        description={staff ? 'All bookings, oldest first.' : 'Your service bookings.'}
+        description={`${staff ? 'All bookings' : 'Your service bookings'}, ${SORT_LABELS[sort].toLowerCase()}.`}
         actions={
           canBook && (
             <Button asChild>
@@ -58,22 +113,12 @@ export function AppointmentsPage() {
             id="filter-date"
             type="date"
             value={date}
-            onChange={(e) => {
-              setDate(e.target.value);
-              setPage(0);
-            }}
+            onChange={(e) => update({ day: e.target.value })}
           />
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="filter-status">Status</Label>
-          <Select
-            id="filter-status"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value as AppointmentStatus | '');
-              setPage(0);
-            }}
-          >
+          <Select id="filter-status" value={status} onChange={(e) => update({ status: e.target.value })}>
             <option value="">Any status</option>
             {STATUSES.map((s) => (
               <option key={s} value={s}>
@@ -82,14 +127,26 @@ export function AppointmentsPage() {
             ))}
           </Select>
         </div>
-        {(date || status) && (
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setDate('');
-              setStatus('');
+        <div className="grid gap-1.5">
+          <Label htmlFor="filter-sort">Sort</Label>
+          <Select
+            id="filter-sort"
+            value={sort}
+            onChange={(e) => {
+              const next = e.target.value as AppointmentSort;
+              rememberSort(next);
+              update({ sort: next });
             }}
           >
+            {SORTS.map((s) => (
+              <option key={s} value={s}>
+                {SORT_LABELS[s]}
+              </option>
+            ))}
+          </Select>
+        </div>
+        {(date || status) && (
+          <Button variant="ghost" onClick={() => update({ day: '', status: '' })}>
             Clear filters
           </Button>
         )}

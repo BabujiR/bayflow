@@ -91,3 +91,16 @@ per workshop) and auth-service serves them. On AWS:
 - If images move to another domain (a CDN host), add it to `img-src` in
   `infra/nginx/snippets/security-headers.conf`.
 
+## Notifications
+
+- **notification-service** is a fourth ECS service (512 MB is plenty), private like the
+  others: the ALB routes only `/api/v1/notifications*` to it through nginx, never
+  `/api/v1/internal/`. Give it the `BAYFLOW_NOTIFICATION_CLIENT_SECRET` from Secrets
+  Manager (auth-service needs the same value) and `BAYFLOW_NOTIFICATION_URL` to
+  appointment-service and workshop-service (service discovery / Cloud Map).
+- Keep the outboxes. They make delivery reliable without SQS; move to SQS/SNS (or
+  EventBridge) only when several consumers need the same events or volumes are high.
+- The 30-second polling is cheap (an indexed count per user). If it ever matters,
+  server-sent events can replace it without API changes.
+- Email (phase N2) will use **SES** from a verified domain with DKIM; locally Mailpit.
+

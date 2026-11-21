@@ -1,3 +1,5 @@
+import { PRODUCT_NAME } from '@/lib/brand';
+
 /** RFC 7807 Problem Details as returned by every Bayflow service. */
 export interface ProblemDetail {
   type?: string;
@@ -50,7 +52,7 @@ export function errorMessage(error: unknown): string {
     return error.message;
   }
   if (error instanceof TypeError) {
-    return 'Cannot reach Bayflow. Check your connection and try again.';
+    return `Cannot reach ${PRODUCT_NAME}. Check your connection and try again.`;
   }
   return 'Something went wrong. Please try again.';
 }

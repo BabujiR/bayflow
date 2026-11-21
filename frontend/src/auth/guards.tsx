@@ -2,6 +2,7 @@ import { Navigate, Outlet, useLocation } from 'react-router';
 
 import type { Role } from '@/api/types';
 import { FullPageSpinner } from '@/components/ui/spinner';
+import { PRODUCT_NAME } from '@/lib/brand';
 import { ForbiddenPage } from '@/pages/ForbiddenPage';
 
 import { useAuth } from './auth-context';
@@ -11,7 +12,7 @@ export function RequireAuth() {
   const { status } = useAuth();
   const location = useLocation();
   if (status === 'loading') {
-    return <FullPageSpinner label="Loading Bayflow" />;
+    return <FullPageSpinner label={`Loading ${PRODUCT_NAME}`} />;
   }
   if (status === 'anonymous') {
     return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
@@ -33,7 +34,7 @@ export function GuestOnly() {
   const { status } = useAuth();
   const location = useLocation();
   if (status === 'loading') {
-    return <FullPageSpinner label="Loading Bayflow" />;
+    return <FullPageSpinner label={`Loading ${PRODUCT_NAME}`} />;
   }
   if (status === 'authenticated') {
     const from = (location.state as { from?: string } | null)?.from;

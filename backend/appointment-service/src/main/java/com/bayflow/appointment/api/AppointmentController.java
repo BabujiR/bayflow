@@ -26,6 +26,7 @@ import com.bayflow.appointment.api.AppointmentDtos.PageResponse;
 import com.bayflow.appointment.api.AppointmentDtos.RescheduleRequest;
 import com.bayflow.appointment.application.AppointmentService;
 import com.bayflow.appointment.application.AppointmentService.ListQuery;
+import com.bayflow.appointment.infrastructure.AppointmentSort;
 import com.bayflow.appointment.domain.AppointmentStatus;
 import com.bayflow.appointment.integration.JobCardDispatcher;
 import com.bayflow.security.CurrentUser;
@@ -63,16 +64,20 @@ public class AppointmentController {
     @Operation(summary = "List appointments",
             description = "Customers see their own; mechanics see today's checked-in vehicles; advisors and "
                     + "admins see all. date is a day (YYYY-MM-DD) at locationId, or at the organization's "
-                    + "default location; locationId also limits the list to that location.")
+                    + "default location; locationId also limits the list to that location. sort: upcoming "
+                    + "(not finished yet, soonest first, then the past, latest first), latest, earliest or "
+                    + "recent (most recently booked first); default earliest with a date, else upcoming.")
     public PageResponse<AppointmentResponse> list(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) AppointmentStatus status,
             @RequestParam(required = false) UUID vehicleId,
             @RequestParam(required = false) UUID customerId,
             @RequestParam(required = false) UUID locationId,
+            @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
             Authentication auth) {
-        ListQuery query = new ListQuery(date, status, vehicleId, customerId, locationId);
+        ListQuery query = new ListQuery(date, status, vehicleId, customerId, locationId,
+                AppointmentSort.parse(sort));
         return PageResponse.from(appointments.list(CurrentUser.from(auth), query, Paging.page(page),
                 Paging.size(size)), AppointmentResponse::from);
     }

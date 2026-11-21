@@ -17,7 +17,7 @@ import org.flywaydb.core.api.output.MigrateResult;
 import org.junit.jupiter.api.Test;
 
 /**
- * All three services keep their tables in one schema, each with its own Flyway history
+ * All four services keep their tables in one schema, each with its own Flyway history
  * table. This runs every service's real migrations against one fresh database, in an order
  * where the schema is already non-empty for two of them, exactly as services start in any
  * order in production.
@@ -29,6 +29,7 @@ class MigrationsCoexistIT {
             { "appointment-service", "flyway_history_appointment" },
             { "auth-service", "flyway_history_auth" },
             { "workshop-service", "flyway_history_workshop" },
+            { "notification-service", "flyway_history_notification" },
     };
 
     @Test
@@ -46,8 +47,10 @@ class MigrationsCoexistIT {
                 "auth_tenants", "auth_users", "auth_user_roles", "auth_refresh_tokens", "auth_clients",
                 "apt_customers", "apt_vehicles", "apt_appointments", "apt_outbox",
                 "ws_job_cards", "ws_inspection_findings", "ws_recommended_items", "ws_work_logs",
-                "ws_part_usages", "ws_labour_entries", "ws_service_history",
-                "flyway_history_auth", "flyway_history_appointment", "flyway_history_workshop");
+                "ws_part_usages", "ws_labour_entries", "ws_service_history", "ws_outbox",
+                "ntf_notifications", "ntf_received_events",
+                "flyway_history_auth", "flyway_history_appointment", "flyway_history_workshop",
+                "flyway_history_notification");
 
         // Starting again (e.g. a restart) applies nothing new.
         for (String[] service : SERVICES) {

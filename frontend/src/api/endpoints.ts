@@ -1,5 +1,8 @@
 import { http } from './http';
 import type {
+  Announcement,
+  AnnouncementRequest,
+  AppNotification,
   Appointment,
   Branding,
   BrandingImageKind,
@@ -68,7 +71,15 @@ export interface AppointmentFilters extends Paging {
   customerId?: string;
   /** One location; its day is the one `date` means (organizations with several locations). */
   locationId?: string;
+  /** Default: earliest for one day, otherwise upcoming. */
+  sort?: AppointmentSort;
 }
+
+/**
+ * upcoming: not finished yet, soonest first, then the past, latest first; latest / earliest: by
+ * appointment time; recent: most recently booked first.
+ */
+export type AppointmentSort = 'upcoming' | 'latest' | 'earliest' | 'recent';
 
 export const appointmentsApi = {
   list: (filters: AppointmentFilters) =>
@@ -148,6 +159,16 @@ export const brandingApi = {
   remove: (kind: BrandingImageKind) => http.delete<Branding>(`/api/v1/auth/tenant/branding/${kind}`),
 };
 
+/** The workshop's announcements (workshop ADMIN only). Everyone sees the live ones via tenantsApi.current. */
+export const announcementsApi = {
+  list: () => http.get<Announcement[]>('/api/v1/auth/tenant/branding/announcements'),
+  create: (body: AnnouncementRequest) =>
+    http.post<Announcement>('/api/v1/auth/tenant/branding/announcements', body),
+  update: ({ id, ...body }: AnnouncementRequest & { id: string; version: number }) =>
+    http.put<Announcement>(`/api/v1/auth/tenant/branding/announcements/${id}`, body),
+  remove: (id: string) => http.delete<void>(`/api/v1/auth/tenant/branding/announcements/${id}`),
+};
+
 /** Public: sign up a workshop, check an address, name the workshop at this address. */
 export const tenantsApi = {
   current: () => http.get<PublicWorkshop>('/api/v1/tenants/current'),
@@ -164,4 +185,15 @@ export const locationsApi = {
     http.put<Location>(`/api/v1/auth/locations/${id}`, body),
   archive: (id: string) => http.post<Location>(`/api/v1/auth/locations/${id}/archive`),
   reactivate: (id: string) => http.post<Location>(`/api/v1/auth/locations/${id}/reactivate`),
+};
+
+/** The signed-in user's own notifications (notification-service); read ones are deleted. */
+export const notificationsApi = {
+  /** All unread: reading a notification deletes it. */
+  list: (page = 0, size = 20) =>
+    http.get<PageResponse<AppNotification>>('/api/v1/notifications', { page, size }),
+  unreadCount: () => http.get<{ count: number }>('/api/v1/notifications/unread-count'),
+  /** Deletes it (204). */
+  markRead: (id: string) => http.post<void>(`/api/v1/notifications/${id}/read`),
+  markAllRead: () => http.post<{ count: number }>('/api/v1/notifications/read-all'),
 };

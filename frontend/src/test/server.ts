@@ -2,6 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 
 import type {
+  AppNotification,
   Appointment,
   Branding,
   PublicBranding,
@@ -30,6 +31,9 @@ const defaults = [
   http.get('*/api/v1/auth/locations', () => HttpResponse.json([location()])),
   http.get('*/api/v1/tenants/current', () => HttpResponse.json(publicWorkshop())),
   http.get('*/api/v1/auth/tenant/branding', () => HttpResponse.json(branding())),
+  http.get('*/api/v1/auth/tenant/branding/announcements', () => HttpResponse.json([])),
+  http.get('*/api/v1/notifications/unread-count', () => HttpResponse.json({ count: 0 })),
+  http.get('*/api/v1/notifications', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/customers/me', () => HttpResponse.json(customer())),
   http.get('*/api/v1/vehicles', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/appointments', () => HttpResponse.json(pageOf([]))),
@@ -172,7 +176,7 @@ export function publicWorkshop(
       coverUrl: null,
       primaryColor: null,
       showPoweredBy: true,
-      banner: null,
+      announcements: [],
       ...brandingOverrides,
     },
   };
@@ -182,11 +186,6 @@ export function publicWorkshop(
 export function branding(overrides: Partial<Branding> = {}): Branding {
   return {
     primaryColor: null,
-    bannerText: null,
-    bannerStyle: 'INFO',
-    bannerStartsAt: null,
-    bannerEndsAt: null,
-    bannerLive: false,
     showPoweredBy: true,
     logoUrl: null,
     coverUrl: null,
@@ -225,6 +224,19 @@ export function location(overrides: Partial<Location> = {}): Location {
     ownTimeZone: null,
     ownLabourRate: null,
     version: 0,
+    ...overrides,
+  };
+}
+
+export function notification(overrides: Partial<AppNotification> = {}): AppNotification {
+  return {
+    id: '0e0e0e0e-0000-4000-8000-000000000001',
+    type: 'ESTIMATE_READY',
+    title: 'Your estimate is ready',
+    body: 'Review and approve the recommended work for BFL 1234.',
+    link: '/job-cards/0f0f0f0f-0000-4000-8000-000000000001',
+    locationId: '00000000-0000-0000-0000-000000000001',
+    createdAt: '2026-11-19T15:00:00Z',
     ...overrides,
   };
 }

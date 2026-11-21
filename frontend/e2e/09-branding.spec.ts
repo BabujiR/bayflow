@@ -7,7 +7,7 @@ const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), 'fixtures');
 
 /**
  * Branding: a workshop's owner gives it its own logo, colour, sign-in photo and announcement,
- * and turns off "Powered by Bayflow"; its customers see that look, and no other workshop does.
+ * and turns off "Powered by Ramplight"; its customers see that look, and no other workshop does.
  * Uses a newly signed-up workshop, so demo and acme keep their look.
  */
 test.describe('Workshop branding', () => {
@@ -15,6 +15,7 @@ test.describe('Workshop branding', () => {
     const slug = `e2e-brand-${uid().toLowerCase()}`;
     const name = `Crimson Garage ${slug}`;
     const bannerText = `Closed on 24 December (${slug})`;
+    const offerText = `Winter check-up: free battery test (${slug})`;
 
     // ---- A new workshop, signed up through the public API ---------------------------------
     const site = await cast.anonymousApi(cast.siteURL);
@@ -38,7 +39,7 @@ test.describe('Workshop branding', () => {
     await owner.say('Opens Branding in the workshop settings');
 
     const logo = owner.page.getByTestId('branding-logo');
-    await expect(logo.getByText('Bayflow logo shown')).toBeVisible();
+    await expect(logo.getByText('Ramplight logo shown')).toBeVisible();
     await logo.getByLabel('Upload logo').setInputFiles(join(FIXTURES, 'acme-logo.png'));
     await owner.expectToast('Logo saved');
     await expect(logo.getByRole('img', { name: 'Current logo' })).toBeVisible();
@@ -59,14 +60,29 @@ test.describe('Workshop branding', () => {
     const form = owner.page.getByRole('form', { name: 'Branding' });
     await form.getByLabel("Use my workshop's colour").check();
     await form.getByLabel('Colour code').fill('#be123c');
-    await form.getByLabel('Message').fill(bannerText);
-    await form.getByLabel('Style').selectOption('IMPORTANT');
-    await form.getByLabel('Show "Powered by Bayflow"').uncheck();
+    await form.getByLabel('Show "Powered by Ramplight"').uncheck();
     await form.getByRole('button', { name: 'Save branding' }).click();
     await owner.expectToast('Branding saved');
-    await expect(owner.page.getByTestId('workshop-banner')).toHaveText(bannerText);
-    await expect(owner.page.getByTestId('workshop-banner')).toHaveAttribute('data-variant', 'slim');
-    await owner.check('Crimson colour, an announcement and no "Powered by Bayflow"');
+
+    await owner.say('Adds two announcements: holiday hours (important) and a winter offer');
+    for (const [text, style] of [
+      [offerText, 'INFO'],
+      [bannerText, 'IMPORTANT'],
+    ] as const) {
+      await owner.page.getByRole('button', { name: 'Add announcement' }).click();
+      const dialog = owner.page.getByRole('dialog', { name: 'Add announcement' });
+      await dialog.getByLabel('Message').fill(text);
+      await dialog.getByLabel('Style').selectOption(style);
+      await dialog.getByRole('button', { name: 'Add announcement' }).click();
+      await owner.expectToast('Announcement added');
+    }
+    await expect(owner.page.getByTestId('announcement-row')).toHaveCount(2);
+    const ownerBanner = owner.page.getByTestId('workshop-banner');
+    await expect(ownerBanner).toHaveAttribute('data-variant', 'slim');
+    await expect(ownerBanner.getByTestId('announcement').first()).toContainText(bannerText);
+    await owner.check(
+      'Crimson colour, two announcements (the important one first) and no "Powered by Ramplight"',
+    );
 
     // ---- A customer sees the workshop's look ---------------------------------------------
     const customer = await cast.actor('Customer', { at: workshopURL });
@@ -76,7 +92,11 @@ test.describe('Workshop branding', () => {
     await expect(shownLogo).toHaveAttribute('alt', name);
     expect(await shownLogo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
     await expect(customer.page.getByTestId('workshop-cover').locator('img')).toBeVisible();
-    await expect(customer.page.getByTestId('workshop-banner')).toHaveText(bannerText);
+    const banner = customer.page.getByTestId('workshop-banner');
+    await expect(banner.getByTestId('announcement').first()).toContainText(bannerText);
+    await expect(banner.getByText(offerText)).toBeHidden();
+    await banner.getByRole('button', { name: '1 more' }).click();
+    await expect(banner.getByText(offerText)).toBeVisible();
     await expect(customer.page.getByTestId('powered-by')).toHaveCount(0);
     const primary = await customer.page.evaluate(() =>
       getComputedStyle(document.documentElement).getPropertyValue('--primary').trim(),
@@ -108,18 +128,18 @@ test.describe('Workshop branding', () => {
     // ---- No other workshop changes --------------------------------------------------------
     const elsewhere = await cast.anonymousApi(cast.baseURL);
     const other = (await (await elsewhere.get('/api/v1/tenants/current')).json()) as {
-      branding?: { logoUrl: string | null; banner: { text: string } | null };
+      branding?: { logoUrl: string | null; announcements?: { text: string }[] };
     };
-    expect(other.branding?.banner?.text).not.toBe(bannerText);
+    expect((other.branding?.announcements ?? []).map((a) => a.text)).not.toContain(bannerText);
     expect(other.branding?.logoUrl ?? null).not.toBe(current.branding.logoUrl);
     await cast.note("This run's own workshop keeps its own look");
 
-    // ---- Back to Bayflow's look ----------------------------------------------------------------
+    // ---- Back to Ramplight's look ----------------------------------------------------------------
     await owner.page.getByTestId('branding-logo').getByRole('button', { name: 'Remove' }).click();
     await owner.expectToast('Logo removed');
     await customer.page.goto('/');
     await customer.page.reload();
     await expect(customer.page.getByTestId('workshop-logo')).toHaveCount(0);
-    await customer.check('Removing the logo brings back the Bayflow logo');
+    await customer.check('Removing the logo brings back the Ramplight logo');
   });
 });

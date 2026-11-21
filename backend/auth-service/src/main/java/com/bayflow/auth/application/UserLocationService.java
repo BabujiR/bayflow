@@ -19,6 +19,7 @@ import com.bayflow.auth.domain.User;
 import com.bayflow.auth.domain.UserLocation;
 import com.bayflow.auth.infrastructure.LocationRepository;
 import com.bayflow.auth.infrastructure.UserLocationRepository;
+import com.bayflow.auth.infrastructure.UserRepository;
 import com.bayflow.security.LocationScope;
 
 /**
@@ -31,13 +32,15 @@ public class UserLocationService {
     private final UserLocationRepository assignments;
     private final LocationRepository locations;
     private final LocationService locationService;
+    private final UserRepository users;
     private final Clock clock;
 
     public UserLocationService(UserLocationRepository assignments, LocationRepository locations,
-            LocationService locationService, Clock clock) {
+            LocationService locationService, UserRepository users, Clock clock) {
         this.assignments = assignments;
         this.locations = locations;
         this.locationService = locationService;
+        this.users = users;
         this.clock = clock;
     }
 
@@ -125,5 +128,11 @@ public class UserLocationService {
                     "Choose the locations this person works at.");
         }
         return Set.of(active.get(0).getId());
+    }
+
+    /** Ids of the enabled users with one of {@code roles} at the location, in the current workshop. */
+    @Transactional(readOnly = true)
+    public List<UUID> staffAt(UUID locationId, Collection<Role> roles) {
+        return users.findEnabledIdsWithRolesAt(roles, locationId);
     }
 }

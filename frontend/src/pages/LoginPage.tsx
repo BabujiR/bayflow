@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { PRODUCT_NAME } from '@/lib/brand';
 
 const schema = z.object({
   username: z.string().trim().min(1, 'Enter your username'),
@@ -92,7 +93,7 @@ export function LoginPage() {
             Sign in
           </Button>
           <p className="text-sm text-muted-foreground">
-            New to Bayflow?{' '}
+            New to {PRODUCT_NAME}?{' '}
             <Link to="/register" className="font-medium text-primary hover:underline">
               Create an account
             </Link>

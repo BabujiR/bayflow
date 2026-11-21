@@ -14,6 +14,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { PRODUCT_NAME } from '@/lib/brand';
 import { timeZones } from '@/lib/format';
 import { BASE_DOMAIN, browser, workshopUrl } from '@/lib/site';
 import { SLUG_PATTERN, suggestSlug } from '@/lib/slug';
@@ -163,7 +164,8 @@ export function SignupPage() {
       <CardHeader>
         <h1 className="text-2xl font-bold tracking-tight">Set up your workshop</h1>
         <CardDescription>
-          Your workshop gets its own Bayflow address. You'll be its admin and can invite your team afterwards.
+          Your workshop gets its own {PRODUCT_NAME} address. You'll be its admin and can invite your team
+          afterwards.
         </CardDescription>
       </CardHeader>
       <form noValidate aria-label="Set up your workshop" onSubmit={onSubmit}>
@@ -228,7 +230,7 @@ export function SignupPage() {
             Create workshop
           </Button>
           <p className="text-sm text-muted-foreground">
-            Already on Bayflow?{' '}
+            Already on {PRODUCT_NAME}?{' '}
             <Link to="/" className="font-medium text-primary hover:underline">
               Go to your workshop
             </Link>

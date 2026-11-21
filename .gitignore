@@ -34,6 +34,9 @@ keys/
 .DS_Store
 Thumbs.db
 
+# Database dumps on the VM (deploy/gcp/scripts/backup.sh)
+deploy/gcp/backups/
+
 # Logs
 *.log
 logs/

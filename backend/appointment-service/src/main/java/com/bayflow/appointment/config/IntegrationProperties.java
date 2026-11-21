@@ -10,6 +10,7 @@ public class IntegrationProperties {
 
     private String authUrl = "http://localhost:8083";
     private String workshopUrl = "http://localhost:8082";
+    private String notificationUrl = "http://localhost:8084";
     /** Client-credentials login for SYSTEM tokens. */
     private String clientId = "appointment-service";
     private String clientSecret = "dev-system-secret";
@@ -18,9 +19,12 @@ public class IntegrationProperties {
     /** How long a workshop's settings from auth-service are reused before asking again. */
     private Duration settingsCacheTtl = Duration.ofMinutes(5);
     private final Dispatcher dispatcher = new Dispatcher();
+    private final Notifications notifications = new Notifications();
 
     public String getAuthUrl() { return authUrl; }
     public void setAuthUrl(String authUrl) { this.authUrl = authUrl; }
+    public String getNotificationUrl() { return notificationUrl; }
+    public void setNotificationUrl(String notificationUrl) { this.notificationUrl = notificationUrl; }
     public String getWorkshopUrl() { return workshopUrl; }
     public void setWorkshopUrl(String workshopUrl) { this.workshopUrl = workshopUrl; }
     public String getClientId() { return clientId; }
@@ -34,6 +38,20 @@ public class IntegrationProperties {
     public Duration getSettingsCacheTtl() { return settingsCacheTtl; }
     public void setSettingsCacheTtl(Duration settingsCacheTtl) { this.settingsCacheTtl = settingsCacheTtl; }
     public Dispatcher getDispatcher() { return dispatcher; }
+    public Notifications getNotifications() { return notifications; }
+
+    /** Events for notification-service, sent through the outbox. */
+    public static class Notifications {
+        /** Off: no notification events are queued (most tests). */
+        private boolean enabled = true;
+        /** Send right after the change commits, not only on the next dispatcher run. */
+        private boolean sendImmediately = true;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public boolean isSendImmediately() { return sendImmediately; }
+        public void setSendImmediately(boolean sendImmediately) { this.sendImmediately = sendImmediately; }
+    }
 
     /** The scheduled retry of undelivered outbox messages. */
     public static class Dispatcher {

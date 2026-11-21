@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,6 +29,8 @@ import com.bayflow.auth.application.ApiException;
 import com.bayflow.auth.application.LocationService;
 import com.bayflow.auth.application.LocationService.LocationDetails;
 import com.bayflow.auth.application.LocationService.LocationView;
+import com.bayflow.auth.application.UserLocationService;
+import com.bayflow.auth.domain.Role;
 import com.bayflow.security.CurrentUser;
 import com.bayflow.security.TenantContext;
 
@@ -87,9 +90,11 @@ public class LocationController {
     }
 
     private final LocationService locations;
+    private final UserLocationService userLocations;
 
-    public LocationController(LocationService locations) {
+    public LocationController(LocationService locations, UserLocationService userLocations) {
         this.locations = locations;
+        this.userLocations = userLocations;
     }
 
     @GetMapping("/locations")
@@ -144,6 +149,34 @@ public class LocationController {
     @Operation(summary = "An organization's locations and their effective settings (SYSTEM)")
     public List<LocationSettingsResponse> forService(@PathVariable UUID tenantId) {
         return TenantContext.call(tenantId, () -> locations.all().stream().map(LocationSettingsResponse::from).toList());
+    }
+
+    /**
+     * For notification-service: who to tell about something at a location. Only roles that work
+     * at locations (MANAGER, SERVICE_ADVISOR, MECHANIC); disabled users are left out.
+     */
+    @GetMapping("/internal/tenants/{tenantId}/locations/{locationId}/staff")
+    @PreAuthorize("hasRole('SYSTEM')")
+    @Operation(summary = "Ids of the enabled staff with the given roles at a location (SYSTEM)")
+    public List<UUID> staffForService(@PathVariable UUID tenantId, @PathVariable UUID locationId,
+            @RequestParam List<String> roles) {
+        java.util.Set<Role> wanted = java.util.EnumSet.noneOf(Role.class);
+        for (String name : roles) {
+            Role role;
+            try {
+                role = Role.valueOf(name.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw ApiException.badRequest("invalid-role", "'" + name + "' is not a role.");
+            }
+            if (!role.isLocationScoped()) {
+                throw ApiException.badRequest("invalid-role", role + " does not work at particular locations.");
+            }
+            wanted.add(role);
+        }
+        if (wanted.isEmpty()) {
+            throw ApiException.badRequest("invalid-role", "Name at least one role.");
+        }
+        return TenantContext.call(tenantId, () -> userLocations.staffAt(locationId, wanted));
     }
 
     @GetMapping("/internal/tenants/{tenantId}/locations/{locationId}/settings")

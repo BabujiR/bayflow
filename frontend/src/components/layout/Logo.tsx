@@ -1,8 +1,9 @@
+import { PRODUCT_NAME } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 
 export const TAGLINE = 'The smarter way to run your auto workshop.';
 
-/** The Bayflow mark and wordmark; the tagline shows on wide screens when requested. */
+/** The product's mark and wordmark; the tagline shows on wide screens when requested. */
 export function Logo({ withTagline = false, className }: { withTagline?: boolean; className?: string }) {
   return (
     <span className={cn('flex items-center gap-2.5', className)}>
@@ -12,7 +13,7 @@ export function Logo({ withTagline = false, className }: { withTagline?: boolean
         <path d="M10 22c3-4 9-4 12 0" fill="none" stroke="#5eead4" strokeWidth="2.4" strokeLinecap="round" />
       </svg>
       <span className="flex flex-col leading-tight">
-        <span className="text-lg font-bold tracking-tight">Bayflow</span>
+        <span className="text-lg font-bold tracking-tight">{PRODUCT_NAME}</span>
         {withTagline && <span className="hidden text-xs text-muted-foreground lg:block">{TAGLINE}</span>}
       </span>
     </span>

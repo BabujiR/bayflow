@@ -12,20 +12,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { PUBLIC_WORKSHOP_QUERY_KEY } from '@/features/workshop/use-public-workshop';
-import { isoToLocalInput, localInputToIso, localInputToMillis, zoneLabel } from '@/lib/format';
+import { PRODUCT_NAME } from '@/lib/brand';
 import { useAction } from '@/lib/use-action';
 import { cn } from '@/lib/utils';
 
+import { AnnouncementsCard } from './AnnouncementsCard';
 import { colorWarning, foregroundFor, isHexColor } from './colors';
 
 export const BRANDING_QUERY_KEY = ['branding'] as const;
 
-/** Bayflow blue, offered as the starting point when a workshop picks its own colour. */
+/** The product's blue, offered as the starting point when a workshop picks its own colour. */
 const BAYFLOW_BLUE = '#1d4ed8';
-const BANNER_MAX = 200;
 const IMAGE_TYPES = ['image/png', 'image/jpeg'];
 
 const IMAGES: Record<BrandingImageKind, { title: string; hint: string; maxBytes: number }> = {
@@ -45,32 +43,17 @@ const brandingSchema = z
   .object({
     useOwnColor: z.boolean(),
     primaryColor: z.string().trim(),
-    bannerText: z.string().trim().max(BANNER_MAX, `At most ${BANNER_MAX} characters`),
-    bannerStyle: z.enum(['INFO', 'IMPORTANT']),
-    bannerStartsAt: z.string(),
-    bannerEndsAt: z.string(),
     showPoweredBy: z.boolean(),
   })
   .superRefine((values, ctx) => {
     if (values.useOwnColor && !isHexColor(values.primaryColor)) {
       ctx.addIssue({ code: 'custom', path: ['primaryColor'], message: 'A colour like #1d4ed8' });
     }
-    const starts = localInputToMillis(values.bannerStartsAt);
-    const ends = localInputToMillis(values.bannerEndsAt);
-    if (values.bannerStartsAt && Number.isNaN(starts)) {
-      ctx.addIssue({ code: 'custom', path: ['bannerStartsAt'], message: 'Enter a date and time' });
-    }
-    if (values.bannerEndsAt && Number.isNaN(ends)) {
-      ctx.addIssue({ code: 'custom', path: ['bannerEndsAt'], message: 'Enter a date and time' });
-    }
-    if (!Number.isNaN(starts) && !Number.isNaN(ends) && ends <= starts) {
-      ctx.addIssue({ code: 'custom', path: ['bannerEndsAt'], message: 'Must be after the start' });
-    }
   });
 
 type BrandingForm = z.infer<typeof brandingSchema>;
 
-/** The workshop ADMIN's branding: logo, cover photo, colour, announcement and "Powered by Bayflow". */
+/** The workshop ADMIN's branding: logo, cover photo, announcements, colour and "Powered by …". */
 export function BrandingSection() {
   const branding = useQuery({ queryKey: BRANDING_QUERY_KEY, queryFn: brandingApi.get });
   return (
@@ -100,6 +83,7 @@ export function BrandingSection() {
                 <ImageSetting kind="cover" url={b.coverUrl} />
               </CardContent>
             </Card>
+            <AnnouncementsCard />
             <BrandingDetails key={b.version} branding={b} />
           </>
         )}
@@ -112,7 +96,7 @@ function useBrandingSaved() {
   const queryClient = useQueryClient();
   return (saved: Branding) => {
     queryClient.setQueryData(BRANDING_QUERY_KEY, saved);
-    // Logo, colour and banner on this page (and the sign-in page) follow at once.
+    // Logo and colour on this page (and the sign-in page) follow at once.
     void queryClient.invalidateQueries({ queryKey: PUBLIC_WORKSHOP_QUERY_KEY });
   };
 }
@@ -167,7 +151,7 @@ function ImageSetting({ kind, url }: { kind: BrandingImageKind; url: string | nu
           />
         ) : (
           <span className="text-sm text-muted-foreground">
-            {kind === 'logo' ? 'Bayflow logo shown' : 'No cover photo'}
+            {kind === 'logo' ? `${PRODUCT_NAME} logo shown` : 'No cover photo'}
           </span>
         )}
       </div>
@@ -233,10 +217,6 @@ function BrandingDetails({ branding }: { branding: Branding }) {
     defaultValues: {
       useOwnColor: !!branding.primaryColor,
       primaryColor: branding.primaryColor ?? BAYFLOW_BLUE,
-      bannerText: branding.bannerText ?? '',
-      bannerStyle: branding.bannerStyle,
-      bannerStartsAt: branding.bannerStartsAt ? isoToLocalInput(branding.bannerStartsAt) : '',
-      bannerEndsAt: branding.bannerEndsAt ? isoToLocalInput(branding.bannerEndsAt) : '',
       showPoweredBy: branding.showPoweredBy,
     },
   });
@@ -247,14 +227,6 @@ function BrandingDetails({ branding }: { branding: Branding }) {
       if (error instanceof ApiError) {
         if (error.code === 'invalid-color') {
           setError('primaryColor', { message: error.message });
-          return true;
-        }
-        if (error.code === 'invalid-banner') {
-          setError('bannerText', { message: error.message });
-          return true;
-        }
-        if (error.code === 'invalid-banner-window') {
-          setError('bannerEndsAt', { message: error.message });
           return true;
         }
         if (error.code === 'concurrent-update') {
@@ -269,9 +241,6 @@ function BrandingDetails({ branding }: { branding: Branding }) {
   const color = watch('primaryColor');
   const validColor = isHexColor(color) ? color.toLowerCase() : null;
   const warning = ownColor && validColor ? colorWarning(validColor) : null;
-  const bannerText = watch('bannerText') ?? '';
-  const bannerStyle = watch('bannerStyle');
-  const zone = zoneLabel();
 
   return (
     <form
@@ -282,10 +251,6 @@ function BrandingDetails({ branding }: { branding: Branding }) {
         await save
           .mutateAsync({
             primaryColor: values.useOwnColor ? values.primaryColor.toLowerCase() : null,
-            bannerText: values.bannerText || null,
-            bannerStyle: values.bannerStyle,
-            bannerStartsAt: values.bannerStartsAt ? localInputToIso(values.bannerStartsAt) : null,
-            bannerEndsAt: values.bannerEndsAt ? localInputToIso(values.bannerEndsAt) : null,
             showPoweredBy: values.showPoweredBy,
             version: branding.version,
           })
@@ -341,64 +306,13 @@ function BrandingDetails({ branding }: { branding: Branding }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Announcement</CardTitle>
-          <CardDescription>
-            A one-line message at the top of every page, e.g. holiday hours or a seasonal offer. Leave the
-            dates empty to show it until you remove it. Times are in {zone || 'the workshop time zone'}.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <Field
-              label="Message"
-              error={errors.bannerText?.message}
-              hint={`${bannerText.length}/${BANNER_MAX} characters. Plain text.`}
-            >
-              <Textarea rows={2} maxLength={BANNER_MAX} {...register('bannerText')} />
-            </Field>
-          </div>
-          <Field label="Style" error={errors.bannerStyle?.message}>
-            <Select {...register('bannerStyle')}>
-              <option value="INFO">Information</option>
-              <option value="IMPORTANT">Important</option>
-            </Select>
-          </Field>
-          <div />
-          <Field label="Show from" error={errors.bannerStartsAt?.message}>
-            <Input type="datetime-local" {...register('bannerStartsAt')} />
-          </Field>
-          <Field label="Show until" error={errors.bannerEndsAt?.message}>
-            <Input type="datetime-local" {...register('bannerEndsAt')} />
-          </Field>
-          {bannerText.trim() && (
-            <div className="sm:col-span-2">
-              <div className="mb-1 text-xs text-muted-foreground">
-                Preview{branding.bannerLive ? ' (live now)' : ''}
-              </div>
-              <div
-                className={cn(
-                  'rounded-md border px-4 py-2.5 text-center text-sm',
-                  bannerStyle === 'IMPORTANT'
-                    ? 'border-warning/50 bg-warning/20 font-medium'
-                    : 'border-primary/20 bg-primary/10',
-                )}
-              >
-                {bannerText}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Powered by Bayflow</CardTitle>
+          <CardTitle>Powered by {PRODUCT_NAME}</CardTitle>
           <CardDescription>A small line at the bottom of the sign-in page and the app.</CardDescription>
         </CardHeader>
         <CardContent>
           <label className="flex items-center gap-2 text-sm font-medium">
             <input type="checkbox" className="size-4 accent-primary" {...register('showPoweredBy')} />
-            Show "Powered by Bayflow"
+            Show "Powered by {PRODUCT_NAME}"
           </label>
         </CardContent>
       </Card>

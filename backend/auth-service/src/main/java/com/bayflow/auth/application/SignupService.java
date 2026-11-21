@@ -33,7 +33,7 @@ public class SignupService {
             "register", "account", "accounts", "billing", "status", "mail", "email", "smtp", "imap",
             "help", "support", "docs", "doc", "blog", "news", "static", "assets", "cdn", "media",
             "files", "dev", "test", "staging", "prod", "production", "demo-admin", "localhost",
-            "default", "root", "system", "bayflow", "security", "dashboard", "internal", "ns1", "ns2");
+            "default", "root", "system", "bayflow", "ramplight", "security", "dashboard", "internal", "ns1", "ns2");
 
     public enum Availability { AVAILABLE, TAKEN, RESERVED, INVALID }
 

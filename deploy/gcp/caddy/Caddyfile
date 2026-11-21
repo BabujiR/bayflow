@@ -1,0 +1,36 @@
+# HTTPS in front of the web app (nginx), for the base domain and every workshop address.
+#   https://<domain>          the public sign-up site
+#   https://<slug>.<domain>   each workshop
+# {$NAME} values come from the container's environment (docker-compose.yml, from .env).
+
+{
+	email {$ACME_EMAIL}
+}
+
+# Certificates through a DNS record at Cloudflare (works for the wildcard, and needs no open
+# port during issuance). The token may only edit this zone's DNS.
+(cloudflare_tls) {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+		resolvers 1.1.1.1
+	}
+}
+
+# www is not a workshop: send it to the sign-up site.
+www.{$BAYFLOW_BASE_DOMAIN} {
+	import cloudflare_tls
+	redir https://{$BAYFLOW_BASE_DOMAIN}{uri} permanent
+}
+
+{$BAYFLOW_BASE_DOMAIN}, *.{$BAYFLOW_BASE_DOMAIN} {
+	import cloudflare_tls
+
+	# Browsers keep to HTTPS for a year, on every workshop address too.
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	header -Server
+
+	# nginx compresses and sets the other security headers. The Host header is passed on
+	# unchanged; the services read the workshop from it. Caddy replaces any X-Forwarded-For
+	# a client sends with the real address, which auth-service uses to rate-limit sign-ins.
+	reverse_proxy web:8080
+}

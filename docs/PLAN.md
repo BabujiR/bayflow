@@ -167,6 +167,7 @@ All under `/api/v1`, JSON, RFC 7807 errors, paginated lists use
 | POST | /tenants/signup | public (CSRF header, rate-limited per IP): new workshop + its ADMIN |
 | GET | /tenants/slug-availability?slug= | public |
 | GET | /tenants/current | public: the workshop at this address (404 if none), with its `branding` |
+| GET | /auth/internal/tenants/{tid}/locations/{lid}/staff?roles= | SYSTEM only: enabled staff with those roles at the location |
 | GET | /tenants/current/logo, /tenants/current/cover | public: the workshop's images (ETag; `?v=` from `/tenants/current` = cached a year) |
 | GET/PUT | /auth/tenant/branding | ADMIN: colour, announcement, "Powered by Bayflow" (PUT with `version`; 409 if stale) |
 | PUT/DELETE | /auth/tenant/branding/logo, /auth/tenant/branding/cover | ADMIN: upload (multipart `file`) or remove an image |
@@ -275,7 +276,7 @@ Screens (milestone 7), under `src/features/`:
 - Admin: User accounts (create staff, enable/disable); read-only appointments, customers and job
   cards.
 
-Branding: name "Bayflow", tagline "The smarter way to run your auto workshop."
+Branding: name "Ramplight" (codename "Bayflow" in code, packages and settings; public site getramplight.com), tagline "The smarter way to run your auto workshop."
 shown on the login and register pages, in the app header on wide screens, and
 in the page `<meta name="description">`.
 
@@ -600,8 +601,7 @@ in the page `<meta name="description">`.
       because the workshop's colour is kept as it is); it does not refuse such colours.
     - **Announcement:** plain text, one line (control characters become spaces), at most 200
       characters, rendered as text (never HTML). INFO or IMPORTANT style. Optional start and
-      end (end after start); `/tenants/current` includes it only while live. Customers and
-      the sign-in page show it in full, staff as a slim line under the header.
+      end (end after start). Since item 27 a workshop can have several.
     - **"Powered by Bayflow"** is on by default; turning it off also drops "· Bayflow" from the
       tab title. Bayflow's own public site (sign-up) is never branded.
     - The browser tab shows the workshop's name and its logo as the icon.
@@ -612,6 +612,79 @@ in the page `<meta name="description">`.
       certificates per domain), branded emails, a dark-mode logo variant, S3 + CDN for the
       images on AWS (docs/SAAS-AWS-NOTES.md), plan-based limits (white label as a paid
       feature).
+
+25. **Notifications, phase N1: in-app notification centre.** A fourth service,
+    **notification-service** (:8084, tables `ntf_*`), stores each user's notifications.
+    - **Events:** appointment-service queues a `NOTIFY` message in its existing outbox
+      (`apt_outbox`) on booking, confirm, reschedule, cancel and check-in; workshop-service
+      has its own outbox (`ws_outbox`, V8, same design and owner-run `ws_due_outbox`) for
+      estimate sent (only when there is something to approve), last item decided, and work
+      complete. Each message is stored in the same transaction as the change, sent in the
+      background right after commit, and retried every 10 s with backoff while
+      notification-service is down. The event id is the outbox message id; notification-
+      service stores an event once (`ntf_received_events`). Events carry ids, the
+      registration, times and counts, never prices, notes or contact details.
+    - **Recipients** are decided when the event arrives (later location changes don't move
+      old notifications). Customer actions on bookings → the location's SERVICE_ADVISORs and
+      MANAGERs; workshop actions → the customer; check-in → the customer and the location's
+      MECHANICs; estimate → customer; decision → advisors and managers, plus mechanics when
+      something was approved; complete → customer. The actor is never told about their own
+      action. ADMINs are not notified in N1. Walk-in customers without a login are skipped.
+      Staff come from auth-service's new SYSTEM-only
+      `GET /api/v1/auth/internal/tenants/{tid}/locations/{lid}/staff?roles=…` (enabled users
+      with those location-scoped roles at that location; ADMIN/CUSTOMER refused), cached
+      1 minute; while auth-service can't answer, the event gets 503 and is retried.
+    - **Texts** are English and plain text, written when the event arrives, with times in
+      the location's time zone (from auth-service's locations, cached 5 minutes).
+      Links are app paths only (checked in the database and in the web app).
+    - **Isolation:** besides `app.tenant`, each transaction sets `app.recipient`: the
+      signed-in user's id (only their own rows), `*` for the service storing an event, or
+      nothing (no rows). Policies check both; the API also filters by recipient; another
+      user's notification is 404.
+    - **Only unread notifications are kept** (V2): reading one deletes the row (`POST
+      …/{id}/read` → 204; again → 404), `POST …/read-all` deletes all the user's. There is
+      no read history. `ntf_received_events` stays, so a repeated event is still stored once.
+    - **API:** `GET /api/v1/notifications` (paged, newest first), `GET …/unread-count`,
+      `POST …/{id}/read`, `POST …/read-all`, SYSTEM-only
+      `POST /api/v1/internal/notification-events` (not routed by nginx).
+    - **Retention:** a nightly job (03:17) deletes notifications nobody read and received
+      events older than 90 days, through the owner-run `ntf_delete_before`.
+    - **Web app:** a bell for every signed-in user with the unread count (polled every 30 s
+      and on returning to the tab), a panel with the latest 20 and "Mark all read", and a
+      Notifications page. Opening a notification deletes it, so it leaves both at once.
+      Times in the location's zone; the location's name when the organization has several.
+    - Next steps: email (N2: Mailpit locally, SES on AWS, per-user preferences), reminders
+      the day before and admin announcements (N3), live updates with server-sent events,
+      translations, SMS/WhatsApp (needs a paid provider).
+
+26. **Sorting the appointment list.** `GET /api/v1/appointments` takes
+    `sort=upcoming|latest|earliest|recent` (any case; anything else is 400):
+    - `upcoming`: appointments not finished yet (end after now) first, soonest first, then
+      past ones, most recent first;
+    - `latest` / `earliest`: by appointment time;
+    - `recent`: by when the booking was made, newest first.
+    The id breaks ties, so pages never repeat or skip a row. Default without `sort`:
+    `earliest` with a `date` (a day reads in time order, e.g. the board), otherwise
+    `upcoming`. The web app's *Appointments* page has a **Sort** dropdown; day, status and
+    sort are in the address (`/appointments?sort=latest&day=2026-11-24`), and the last sort
+    chosen is remembered in the browser.
+
+27. **Several announcements (option D).** The single banner on `auth_tenant_branding` became
+    `auth_tenant_announcements` (auth V10, RLS like every per-workshop table; today's banner,
+    if any, became the first announcement and the banner columns were dropped). Each has
+    text (one line, ≤ 200 characters), style INFO/IMPORTANT and optional start/end; a
+    workshop keeps at most 10 (409 `too-many-announcements`).
+    - ADMIN API: `GET/POST /api/v1/auth/tenant/branding/announcements`,
+      `PUT/DELETE …/{id}` (PUT with `version`). The list says LIVE, SCHEDULED or ENDED;
+      ended ones stay until deleted, to reuse.
+    - `GET /api/v1/tenants/current` → `branding.announcements`: the live ones, important
+      first, then the one ending soonest (no end last), then the oldest. The `banner` field
+      is gone; colour and "Powered by Bayflow" stay on `PUT /api/v1/auth/tenant/branding`.
+    - Web app: one line with the first, and "N more" (a button with `aria-expanded`) that
+      opens the others underneath; full size for customers and the sign-in page, slim for
+      staff. Settings: an *Announcements* card with Add / Edit (dialog) / Delete.
+    - Not built (decided against for now): audience (customers/staff only) and per-location
+      announcements, and customers dismissing one.
 
 ---
 
@@ -632,6 +705,6 @@ in the page `<meta name="description">`.
 | SaaS 3 | Per-workshop settings, money frozen on job cards | no business setting read from env at request time |
 | SaaS 4 | Sign-up and `<slug>.localhost` subdomains | a new workshop signs up and runs on its own |
 
-SaaS milestones: 1–4 done. Organizations and locations: L1–L3 done. Branding: in review.
+SaaS milestones: 1–4 done. Organizations and locations: L1–L3 done. Branding: done. Notifications N1: in review.
 
 Each milestone ends with a review pause.

@@ -14,6 +14,10 @@ bayflow:
     dispatcher:
       # Tests trigger retries themselves.
       enabled: false
+    notifications:
+      # Most tests don't look at notification events; NotificationEventsIT turns them on.
+      enabled: false
+      send-immediately: false
 
 logging:
   level:

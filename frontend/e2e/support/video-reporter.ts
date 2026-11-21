@@ -96,7 +96,7 @@ const PLAYER = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bayflow e2e scenarios</title>
+<title>Ramplight e2e scenarios</title>
 <style>
   :root { --bg:#f6f7f9; --card:#fff; --ink:#0f172a; --muted:#475569; --line:#e2e8f0; --blue:#1d4ed8; }
   * { box-sizing: border-box; }
@@ -130,7 +130,7 @@ const PLAYER = `<!doctype html>
 </style>
 </head>
 <body>
-<header><h1>Bayflow end-to-end scenarios</h1><span id="summary"></span></header>
+<header><h1>Ramplight end-to-end scenarios</h1><span id="summary"></span></header>
 <div class="layout">
   <nav id="list" aria-label="Scenarios"></nav>
   <main>

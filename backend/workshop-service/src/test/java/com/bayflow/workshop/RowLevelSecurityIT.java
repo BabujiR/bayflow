@@ -22,7 +22,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import com.bayflow.security.RowLevelSecurityGuard;
 
 /**
- * Row-level security checked at the database, below any Java code: all three services' real
+ * Row-level security checked at the database, below any Java code: all four services' real
  * migrations run on one fresh database, then the app login (bayflow_app) tries to read and
  * write across workshops directly with SQL.
  */
@@ -32,6 +32,7 @@ class RowLevelSecurityIT {
             { "auth-service", "flyway_history_auth" },
             { "appointment-service", "flyway_history_appointment" },
             { "workshop-service", "flyway_history_workshop" },
+            { "notification-service", "flyway_history_notification" },
     };
     private static final String A = "0a0a0a0a-0000-4000-8000-00000000000a";
     private static final String B = "0b0b0b0b-0000-4000-8000-00000000000b";
@@ -68,8 +69,9 @@ class RowLevelSecurityIT {
     void everyPerWorkshopTableHasRowLevelSecurityAndAPolicy() throws Exception {
         List<String> tables = perWorkshopTables();
         // 16 until phase L2 added auth_user_locations; 19 since Branding added
-        // auth_tenant_branding and auth_tenant_assets.
-        assertThat(tables).hasSize(19);
+        // auth_tenant_branding and auth_tenant_assets; 22 since Notifications added ws_outbox,
+        // ntf_notifications and ntf_received_events; 23 with auth_tenant_announcements.
+        assertThat(tables).hasSize(23);
         try (Connection owner = owner(); Statement statement = owner.createStatement()) {
             for (String table : tables) {
                 try (ResultSet rs = statement.executeQuery("select c.relrowsecurity, (select count(*) from pg_policies p"

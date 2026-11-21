@@ -16,8 +16,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Set;
 import java.util.UUID;
 
@@ -57,6 +55,7 @@ class BrandingIT extends IntegrationTestBase {
                 values (?, 'branding-other', 'Kiwi Motors', 'ACTIVE', now(), now())
                 on conflict (id) do nothing""", OTHER);
         jdbc.update("delete from bayflow.auth_tenant_assets");
+        jdbc.update("delete from bayflow.auth_tenant_announcements");
         jdbc.update("delete from bayflow.auth_tenant_branding");
     }
 
@@ -67,34 +66,30 @@ class BrandingIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.branding.logoUrl").value(nullValue()))
                 .andExpect(jsonPath("$.branding.coverUrl").value(nullValue()))
                 .andExpect(jsonPath("$.branding.primaryColor").value(nullValue()))
-                .andExpect(jsonPath("$.branding.banner").value(nullValue()))
+                .andExpect(jsonPath("$.branding.announcements").isEmpty())
                 .andExpect(jsonPath("$.branding.showPoweredBy").value(true));
         mvc.perform(get("/api/v1/tenants/current/logo")).andExpect(status().isNotFound());
     }
 
     @Test
-    void anAdminSetsColourBannerAndPoweredByAndEveryoneSeesThem() throws Exception {
+    void anAdminSetsColourAndPoweredByAndEveryoneSeesThem() throws Exception {
         String admin = tokenFor(Role.ADMIN);
 
-        update(admin, body("#1D4ED8", "Closed on Monday 24 Dec", "IMPORTANT", null, null, false, 0))
+        update(admin, body("#1D4ED8", false, 0))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.primaryColor").value("#1d4ed8"))
-                .andExpect(jsonPath("$.bannerText").value("Closed on Monday 24 Dec"))
-                .andExpect(jsonPath("$.bannerLive").value(true))
                 .andExpect(jsonPath("$.showPoweredBy").value(false))
                 .andExpect(jsonPath("$.version").value(1));
 
         mvc.perform(get("/api/v1/tenants/current"))
                 .andExpect(jsonPath("$.branding.primaryColor").value("#1d4ed8"))
-                .andExpect(jsonPath("$.branding.banner.text").value("Closed on Monday 24 Dec"))
-                .andExpect(jsonPath("$.branding.banner.style").value("IMPORTANT"))
                 .andExpect(jsonPath("$.branding.showPoweredBy").value(false));
 
         // Empty values go back to Bayflow's look.
-        update(admin, body("", "  ", "INFO", null, null, true, 1)).andExpect(status().isOk());
+        update(admin, body("", true, 1)).andExpect(status().isOk());
         mvc.perform(get("/api/v1/tenants/current"))
                 .andExpect(jsonPath("$.branding.primaryColor").value(nullValue()))
-                .andExpect(jsonPath("$.branding.banner").value(nullValue()))
+                .andExpect(jsonPath("$.branding.announcements").isEmpty())
                 .andExpect(jsonPath("$.branding.showPoweredBy").value(true));
     }
 
@@ -104,76 +99,36 @@ class BrandingIT extends IntegrationTestBase {
             String token = tokenFor(role);
             mvc.perform(get("/api/v1/auth/tenant/branding").header("Authorization", "Bearer " + token))
                     .andExpect(status().isForbidden());
-            update(token, body("#000000", "Hijacked", "INFO", null, null, false, 0))
+            update(token, body("#000000", false, 0))
                     .andExpect(status().isForbidden());
             upload(token, "logo", ImageFixtures.png(64, 64)).andExpect(status().isForbidden());
             mvc.perform(delete("/api/v1/auth/tenant/branding/logo").header("Authorization", "Bearer " + token))
                     .andExpect(status().isForbidden());
         }
-        update(null, body("#000000", "Hijacked", "INFO", null, null, false, 0)).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/v1/tenants/current")).andExpect(jsonPath("$.branding.banner").value(nullValue()));
+        update(null, body("#000000", false, 0)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/tenants/current")).andExpect(jsonPath("$.branding.showPoweredBy").value(true));
     }
 
     @Test
     void invalidBrandingIsRejected() throws Exception {
         String admin = tokenFor(Role.ADMIN);
-        update(admin, body("blue", null, "INFO", null, null, true, 0))
+        update(admin, body("blue", true, 0))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value("urn:bayflow:problem:invalid-color"));
-        update(admin, body("#12345g", null, "INFO", null, null, true, 0))
+        update(admin, body("#12345g", true, 0))
                 .andExpect(jsonPath("$.type").value("urn:bayflow:problem:invalid-color"));
-        update(admin, body(null, "x".repeat(201), "INFO", null, null, true, 0))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.type").value("urn:bayflow:problem:invalid-banner"));
-        Instant now = Instant.now();
-        update(admin, body(null, "Holiday", "INFO", now.plus(2, ChronoUnit.DAYS), now, true, 0))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.type").value("urn:bayflow:problem:invalid-banner-window"));
         update(admin, """
-                {"primaryColor":null,"bannerText":null,"bannerStyle":"SHOUTING","showPoweredBy":true,"version":0}
+                {"primaryColor":null,"showPoweredBy":true}
                 """).andExpect(status().isBadRequest());
-        update(admin, """
-                {"primaryColor":null,"bannerText":null,"showPoweredBy":true}
-                """).andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void theBannerIsPlainTextOnOneLine() throws Exception {
-        String admin = tokenFor(Role.ADMIN);
-        update(admin, body(null, "Line one\\nline\\ttwo   <b>bold</b>", "INFO", null, null, true, 0))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.bannerText").value("Line one line two <b>bold</b>"));
     }
 
     @Test
     void aStaleVersionIsAConflict() throws Exception {
         String admin = tokenFor(Role.ADMIN);
-        update(admin, body("#111111", null, "INFO", null, null, true, 0)).andExpect(status().isOk());
-        update(admin, body("#222222", null, "INFO", null, null, true, 0))
+        update(admin, body("#111111", true, 0)).andExpect(status().isOk());
+        update(admin, body("#222222", true, 0))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.type").value("urn:bayflow:problem:concurrent-update"));
-    }
-
-    @Test
-    void theBannerIsShownOnlyWithinItsDates() throws Exception {
-        String admin = tokenFor(Role.ADMIN);
-        Instant now = Instant.now();
-
-        update(admin, body(null, "Winter tyres from next week", "INFO", now.plus(1, ChronoUnit.DAYS),
-                now.plus(8, ChronoUnit.DAYS), true, 0))
-                .andExpect(jsonPath("$.bannerLive").value(false));
-        mvc.perform(get("/api/v1/tenants/current")).andExpect(jsonPath("$.branding.banner").value(nullValue()));
-
-        update(admin, body(null, "Summer offer", "INFO", now.minus(8, ChronoUnit.DAYS),
-                now.minus(1, ChronoUnit.DAYS), true, 1))
-                .andExpect(jsonPath("$.bannerLive").value(false));
-        mvc.perform(get("/api/v1/tenants/current")).andExpect(jsonPath("$.branding.banner").value(nullValue()));
-
-        update(admin, body(null, "Open late this week", "INFO", now.minus(1, ChronoUnit.DAYS),
-                now.plus(1, ChronoUnit.DAYS), true, 2))
-                .andExpect(jsonPath("$.bannerLive").value(true));
-        mvc.perform(get("/api/v1/tenants/current"))
-                .andExpect(jsonPath("$.branding.banner.text").value("Open late this week"));
     }
 
     @Test
@@ -269,14 +224,14 @@ class BrandingIT extends IntegrationTestBase {
     void workshopsNeverSeeEachOthersBranding() throws Exception {
         String admin = tokenFor(Role.ADMIN);
         upload(admin, "logo", ImageFixtures.png(64, 64)).andExpect(status().isOk());
-        update(admin, body("#be123c", "Demo only", "INFO", null, null, false, 0)).andExpect(status().isOk());
+        update(admin, body("#be123c", false, 0)).andExpect(status().isOk());
 
         mvc.perform(get("/api/v1/tenants/current").header("X-Forwarded-Host", OTHER_HOST))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.slug").value("branding-other"))
                 .andExpect(jsonPath("$.branding.logoUrl").value(nullValue()))
                 .andExpect(jsonPath("$.branding.primaryColor").value(nullValue()))
-                .andExpect(jsonPath("$.branding.banner").value(nullValue()))
+                .andExpect(jsonPath("$.branding.announcements").isEmpty())
                 .andExpect(jsonPath("$.branding.showPoweredBy").value(true));
         mvc.perform(get("/api/v1/tenants/current/logo").header("X-Forwarded-Host", OTHER_HOST))
                 .andExpect(status().isNotFound());
@@ -324,12 +279,10 @@ class BrandingIT extends IntegrationTestBase {
                 .header("Authorization", "Bearer " + token));
     }
 
-    private static String body(String color, String banner, String style, Instant starts, Instant ends,
-            boolean poweredBy, long version) {
+    private static String body(String color, boolean poweredBy, long version) {
         return """
-                {"primaryColor":%s,"bannerText":%s,"bannerStyle":"%s","bannerStartsAt":%s,"bannerEndsAt":%s,
-                 "showPoweredBy":%s,"version":%d}
-                """.formatted(json(color), json(banner), style, json(starts), json(ends), poweredBy, version);
+                {"primaryColor":%s,"showPoweredBy":%s,"version":%d}
+                """.formatted(json(color), poweredBy, version);
     }
 
     private static String json(Object value) {

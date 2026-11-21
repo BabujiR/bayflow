@@ -46,13 +46,15 @@ public class JobCardService {
     private static final Logger log = LoggerFactory.getLogger(JobCardService.class);
 
     private final WorkshopSettingsClient settings;
+    private final OutboxService outbox;
     private final Clock clock;
 
     public JobCardService(JobCardRepository jobCards, ServiceHistoryService history,
-            WorkshopSettingsClient settings, Clock clock) {
+            WorkshopSettingsClient settings, OutboxService outbox, Clock clock) {
         this.jobCards = jobCards;
         this.history = history;
         this.settings = settings;
+        this.outbox = outbox;
         this.clock = clock;
     }
 
@@ -141,6 +143,9 @@ public class JobCardService {
     public JobCard submitForApproval(UUID id) {
         JobCard card = find(id);
         card.submitForApproval(clock.instant());
+        if (card.getStatus() == JobCardStatus.AWAITING_APPROVAL) {
+            outbox.enqueue(card, OutboxService.ESTIMATE_READY);
+        }
         return loaded(card);
     }
 
@@ -154,7 +159,12 @@ public class JobCardService {
         String decidedBy = user.isCustomer()
                 ? user.username()
                 : user.username() + " (on behalf of the customer)";
+        JobCardStatus before = card.getStatus();
         card.decide(itemId, approve, decidedBy, clock.instant());
+        // Once, when the last item is decided.
+        if (before == JobCardStatus.AWAITING_APPROVAL && card.getStatus() != JobCardStatus.AWAITING_APPROVAL) {
+            outbox.enqueue(card, OutboxService.ESTIMATE_DECIDED);
+        }
         return loaded(card);
     }
 
@@ -198,6 +208,7 @@ public class JobCardService {
         JobCard card = find(id);
         card.complete(clock.instant());
         history.record(card);
+        outbox.enqueue(card, OutboxService.WORK_COMPLETED);
         return loaded(card);
     }
 
