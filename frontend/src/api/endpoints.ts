@@ -223,6 +223,7 @@ export const reportsApi = {
   technicians: (range: ReportRange) => http.get<TechnicianRow[]>('/api/v1/reports/technicians', { ...range }),
   advisors: (range: ReportRange) => http.get<AdvisorRow[]>('/api/v1/reports/advisors', { ...range }),
   locations: (range: ReportRange) => http.get<LocationSalesRow[]>('/api/v1/reports/locations', { ...range }),
-  declined: (range: ReportRange) => http.get<ReportRows<DeclinedRow>>('/api/v1/reports/declined', { ...range }),
+  declined: (range: ReportRange) =>
+    http.get<ReportRows<DeclinedRow>>('/api/v1/reports/declined', { ...range }),
   parts: (range: ReportRange) => http.get<ReportRows<PartUsageRow>>('/api/v1/reports/parts', { ...range }),
 };

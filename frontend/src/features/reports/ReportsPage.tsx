@@ -165,13 +165,17 @@ function ReportTable<T>({
           variant="outline"
           size="sm"
           disabled={rows.length === 0}
-          onClick={() => downloadCsv(csvFilename(name, period.firstDay, period.lastDay), toCsv(columns, rows))}
+          onClick={() =>
+            downloadCsv(csvFilename(name, period.firstDay, period.lastDay), toCsv(columns, rows))
+          }
         >
           Export CSV
         </Button>
       </div>
       {rows.length === 0 ? (
-        <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">{empty}</p>
+        <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+          {empty}
+        </p>
       ) : (
         <div className="overflow-x-auto">
           <Table aria-label={label}>
@@ -255,10 +259,19 @@ function SummaryReport({ period, currency }: { period: Period; currency: string 
           line('Work declined', (p) => p.declinedValue, amount),
           line('Hours approved', (p) => p.hoursApproved, formatHours),
           line('Hours declined', (p) => p.hoursDeclined, formatHours),
-          line('Close ratio', (p) => p.closeRatio, (v) => formatPercent(v, 1), true),
+          line(
+            'Close ratio',
+            (p) => p.closeRatio,
+            (v) => formatPercent(v, 1),
+            true,
+          ),
         ];
         const columns: Column<SummaryLine>[] = [
-          { header: 'Measure', value: (l) => l.measure, cell: (l) => <span className="font-medium">{l.measure}</span> },
+          {
+            header: 'Measure',
+            value: (l) => l.measure,
+            cell: (l) => <span className="font-medium">{l.measure}</span>,
+          },
           { header: 'This period', value: (l) => l.current, cell: (l) => l.show(l.current), numeric: true },
           {
             header: `Previous (from ${previousFrom.slice(0, 10)})`,
@@ -287,8 +300,9 @@ function SummaryReport({ period, currency }: { period: Period; currency: string 
               empty=""
             />
             <p className="text-sm text-muted-foreground">
-              In the shop now: {formatCount(open.openCards)} open job cards, {formatCount(open.awaitingApproval)}{' '}
-              waiting for approval ({m(open.pendingValue)}), {formatCount(open.inWork)} approved or in work.
+              In the shop now: {formatCount(open.openCards)} open job cards,{' '}
+              {formatCount(open.awaitingApproval)} waiting for approval ({m(open.pendingValue)}),{' '}
+              {formatCount(open.inWork)} approved or in work.
             </p>
           </div>
         );
@@ -324,8 +338,18 @@ function SalesReport({ period, zone, currency }: { period: Period; zone?: string
     { header: 'Parts', value: (r) => r.partsSales, cell: (r) => m(r.partsSales), numeric: true },
     { header: 'Labour', value: (r) => r.labourSales, cell: (r) => m(r.labourSales), numeric: true },
     { header: 'Sales', value: (r) => r.sales, cell: (r) => m(r.sales), numeric: true },
-    { header: 'ARO', value: (r) => r.averageRepairOrder, cell: (r) => m(r.averageRepairOrder), numeric: true },
-    { header: 'Hours billed', value: (r) => r.labourHours, cell: (r) => formatHours(r.labourHours), numeric: true },
+    {
+      header: 'ARO',
+      value: (r) => r.averageRepairOrder,
+      cell: (r) => m(r.averageRepairOrder),
+      numeric: true,
+    },
+    {
+      header: 'Hours billed',
+      value: (r) => r.labourHours,
+      cell: (r) => formatHours(r.labourHours),
+      numeric: true,
+    },
   ];
 
   return (
@@ -380,7 +404,12 @@ function AdvisorReport({ period, currency }: { period: Period; currency: string 
       value: (r) => r.advisor || 'Not recorded',
       cell: (r) => (r.advisor ? <span className="font-medium">{r.advisor}</span> : 'Not recorded'),
     },
-    { header: 'Estimates sent', value: (r) => r.estimatesSent, cell: (r) => formatCount(r.estimatesSent), numeric: true },
+    {
+      header: 'Estimates sent',
+      value: (r) => r.estimatesSent,
+      cell: (r) => formatCount(r.estimatesSent),
+      numeric: true,
+    },
     { header: 'Presented', value: (r) => r.presentedValue, cell: (r) => m(r.presentedValue), numeric: true },
     { header: 'Approved', value: (r) => r.approvedValue, cell: (r) => m(r.approvedValue), numeric: true },
     { header: 'Declined', value: (r) => r.declinedValue, cell: (r) => m(r.declinedValue), numeric: true },
@@ -390,9 +419,19 @@ function AdvisorReport({ period, currency }: { period: Period; currency: string 
       cell: (r) => formatPercent(r.closeRatio, 1),
       numeric: true,
     },
-    { header: 'Completed', value: (r) => r.completedCards, cell: (r) => formatCount(r.completedCards), numeric: true },
+    {
+      header: 'Completed',
+      value: (r) => r.completedCards,
+      cell: (r) => formatCount(r.completedCards),
+      numeric: true,
+    },
     { header: 'Sales', value: (r) => r.completedSales, cell: (r) => m(r.completedSales), numeric: true },
-    { header: 'ARO', value: (r) => r.averageRepairOrder, cell: (r) => m(r.averageRepairOrder), numeric: true },
+    {
+      header: 'ARO',
+      value: (r) => r.averageRepairOrder,
+      cell: (r) => m(r.averageRepairOrder),
+      numeric: true,
+    },
   ];
   return (
     <Report query={advisors}>
@@ -407,7 +446,8 @@ function AdvisorReport({ period, currency }: { period: Period; currency: string 
           empty="No estimates were sent in this period."
           footer={
             <p className="text-sm text-muted-foreground">
-              Estimates sent to customers in the period. Close ratio is the approved share of the value decided so far.
+              Estimates sent to customers in the period. Close ratio is the approved share of the value
+              decided so far.
             </p>
           }
         />
@@ -422,7 +462,11 @@ function TechnicianReport({ period, currency }: { period: Period; currency: stri
   const technicians = useTechnicianReport(period);
   const m = money(currency);
   const columns: Column<TechnicianRow>[] = [
-    { header: 'Mechanic', value: (r) => r.mechanic, cell: (r) => <span className="font-medium">{r.mechanic}</span> },
+    {
+      header: 'Mechanic',
+      value: (r) => r.mechanic,
+      cell: (r) => <span className="font-medium">{r.mechanic}</span>,
+    },
     { header: 'Hours logged', value: (r) => r.hours, cell: (r) => formatHours(r.hours), numeric: true },
     {
       header: 'On completed jobs',
@@ -491,7 +535,13 @@ function DeclinedReport({ period, currency }: { period: Period; currency: string
     },
     { header: 'Advisor', value: (r) => r.submittedBy ?? '', cell: (r) => r.submittedBy ?? '—' },
     ...(hasSeveral
-      ? [{ header: 'Location', value: (r: DeclinedRow) => nameOf(r.locationId), cell: (r: DeclinedRow) => nameOf(r.locationId) }]
+      ? [
+          {
+            header: 'Location',
+            value: (r: DeclinedRow) => nameOf(r.locationId),
+            cell: (r: DeclinedRow) => nameOf(r.locationId),
+          },
+        ]
       : []),
     { header: 'VIN', value: (r) => r.vin, cell: (r) => <span className="font-mono text-xs">{r.vin}</span> },
   ];
@@ -528,8 +578,16 @@ function PartsReport({ period, currency }: { period: Period; currency: string })
   const { nameOf, zoneOf, hasSeveral } = useLocationLookup();
   const m = money(currency);
   const columns: Column<PartUsageRow>[] = [
-    { header: 'Fitted', value: (r) => r.recordedAt, cell: (r) => formatDateTime(r.recordedAt, zoneOf(r.locationId)) },
-    { header: 'Part number', value: (r) => r.partNumber, cell: (r) => <span className="font-mono text-xs">{r.partNumber}</span> },
+    {
+      header: 'Fitted',
+      value: (r) => r.recordedAt,
+      cell: (r) => formatDateTime(r.recordedAt, zoneOf(r.locationId)),
+    },
+    {
+      header: 'Part number',
+      value: (r) => r.partNumber,
+      cell: (r) => <span className="font-mono text-xs">{r.partNumber}</span>,
+    },
     { header: 'Part', value: (r) => r.name, cell: (r) => r.name },
     { header: 'Qty', value: (r) => r.quantity, cell: (r) => formatCount(r.quantity), numeric: true },
     { header: 'Unit price', value: (r) => r.unitPrice, cell: (r) => m(r.unitPrice), numeric: true },
@@ -546,7 +604,13 @@ function PartsReport({ period, currency }: { period: Period; currency: string })
     { header: 'Vehicle', value: (r) => r.registration, cell: (r) => r.registration },
     { header: 'Mechanic', value: (r) => r.recordedBy, cell: (r) => r.recordedBy },
     ...(hasSeveral
-      ? [{ header: 'Location', value: (r: PartUsageRow) => nameOf(r.locationId), cell: (r: PartUsageRow) => nameOf(r.locationId) }]
+      ? [
+          {
+            header: 'Location',
+            value: (r: PartUsageRow) => nameOf(r.locationId),
+            cell: (r: PartUsageRow) => nameOf(r.locationId),
+          },
+        ]
       : []),
   ];
   return (

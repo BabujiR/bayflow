@@ -46,8 +46,12 @@ const defaults = [
   http.get('*/api/v1/reports/technicians', () => HttpResponse.json([])),
   http.get('*/api/v1/reports/locations', () => HttpResponse.json([])),
   http.get('*/api/v1/reports/advisors', () => HttpResponse.json([])),
-  http.get('*/api/v1/reports/declined', () => HttpResponse.json({ from: '', to: '', rows: [], truncated: false })),
-  http.get('*/api/v1/reports/parts', () => HttpResponse.json({ from: '', to: '', rows: [], truncated: false })),
+  http.get('*/api/v1/reports/declined', () =>
+    HttpResponse.json({ from: '', to: '', rows: [], truncated: false }),
+  ),
+  http.get('*/api/v1/reports/parts', () =>
+    HttpResponse.json({ from: '', to: '', rows: [], truncated: false }),
+  ),
 ];
 
 /** MSW server shared by all tests. */

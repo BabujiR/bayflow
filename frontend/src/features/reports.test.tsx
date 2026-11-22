@@ -42,7 +42,14 @@ describe('owner dashboard (reports phase R1)', () => {
         asked.push(new URL(request.url).searchParams);
         return HttpResponse.json(
           reportSummary(
-            { carCount: 12, sales: 4500, averageRepairOrder: 375, closeRatio: 0.81, approvedValue: 4050, declinedValue: 950 },
+            {
+              carCount: 12,
+              sales: 4500,
+              averageRepairOrder: 375,
+              closeRatio: 0.81,
+              approvedValue: 4050,
+              declinedValue: 950,
+            },
             { carCount: 8, sales: 3000, averageRepairOrder: 375, closeRatio: 0.75 },
             { openCards: 5, awaitingApproval: 2, pendingValue: 640, inWork: 3 },
           ),
@@ -138,7 +145,9 @@ describe('reports page (reports phase R1)', () => {
     server.use(
       sessionFor(user('ADMIN', 'admin1')),
       http.get('*/api/v1/reports/technicians', () =>
-        HttpResponse.json([{ mechanic: 'mike', hours: 7.5, labourValue: 712.5, jobCards: 4, hoursOnCompleted: 6 }]),
+        HttpResponse.json([
+          { mechanic: 'mike', hours: 7.5, labourValue: 712.5, jobCards: 4, hoursOnCompleted: 6 },
+        ]),
       ),
     );
     const { router } = renderApp('/reports');
@@ -183,7 +192,14 @@ describe('report helpers', () => {
   it('groups long periods by month', () => {
     const days = [{ day: '2026-02-03', carCount: 2, sales: 300, partsSales: 100, labourSales: 200 }];
     const monthly = trendBuckets(days, '2026-01-01', '2026-06-30');
-    expect(monthly.map((b) => b.key)).toEqual(['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06']);
+    expect(monthly.map((b) => b.key)).toEqual([
+      '2026-01',
+      '2026-02',
+      '2026-03',
+      '2026-04',
+      '2026-05',
+      '2026-06',
+    ]);
     expect(monthly[1]).toMatchObject({ sales: 300, carCount: 2 });
     expect(trendBuckets(days, '2026-02-01', '2026-02-07')).toHaveLength(7);
   });

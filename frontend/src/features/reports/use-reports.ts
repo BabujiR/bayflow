@@ -31,7 +31,9 @@ export function usePeriodParam(
     if (first && last && !customPeriodProblem(first, last)) {
       return customPeriod(first, last, 'custom', zone);
     }
-    const chosen = PRESETS.includes(preset as PeriodPreset) ? (preset as Exclude<PeriodPreset, 'custom'>) : fallback;
+    const chosen = PRESETS.includes(preset as PeriodPreset)
+      ? (preset as Exclude<PeriodPreset, 'custom'>)
+      : fallback;
     return periodFor(chosen, new Date(), zone);
   }, [preset, first, last, fallback, zone]);
 

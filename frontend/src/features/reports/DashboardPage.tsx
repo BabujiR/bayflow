@@ -45,7 +45,8 @@ export function DashboardPage() {
 
 export function periodDescription(period: Period): string {
   const days = daysBetween(period.firstDay, period.lastDay);
-  const span = period.firstDay === period.lastDay ? period.firstDay : `${period.firstDay} to ${period.lastDay}`;
+  const span =
+    period.firstDay === period.lastDay ? period.firstDay : `${period.firstDay} to ${period.lastDay}`;
   const label = period.preset === 'custom' ? '' : `${PERIOD_LABELS[period.preset]} · `;
   return `${label}${span} · compared with the ${days === 1 ? 'day' : `${days} days`} before`;
 }
@@ -73,13 +74,13 @@ function Dashboard({ zone, currency }: { zone?: string; currency: string }) {
         }
       />
       <div className="grid gap-6">
-        <QueryState
-          query={summary}
-          skeleton={<Skeleton className="h-56" />}
-        >
+        <QueryState query={summary} skeleton={<Skeleton className="h-56" />}>
           {({ current, previous, open }) => (
             <>
-              <section aria-label="This period" className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+              <section
+                aria-label="This period"
+                className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6"
+              >
                 <KpiTile
                   label="Sales"
                   value={formatMoney(current.sales, currency)}
@@ -193,7 +194,9 @@ function Dashboard({ zone, currency }: { zone?: string; currency: string }) {
 
 /** The period as address parameters, to open the same period on another page. */
 export function periodParams(period: Period): Record<string, string> {
-  return period.preset === 'custom' ? { from: period.firstDay, to: period.lastDay } : { period: period.preset };
+  return period.preset === 'custom'
+    ? { from: period.firstDay, to: period.lastDay }
+    : { period: period.preset };
 }
 
 export function TechnicianTable({ rows, currency }: { rows: TechnicianRow[]; currency: string }) {
@@ -246,7 +249,9 @@ export function LocationTable({ rows, currency }: { rows: LocationSalesRow[]; cu
             <TableCell className="font-medium">{nameOf(r.locationId)}</TableCell>
             <TableCell className="text-right tabular-nums">{formatCount(r.carCount)}</TableCell>
             <TableCell className="text-right tabular-nums">{formatMoney(r.sales, currency)}</TableCell>
-            <TableCell className="text-right tabular-nums">{formatMoney(r.averageRepairOrder, currency)}</TableCell>
+            <TableCell className="text-right tabular-nums">
+              {formatMoney(r.averageRepairOrder, currency)}
+            </TableCell>
             <TableCell className="text-right tabular-nums">{formatHours(r.labourHours)}</TableCell>
           </TableRow>
         ))}

@@ -66,8 +66,8 @@ public class ReportService {
         Object[] sales = single("""
                 SELECT count(*), coalesce(sum(j.grand_total), 0), coalesce(sum(j.parts_total), 0),
                        coalesce(sum(j.labour_total), 0), coalesce(sum(h.hours), 0)
-                FROM ws_job_cards j
-                LEFT JOIN LATERAL (SELECT sum(l.hours) AS hours FROM ws_labour_entries l
+                FROM {h-schema}ws_job_cards j
+                LEFT JOIN LATERAL (SELECT sum(l.hours) AS hours FROM {h-schema}ws_labour_entries l
                                    WHERE l.job_card_id = j.id) h ON true
                 WHERE j.status = 'COMPLETED' AND j.completed_at >= :from AND j.completed_at < :to
                 """, period);
@@ -78,8 +78,8 @@ public class ReportService {
                        coalesce(sum(%1$s) FILTER (WHERE r.approval_status = 'DECLINED'), 0),
                        coalesce(sum(r.estimated_labour_hours) FILTER (WHERE r.approval_status = 'APPROVED'), 0),
                        coalesce(sum(r.estimated_labour_hours) FILTER (WHERE r.approval_status = 'DECLINED'), 0)
-                FROM ws_recommended_items r
-                JOIN ws_job_cards j ON j.id = r.job_card_id
+                FROM {h-schema}ws_recommended_items r
+                JOIN {h-schema}ws_job_cards j ON j.id = r.job_card_id
                 WHERE r.decided_at >= :from AND r.decided_at < :to
                   AND r.approval_status IN ('APPROVED', 'DECLINED')
                 """.formatted(ITEM_VALUE), period);
@@ -100,12 +100,12 @@ public class ReportService {
                 SELECT count(*) FILTER (WHERE status NOT IN ('COMPLETED', 'DECLINED')),
                        count(*) FILTER (WHERE status = 'AWAITING_APPROVAL'),
                        count(*) FILTER (WHERE status IN ('APPROVED', 'PARTIALLY_APPROVED', 'IN_PROGRESS'))
-                FROM ws_job_cards
+                FROM {h-schema}ws_job_cards
                 """).getSingleResult();
         Object pending = em.createNativeQuery("""
                 SELECT coalesce(sum(%s), 0)
-                FROM ws_recommended_items r
-                JOIN ws_job_cards j ON j.id = r.job_card_id
+                FROM {h-schema}ws_recommended_items r
+                JOIN {h-schema}ws_job_cards j ON j.id = r.job_card_id
                 WHERE j.status = 'AWAITING_APPROVAL' AND r.approval_status = 'PENDING'
                 """.formatted(ITEM_VALUE)).getSingleResult();
         return new OpenWork(count(cards[0]), count(cards[1]), count(cards[2]), money(pending));
@@ -117,7 +117,7 @@ public class ReportService {
                 SELECT CAST(j.completed_at AT TIME ZONE :zone AS date) AS day, count(*),
                        coalesce(sum(j.grand_total), 0), coalesce(sum(j.parts_total), 0),
                        coalesce(sum(j.labour_total), 0)
-                FROM ws_job_cards j
+                FROM {h-schema}ws_job_cards j
                 WHERE j.status = 'COMPLETED' AND j.completed_at >= :from AND j.completed_at < :to
                 GROUP BY 1
                 ORDER BY 1
@@ -131,8 +131,8 @@ public class ReportService {
         return rows("""
                 SELECT l.mechanic, sum(l.hours), sum(l.hours * l.hourly_rate), count(DISTINCT l.job_card_id),
                        coalesce(sum(l.hours) FILTER (WHERE j.status = 'COMPLETED'), 0)
-                FROM ws_labour_entries l
-                JOIN ws_job_cards j ON j.id = l.job_card_id
+                FROM {h-schema}ws_labour_entries l
+                JOIN {h-schema}ws_job_cards j ON j.id = l.job_card_id
                 WHERE l.created_at >= :from AND l.created_at < :to
                 GROUP BY l.mechanic
                 ORDER BY 2 DESC, 1
@@ -145,15 +145,15 @@ public class ReportService {
         return rows("""
                 WITH cards AS (
                     SELECT j.id, j.submitted_by, j.status, j.grand_total
-                    FROM ws_job_cards j
+                    FROM {h-schema}ws_job_cards j
                     WHERE j.submitted_at >= :from AND j.submitted_at < :to
                 ), items AS (
                     SELECT r.job_card_id,
                            sum(%1$s) AS presented,
                            sum(%1$s) FILTER (WHERE r.approval_status = 'APPROVED') AS approved,
                            sum(%1$s) FILTER (WHERE r.approval_status = 'DECLINED') AS declined
-                    FROM ws_recommended_items r
-                    JOIN ws_job_cards j ON j.id = r.job_card_id
+                    FROM {h-schema}ws_recommended_items r
+                    JOIN {h-schema}ws_job_cards j ON j.id = r.job_card_id
                     WHERE r.job_card_id IN (SELECT id FROM cards)
                     GROUP BY r.job_card_id
                 )
@@ -180,8 +180,8 @@ public class ReportService {
         return rows("""
                 SELECT j.location_id, count(*), coalesce(sum(j.grand_total), 0), coalesce(sum(j.parts_total), 0),
                        coalesce(sum(j.labour_total), 0), coalesce(sum(h.hours), 0)
-                FROM ws_job_cards j
-                LEFT JOIN LATERAL (SELECT sum(l.hours) AS hours FROM ws_labour_entries l
+                FROM {h-schema}ws_job_cards j
+                LEFT JOIN LATERAL (SELECT sum(l.hours) AS hours FROM {h-schema}ws_labour_entries l
                                    WHERE l.job_card_id = j.id) h ON true
                 WHERE j.status = 'COMPLETED' AND j.completed_at >= :from AND j.completed_at < :to
                 GROUP BY j.location_id
@@ -200,8 +200,8 @@ public class ReportService {
                 SELECT r.id, j.id, j.location_id, j.customer_user_id, j.customer_name, j.registration, j.vin,
                        r.description, r.estimated_parts_cost, r.estimated_labour_hours, %s,
                        r.decided_by, r.decided_at, j.submitted_by
-                FROM ws_recommended_items r
-                JOIN ws_job_cards j ON j.id = r.job_card_id
+                FROM {h-schema}ws_recommended_items r
+                JOIN {h-schema}ws_job_cards j ON j.id = r.job_card_id
                 WHERE r.approval_status = 'DECLINED' AND r.decided_at >= :from AND r.decided_at < :to
                 ORDER BY r.decided_at DESC, r.id
                 LIMIT %d
@@ -218,9 +218,9 @@ public class ReportService {
                 SELECT p.id, p.job_card_id, p.location_id, p.part_number, p.name, p.quantity, p.unit_price,
                        p.quantity * p.unit_price, p.recorded_by, p.created_at, j.registration, j.customer_name,
                        r.description
-                FROM ws_part_usages p
-                JOIN ws_job_cards j ON j.id = p.job_card_id
-                LEFT JOIN ws_recommended_items r ON r.id = p.recommendation_id
+                FROM {h-schema}ws_part_usages p
+                JOIN {h-schema}ws_job_cards j ON j.id = p.job_card_id
+                LEFT JOIN {h-schema}ws_recommended_items r ON r.id = p.recommendation_id
                 WHERE p.created_at >= :from AND p.created_at < :to
                 ORDER BY p.created_at DESC, p.id
                 LIMIT %d

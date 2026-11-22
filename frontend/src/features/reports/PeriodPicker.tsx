@@ -61,7 +61,12 @@ export function PeriodPicker({ period, onChange }: { period: Period; onChange: (
         >
           <label className="grid gap-1 text-sm">
             <span className="text-muted-foreground">From</span>
-            <Input type="date" className="h-9 w-40" value={first} onChange={(e) => setFirst(e.target.value)} />
+            <Input
+              type="date"
+              className="h-9 w-40"
+              value={first}
+              onChange={(e) => setFirst(e.target.value)}
+            />
           </label>
           <label className="grid gap-1 text-sm">
             <span className="text-muted-foreground">To</span>
