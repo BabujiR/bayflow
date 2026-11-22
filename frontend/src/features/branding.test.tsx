@@ -256,6 +256,16 @@ describe('dark-mode logo and icon (branding phase 2)', () => {
       iconUrl: '/api/v1/tenants/current/icon?v=ico',
     });
 
+  /** The tab icon from index.html, which tests don't load. */
+  const addTabIcon = () => {
+    document.querySelector('link[rel="icon"]')?.remove();
+    const link = document.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/svg+xml';
+    link.href = '/favicon.svg';
+    document.head.appendChild(link);
+  };
+
   const resetTheme = () => {
     try {
       localStorage.clear();
@@ -287,6 +297,7 @@ describe('dark-mode logo and icon (branding phase 2)', () => {
 
   it('uses the icon in the browser tab, the collapsed sidebar and the phone header', async () => {
     resetTheme();
+    addTabIcon();
     server.use(sessionFor(user('ADMIN', 'admin')), withBoth());
     renderApp('/dashboard');
 
@@ -314,6 +325,7 @@ describe('dark-mode logo and icon (branding phase 2)', () => {
   });
 
   it('falls back to the logo in the browser tab without an icon', async () => {
+    addTabIcon();
     server.use(sessionFor(user('ADMIN', 'admin')), branded());
     renderApp('/dashboard');
     await vi.waitFor(() =>
