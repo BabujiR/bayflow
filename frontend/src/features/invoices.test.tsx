@@ -115,7 +115,7 @@ describe('invoices (R2a)', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Create invoice' }));
 
-    expect(await screen.findByRole('heading', { name: /Draft invoice/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: /Draft invoice/ })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe(`/invoices/${INVOICE_ID}`);
   });
 
@@ -157,7 +157,7 @@ describe('invoices (R2a)', () => {
     });
 
     await userEvent.click(await screen.findByRole('button', { name: 'Issue invoice' }));
-    expect(await screen.findByRole('heading', { name: /INV-1001/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: /INV-1001/ })).toBeInTheDocument();
     expect(issuedWith).toEqual({ version: 1 });
   });
 
