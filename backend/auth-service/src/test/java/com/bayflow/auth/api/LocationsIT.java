@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -20,7 +22,6 @@ import com.bayflow.auth.IntegrationTestBase;
 import com.bayflow.auth.application.AuthService;
 import com.bayflow.auth.application.SignupRateLimiter;
 import com.bayflow.auth.domain.Role;
-import com.bayflow.security.TenantContext;
 import com.bayflow.security.Tenants;
 import com.jayway.jsonpath.JsonPath;
 
@@ -53,6 +54,64 @@ class LocationsIT extends IntegrationTestBase {
         jdbc.update("delete from bayflow.auth_user_locations where location_id in (select id from"
                 + " bayflow.auth_locations where tenant_id = ? and id <> ?)", MAIN, MAIN);
         jdbc.update("delete from bayflow.auth_locations where tenant_id = ? and id <> ?", MAIN, MAIN);
+        jdbc.update("""
+                update bayflow.auth_locations set parts_tax_rate = 0, labour_tax_rate = 0, fees_tax_rate = 0,
+                    shop_supplies_percent = null, shop_supplies_cap = null, disposal_fee = null,
+                    payment_terms_days = 0, invoice_footer = null where id = ?""", MAIN);
+    }
+
+    // ---- invoice settings (R2a) -----------------------------------------------------------------
+
+    @Test
+    void anAdminSetsTaxAndFeesWhichServicesReadAndNewLocationsCopy() throws Exception {
+        String admin = tokenFor(Role.ADMIN);
+        List<Number> versions = JsonPath.read(mvc.perform(get("/api/v1/auth/locations")
+                        .header("Authorization", "Bearer " + admin))
+                .andReturn().getResponse().getContentAsString(), "$[?(@.id == '" + MAIN + "')].version");
+        long version = versions.get(0).longValue();
+        String billing = """
+                {"billing":{"partsTaxRate":8.875,"labourTaxRate":0,"feesTaxRate":8.875,"shopSuppliesPercent":5,
+                 "shopSuppliesCap":35,"disposalFee":3.5,"paymentTermsDays":15,"invoiceFooter":"12-month warranty"},
+                 "version":%d}""";
+
+        mvc.perform(put("/api/v1/auth/locations/" + MAIN + "/billing").header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON).content(billing.formatted(version)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.billing.partsTaxRate").value(8.875))
+                .andExpect(jsonPath("$.billing.shopSuppliesCap").value(35))
+                .andExpect(jsonPath("$.billing.paymentTermsDays").value(15));
+        // The version moved on: sending the old one again is a conflict.
+        mvc.perform(put("/api/v1/auth/locations/" + MAIN + "/billing").header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON).content(billing.formatted(version)))
+                .andExpect(status().isConflict());
+
+        mvc.perform(get("/api/v1/auth/internal/tenants/" + MAIN + "/locations/" + MAIN + "/settings")
+                        .header("Authorization", "Bearer " + systemToken()))
+                .andExpect(jsonPath("$.billing.partsTaxRate").value(8.875))
+                .andExpect(jsonPath("$.billing.disposalFee").value(3.5))
+                .andExpect(jsonPath("$.billing.invoiceFooter").value("12-month warranty"));
+
+        // A new location starts with Main's taxes and fees.
+        mvc.perform(post("/api/v1/auth/locations").header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"east\",\"name\":\"East\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.billing.partsTaxRate").value(8.875))
+                .andExpect(jsonPath("$.billing.paymentTermsDays").value(15));
+    }
+
+    @Test
+    void taxAndFeesAreCheckedAndForAdminsOnly() throws Exception {
+        String body = """
+                {"billing":{"partsTaxRate":%s,"labourTaxRate":0,"feesTaxRate":0,"paymentTermsDays":0},"version":0}""";
+        mvc.perform(put("/api/v1/auth/locations/" + MAIN + "/billing")
+                        .header("Authorization", "Bearer " + tokenFor(Role.SERVICE_ADVISOR))
+                        .contentType(MediaType.APPLICATION_JSON).content(body.formatted("5")))
+                .andExpect(status().isForbidden());
+        mvc.perform(put("/api/v1/auth/locations/" + MAIN + "/billing")
+                        .header("Authorization", "Bearer " + tokenFor(Role.ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON).content(body.formatted("120")))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

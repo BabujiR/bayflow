@@ -12,6 +12,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class WorkshopProperties {
 
     private String authUrl = "http://localhost:8083";
+    /** appointment-service: who to bill for a job (invoices). */
+    private String appointmentUrl = "http://localhost:8081";
     /** Client-credentials login for SYSTEM tokens. */
     private String clientId = "workshop-service";
     private String clientSecret = "dev-workshop-secret";
@@ -21,6 +23,8 @@ public class WorkshopProperties {
     private Duration settingsCacheTtl = Duration.ofMinutes(5);
     private final Notifications notifications = new Notifications();
 
+    public String getAppointmentUrl() { return appointmentUrl; }
+    public void setAppointmentUrl(String appointmentUrl) { this.appointmentUrl = appointmentUrl; }
     public String getAuthUrl() { return authUrl; }
     public void setAuthUrl(String authUrl) { this.authUrl = authUrl; }
     public String getClientId() { return clientId; }

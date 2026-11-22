@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bayflow.auth.domain.Location;
+import com.bayflow.auth.domain.LocationBilling;
 import com.bayflow.auth.domain.TenantSettings;
 import com.bayflow.auth.infrastructure.LocationRepository;
 import com.bayflow.security.TenantContext;
@@ -61,6 +62,21 @@ public class LocationService {
                 clock.instant());
         location.update(clean.code(), clean.name(), clean.phone(), clean.email(), clean.address(), clean.timeZone(),
                 clean.labourRate(), clock.instant());
+        // Taxes and fees usually match across shops: start from the first location's.
+        location.updateBilling(ensureMain().billing(), clock.instant());
+        return view(locations.saveAndFlush(location), org);
+    }
+
+    /** Changes a location's tax rates, fees and invoice terms (409 if {@code version} is stale). */
+    @Transactional
+    public LocationView updateBilling(UUID id, LocationBilling billing, long version) {
+        TenantSettings org = settings.current().settings();
+        Location location = locations.findById(id).orElseThrow(() -> ApiException.notFound("Location"));
+        if (location.getVersion() != null && location.getVersion() != version) {
+            throw ApiException.conflict("concurrent-update",
+                    "The location was changed by someone else. Reload and try again.");
+        }
+        location.updateBilling(billing, clock.instant());
         return view(locations.saveAndFlush(location), org);
     }
 

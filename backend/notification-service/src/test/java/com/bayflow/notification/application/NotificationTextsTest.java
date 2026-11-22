@@ -41,6 +41,9 @@ class NotificationTextsTest {
                         "/job-cards/" + CARD));
         assertThat(NotificationTexts.of(event(EventType.ESTIMATE_DECIDED, "AB12 CDE"), Audience.MECHANIC,
                 NEW_YORK).body()).isEqualTo("1 item approved and ready to start.");
+        assertThat(NotificationTexts.of(event(EventType.INVOICE_ISSUED, "AB12 CDE"), Audience.CUSTOMER, NEW_YORK))
+                .isEqualTo(new Text("Your invoice is ready",
+                        "The invoice for the work on AB12 CDE is ready to view.", "/invoices"));
     }
 
     private static NotificationEvent event(EventType type, String registration) {

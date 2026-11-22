@@ -54,6 +54,8 @@ bayflow:
   workshop:
     # Labour rate and currency now come from each workshop's settings in auth-service.
     auth-url: ${BAYFLOW_AUTH_URL:http://localhost:8083}
+    # Invoices: the customer and vehicle to bill, from appointment-service.
+    appointment-url: ${BAYFLOW_APPOINTMENT_URL:http://localhost:8081}
     client-id: workshop-service
     client-secret: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:dev-workshop-secret}
     settings-cache-ttl: 5m

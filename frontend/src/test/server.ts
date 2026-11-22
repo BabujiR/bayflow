@@ -40,6 +40,10 @@ const defaults = [
   http.get('*/api/v1/vehicles', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/appointments', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/job-cards', () => HttpResponse.json(pageOf([]))),
+  // A completed job card asks for its invoice: none by default.
+  http.get('*/api/v1/job-cards/:id/invoice', () =>
+    HttpResponse.json({ status: 404, title: 'Not Found', detail: 'Invoice was not found.' }, { status: 404 }),
+  ),
   // The owner's dashboard (home page of admins and managers): an empty period.
   http.get('*/api/v1/reports/summary', () => HttpResponse.json(reportSummary())),
   http.get('*/api/v1/reports/daily', () => HttpResponse.json({ from: '', to: '', zone: 'UTC', days: [] })),

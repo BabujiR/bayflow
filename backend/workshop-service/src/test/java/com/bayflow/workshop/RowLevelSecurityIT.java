@@ -71,8 +71,9 @@ class RowLevelSecurityIT {
         // 16 until phase L2 added auth_user_locations; 19 since Branding added
         // auth_tenant_branding and auth_tenant_assets; 22 since Notifications added ws_outbox,
         // ntf_notifications and ntf_received_events; 23 with auth_tenant_announcements; 25 with
-        // auth_password_resets and auth_mail_outbox.
-        assertThat(tables).hasSize(25);
+        // auth_password_resets and auth_mail_outbox; 29 since Invoicing added ws_invoices,
+        // ws_invoice_lines, ws_payments and ws_invoice_counters.
+        assertThat(tables).hasSize(29);
         try (Connection owner = owner(); Statement statement = owner.createStatement()) {
             for (String table : tables) {
                 try (ResultSet rs = statement.executeQuery("select c.relrowsecurity, (select count(*) from pg_policies p"

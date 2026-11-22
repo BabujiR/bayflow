@@ -145,6 +145,13 @@ export const SettingsIcon = (p: SVGProps<SVGSVGElement>) => (
   </Icon>
 );
 
+export const ReceiptIcon = (p: SVGProps<SVGSVGElement>) => (
+  <Icon {...p}>
+    <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+    <path d="M16 8H8M16 12H8M13 16H8" />
+  </Icon>
+);
+
 export const MenuIcon = (p: SVGProps<SVGSVGElement>) => (
   <Icon {...p}>
     <path d="M4 6h16M4 12h16M4 18h16" />

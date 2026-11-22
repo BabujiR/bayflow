@@ -9,6 +9,7 @@ import {
   DashboardIcon,
   IdCardIcon,
   JobCardIcon,
+  ReceiptIcon,
   MapPinIcon,
   SettingsIcon,
   UsersIcon,
@@ -84,6 +85,14 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['CUSTOMER', 'SERVICE_ADVISOR', 'MECHANIC', 'ADMIN'],
     group: 'work',
     icon: JobCardIcon,
+  },
+  {
+    to: '/invoices',
+    label: 'Invoices',
+    description: 'Bills for completed jobs: issue, take payment, print.',
+    roles: ['CUSTOMER', 'SERVICE_ADVISOR', 'ADMIN'],
+    group: 'work',
+    icon: ReceiptIcon,
   },
   {
     to: '/customers',

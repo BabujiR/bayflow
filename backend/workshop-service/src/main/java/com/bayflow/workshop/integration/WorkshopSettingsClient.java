@@ -26,7 +26,29 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class WorkshopSettingsClient {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record WorkshopSettings(BigDecimal labourRate, String currency) {
+    public record WorkshopSettings(BigDecimal labourRate, String currency, LocationBilling billing) {
+
+        public WorkshopSettings(BigDecimal labourRate, String currency) {
+            this(labourRate, currency, LocationBilling.NONE);
+        }
+
+        /** No billing settings (an older auth-service): no tax, no fees, due on receipt. */
+        public LocationBilling billingOrNone() {
+            return billing == null ? LocationBilling.NONE : billing;
+        }
+    }
+
+    /**
+     * A location's tax rates (percent), fees (null = off) and invoice terms, copied onto each
+     * invoice when it is created.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record LocationBilling(BigDecimal partsTaxRate, BigDecimal labourTaxRate, BigDecimal feesTaxRate,
+            BigDecimal shopSuppliesPercent, BigDecimal shopSuppliesCap, BigDecimal disposalFee,
+            Integer paymentTermsDays, String invoiceFooter) {
+
+        public static final LocationBilling NONE = new LocationBilling(BigDecimal.ZERO, BigDecimal.ZERO,
+                BigDecimal.ZERO, null, null, null, 0, null);
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

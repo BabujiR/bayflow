@@ -22,15 +22,18 @@ export function WorkshopLogo({
   size = 'header',
   withTagline = false,
   compact = false,
+  onPaper = false,
   className,
 }: {
   size?: keyof typeof SIZES;
   withTagline?: boolean;
+  /** Printed (white paper): always the light-mode logo. */
+  onPaper?: boolean;
   compact?: boolean;
   className?: string;
 }) {
   const { branding, displayName } = useBranding();
-  const dark = useResolvedTheme() === 'dark';
+  const dark = useResolvedTheme() === 'dark' && !onPaper;
   const alt = displayName ?? 'Workshop logo';
 
   if (compact && branding.iconUrl) {

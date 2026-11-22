@@ -33,6 +33,7 @@ public class OutboxService {
     public static final String ESTIMATE_READY = "ESTIMATE_READY";
     public static final String ESTIMATE_DECIDED = "ESTIMATE_DECIDED";
     public static final String WORK_COMPLETED = "WORK_COMPLETED";
+    public static final String INVOICE_ISSUED = "INVOICE_ISSUED";
 
     /** An event was queued; sent right after the transaction commits (see the dispatcher). */
     public record NotificationQueued(UUID tenantId, UUID jobCardId) {

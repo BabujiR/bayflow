@@ -173,6 +173,16 @@ location switcher narrows to one.
 Summary, Sales details, Service advisors, Technicians, Declined jobs (a follow-up list) and
 Parts usage. Periods follow the workshop's time zone.
 
+### Invoices
+
+When a job is completed, the advisor opens the job card and clicks **Create invoice**. The
+draft has the job's parts and labour, the location's shop supplies and disposal fees, and its tax
+rates (set by the admin under *Locations → Tax & fees*). Adjust prices, enter what parts cost
+(for profit; customers never see it), add a fee or discount, then **Issue invoice**: it gets the
+next number (`INV-1001`, …) and the customer sees it under *Invoices*. **Record payment** for cash,
+card, check or transfer; managers and admins can refund or void. *Print / Save as PDF* gives a
+clean printable invoice.
+
 ### Try the whole workflow in the web app
 
 At http://demo.localhost:3000 (or the dev server on :5173):
@@ -381,6 +391,7 @@ Caddy with a wildcard certificate, nightly backups). It applies everything below
 | Branding | Logo, colour, cover photo, announcement, "Powered by Ramplight" | ✅ done |
 | Notifications 1 | In-app notifications: bell, panel, Notifications page | 🔍 in review |
 | Reports 1 | Owner dashboard, reports with CSV export, who sent each estimate | 🔍 in review |
+| Invoicing 1 | Invoices with tax and fees, gap-free numbers, payments, refunds, void, print | 🚧 in progress |
 
 ## Assumptions
 

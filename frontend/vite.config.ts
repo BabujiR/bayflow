@@ -32,6 +32,7 @@ export default defineConfig({
       '/api/v1/job-cards': to(WORKSHOP),
       '/api/v1/service-history': to(WORKSHOP),
       '/api/v1/reports': to(WORKSHOP),
+      '/api/v1/invoices': to(WORKSHOP),
       '/api/v1/notifications': to(NOTIFICATION),
     },
   },

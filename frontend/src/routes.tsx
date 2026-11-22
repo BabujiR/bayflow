@@ -10,6 +10,9 @@ import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { DashboardPage } from '@/features/reports/DashboardPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
+import { InvoicePage } from '@/features/invoices/InvoicePage';
+import { InvoicePrintPage } from '@/features/invoices/InvoicePrintPage';
+import { InvoicesPage } from '@/features/invoices/InvoicesPage';
 import { JobCardDetailPage } from '@/features/jobcards/JobCardDetailPage';
 import { LocationsPage } from '@/features/locations/LocationsPage';
 import { JobCardsPage } from '@/features/jobcards/JobCardsPage';
@@ -62,6 +65,11 @@ export const routes: RouteObject[] = [
         children: [{ path: CHANGE_PASSWORD_PATH, element: <ChangePasswordPage /> }],
       },
       {
+        // Outside the app shell: the invoice alone, for Print / Save as PDF.
+        element: <RequireRole roles={['CUSTOMER', 'SERVICE_ADVISOR', 'ADMIN']} />,
+        children: [{ path: '/invoices/:id/print', element: <InvoicePrintPage /> }],
+      },
+      {
         element: <AppShell />,
         children: [
           { index: true, element: <HomePage /> },
@@ -95,6 +103,13 @@ export const routes: RouteObject[] = [
             children: [
               { path: '/job-cards', element: <JobCardsPage /> },
               { path: '/job-cards/:id', element: <JobCardDetailPage /> },
+            ],
+          },
+          {
+            element: <RequireRole roles={['CUSTOMER', 'SERVICE_ADVISOR', 'ADMIN']} />,
+            children: [
+              { path: '/invoices', element: <InvoicesPage /> },
+              { path: '/invoices/:id', element: <InvoicePage /> },
             ],
           },
           {

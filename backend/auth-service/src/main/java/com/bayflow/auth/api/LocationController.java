@@ -9,7 +9,10 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import org.springframework.http.HttpStatus;
@@ -30,6 +33,7 @@ import com.bayflow.auth.application.LocationService;
 import com.bayflow.auth.application.LocationService.LocationDetails;
 import com.bayflow.auth.application.LocationService.LocationView;
 import com.bayflow.auth.application.UserLocationService;
+import com.bayflow.auth.domain.LocationBilling;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.security.CurrentUser;
 import com.bayflow.security.TenantContext;
@@ -51,24 +55,57 @@ public class LocationController {
      */
     public record LocationResponse(UUID id, String code, String name, String phone, String email, String address,
             String status, String timeZone, BigDecimal labourRate, String currency, String ownTimeZone,
-            BigDecimal ownLabourRate, long version) {
+            BigDecimal ownLabourRate, long version, BillingSettings billing) {
 
         static LocationResponse from(LocationView view) {
             var l = view.location();
             return new LocationResponse(l.getId(), l.getCode(), l.getName(), l.getPhone(), l.getEmail(),
                     l.getAddress(), l.getStatus().name(), view.timeZone(), view.labourRate(), view.currency(),
-                    l.getTimeZone(), l.getLabourRate(), l.getVersion() == null ? 0 : l.getVersion());
+                    l.getTimeZone(), l.getLabourRate(), l.getVersion() == null ? 0 : l.getVersion(),
+                    BillingSettings.from(l.billing()));
         }
+    }
+
+    /**
+     * A location's tax rates (percent, e.g. 8.875), fees (null = off) and invoice terms
+     * (paymentTermsDays 0 = due on receipt). Copied onto each invoice when it is created.
+     */
+    public record BillingSettings(
+            @NotNull @DecimalMin("0.000") @DecimalMax("100.000") @Digits(integer = 3, fraction = 3) BigDecimal partsTaxRate,
+            @NotNull @DecimalMin("0.000") @DecimalMax("100.000") @Digits(integer = 3, fraction = 3) BigDecimal labourTaxRate,
+            @NotNull @DecimalMin("0.000") @DecimalMax("100.000") @Digits(integer = 3, fraction = 3) BigDecimal feesTaxRate,
+            @DecimalMin("0.000") @DecimalMax("100.000") @Digits(integer = 3, fraction = 3) BigDecimal shopSuppliesPercent,
+            @DecimalMin("0.00") @DecimalMax("100000.00") @Digits(integer = 6, fraction = 2) BigDecimal shopSuppliesCap,
+            @DecimalMin("0.00") @DecimalMax("100000.00") @Digits(integer = 6, fraction = 2) BigDecimal disposalFee,
+            @Min(0) @Max(365) int paymentTermsDays,
+            @Size(max = 500) String invoiceFooter) {
+
+        static BillingSettings from(LocationBilling b) {
+            return new BillingSettings(b.partsTaxRate(), b.labourTaxRate(), b.feesTaxRate(), b.shopSuppliesPercent(),
+                    b.shopSuppliesCap(), b.disposalFee(), b.paymentTermsDays(), b.invoiceFooter());
+        }
+
+        LocationBilling toBilling() {
+            String footer = invoiceFooter == null || invoiceFooter.isBlank() ? null : invoiceFooter.strip();
+            return new LocationBilling(partsTaxRate, labourTaxRate, feesTaxRate, shopSuppliesPercent, shopSuppliesCap,
+                    disposalFee, paymentTermsDays, footer);
+        }
+    }
+
+    /** The billing settings and the location's version, for {@code PUT /locations/{id}/billing}. */
+    public record BillingRequest(@NotNull @Valid BillingSettings billing, @NotNull Long version) {
     }
 
     /** What other services need to know about a location. */
     public record LocationSettingsResponse(UUID id, String code, String name, boolean active, String timeZone,
-            BigDecimal labourRate, String currency) {
+            BigDecimal labourRate, String currency, String phone, String email, String address,
+            BillingSettings billing) {
 
         static LocationSettingsResponse from(LocationView view) {
             var l = view.location();
             return new LocationSettingsResponse(l.getId(), l.getCode(), l.getName(), l.isActive(), view.timeZone(),
-                    view.labourRate(), view.currency());
+                    view.labourRate(), view.currency(), l.getPhone(), l.getEmail(), l.getAddress(),
+                    BillingSettings.from(l.billing()));
         }
     }
 
@@ -126,6 +163,13 @@ public class LocationController {
             throw ApiException.badRequest("version-required", "Send the version of the location you read.");
         }
         return LocationResponse.from(locations.update(id, request.details(), request.version()));
+    }
+
+    @PutMapping("/locations/{id}/billing")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Change a location's tax rates, fees and invoice terms (ADMIN); send the version you read")
+    public LocationResponse updateBilling(@PathVariable UUID id, @Valid @RequestBody BillingRequest request) {
+        return LocationResponse.from(locations.updateBilling(id, request.billing().toBilling(), request.version()));
     }
 
     @PostMapping("/locations/{id}/archive")

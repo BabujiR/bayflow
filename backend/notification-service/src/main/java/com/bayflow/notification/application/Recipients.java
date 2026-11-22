@@ -42,7 +42,7 @@ public class Recipients {
                     addCustomer(recipients, event);
                 }
             }
-            case APPOINTMENT_CONFIRMED, ESTIMATE_READY, WORK_COMPLETED -> addCustomer(recipients, event);
+            case APPOINTMENT_CONFIRMED, ESTIMATE_READY, WORK_COMPLETED, INVOICE_ISSUED -> addCustomer(recipients, event);
             case VEHICLE_CHECKED_IN -> {
                 addCustomer(recipients, event);
                 add(recipients, staff(event, MECHANIC_ROLES), Audience.MECHANIC);
