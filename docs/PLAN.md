@@ -737,7 +737,7 @@ in the page `<meta name="description">`.
     served publicly and cached like the logo at `/api/v1/tenants/current/{logo-dark,icon}`
     (nginx and the public-GET list include them); `logoDarkUrl` and `iconUrl` in the branding. The
     icon is the browser-tab icon (else the logo), the collapsed sidebar's mark and the phone
-    header's. In the sidebar the logo uses its full width (about 208 x 56 px).
+    header's. In the sidebar the logo uses its full width (about 208 x 48 px).
 
 32. **Invoicing (R2a).** One invoice per COMPLETED job card (a new one only after a void), in
     workshop-service (`ws_invoices`, `ws_invoice_lines`, `ws_payments`, `ws_invoice_counters`; V10,

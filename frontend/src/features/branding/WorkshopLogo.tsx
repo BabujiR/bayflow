@@ -7,8 +7,8 @@ import { useBranding } from './use-branding';
 const SIZES = {
   // Header and phone header: one line of controls.
   header: 'h-9 max-w-40',
-  // The sidebar's top: its full width (about 208 px), up to 56 px tall.
-  sidebar: 'max-h-14 max-w-full',
+  // The sidebar's top: its full width (about 208 px), up to 48 px tall.
+  sidebar: 'max-h-12 max-w-full',
   // Sign-in page.
   large: 'h-16 max-w-64',
 } as const;
