@@ -88,7 +88,7 @@ public class WorkshopSignupController {
      * in the order shown (important first); empty when there are none.
      */
     public record PublicBranding(String logoUrl, String coverUrl, String primaryColor, boolean showPoweredBy,
-            List<PublicAnnouncement> announcements) {
+            List<PublicAnnouncement> announcements, String logoDarkUrl, String iconUrl) {
     }
 
     public record PublicAnnouncement(UUID id, String text, Announcement.Style style) {
@@ -155,8 +155,9 @@ public class WorkshopSignupController {
                 passwordResets.isAvailable());
     }
 
-    @GetMapping("/current/{kind:logo|cover}")
-    @Operation(summary = "The logo or sign-in cover photo of the workshop at this address (404 when none)",
+    @GetMapping("/current/{kind:" + BrandingController.KINDS + "}")
+    @Operation(summary = "The logo, dark-mode logo, icon or sign-in cover photo of the workshop at this "
+            + "address (404 when none)",
             description = "Cached by the browser: forever with the ?v= of /current, otherwise revalidated "
                     + "with the ETag.")
     public ResponseEntity<byte[]> image(@PathVariable String kind, @RequestParam(required = false) String v,
@@ -184,6 +185,8 @@ public class WorkshopSignupController {
         return new PublicBranding(BrandingController.imageUrl(TenantAsset.Kind.LOGO, view.logoSha256()),
                 BrandingController.imageUrl(TenantAsset.Kind.COVER, view.coverSha256()), b.getPrimaryColor(),
                 b.isShowPoweredBy(),
-                live.stream().map(a -> new PublicAnnouncement(a.getId(), a.getText(), a.getStyle())).toList());
+                live.stream().map(a -> new PublicAnnouncement(a.getId(), a.getText(), a.getStyle())).toList(),
+                BrandingController.imageUrl(TenantAsset.Kind.LOGO_DARK, view.logoDarkSha256()),
+                BrandingController.imageUrl(TenantAsset.Kind.ICON, view.iconSha256()));
     }
 }

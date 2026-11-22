@@ -19,7 +19,11 @@ import org.hibernate.annotations.TenantId;
 @Table(name = "auth_tenant_assets")
 public class TenantAsset {
 
-    public enum Kind { LOGO, COVER }
+    /**
+     * LOGO: the header and sign-in page; LOGO_DARK: the same in dark mode (optional); ICON: square,
+     * for the browser tab, collapsed sidebar and phone header; COVER: the sign-in photo.
+     */
+    public enum Kind { LOGO, LOGO_DARK, ICON, COVER }
 
     @Id
     private UUID id;

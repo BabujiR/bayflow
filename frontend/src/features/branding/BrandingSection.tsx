@@ -26,16 +26,49 @@ export const BRANDING_QUERY_KEY = ['branding'] as const;
 const BAYFLOW_BLUE = '#1d4ed8';
 const IMAGE_TYPES = ['image/png', 'image/jpeg'];
 
-const IMAGES: Record<BrandingImageKind, { title: string; hint: string; maxBytes: number }> = {
+interface ImageSlot {
+  title: string;
+  hint: string;
+  maxBytes: number;
+  /** What shows while there is none. */
+  fallback: string;
+  /** The preview box and the image in it. */
+  box: string;
+  image: string;
+}
+
+const IMAGES: Record<BrandingImageKind, ImageSlot> = {
   logo: {
     title: 'Logo',
-    hint: 'PNG or JPEG up to 1 MB. Shown in the header and on the sign-in page; a wide logo on a transparent background works best.',
+    hint: 'PNG or JPEG up to 1 MB. Shown in the sidebar, header and on the sign-in page; a wide logo on a transparent background works best.',
     maxBytes: 1024 * 1024,
+    fallback: `${PRODUCT_NAME} logo shown`,
+    box: 'h-24 bg-white text-slate-500',
+    image: 'max-h-20 max-w-[90%] object-contain',
+  },
+  'logo-dark': {
+    title: 'Dark-mode logo',
+    hint: 'Optional. Used instead of the logo when someone uses the dark theme, e.g. a version with light text. Previewed on the dark background.',
+    maxBytes: 1024 * 1024,
+    fallback: 'Your logo is shown in dark mode too',
+    box: 'h-24 border-slate-700 bg-[#0b1220] text-slate-300',
+    image: 'max-h-20 max-w-[90%] object-contain',
+  },
+  icon: {
+    title: 'Icon',
+    hint: 'PNG or JPEG up to 1 MB, square (other shapes are centred on a transparent square). Shown in the browser tab, the collapsed sidebar and on phones.',
+    maxBytes: 1024 * 1024,
+    fallback: 'Your logo is used',
+    box: 'h-24',
+    image: 'size-20 object-contain',
   },
   cover: {
     title: 'Sign-in cover photo',
     hint: 'PNG or JPEG up to 3 MB, landscape. Shown beside the sign-in form, e.g. a photo of your workshop.',
     maxBytes: 3 * 1024 * 1024,
+    fallback: 'No cover photo',
+    box: 'h-32',
+    image: 'size-full object-cover',
   },
 };
 
@@ -53,7 +86,10 @@ const brandingSchema = z
 
 type BrandingForm = z.infer<typeof brandingSchema>;
 
-/** The workshop ADMIN's branding: logo, cover photo, announcements, colour and "Powered by …". */
+/**
+ * The workshop ADMIN's branding: logo (and a dark-mode one), icon, cover photo, announcements,
+ * colour and "Powered by …".
+ */
 export function BrandingSection() {
   const branding = useQuery({ queryKey: BRANDING_QUERY_KEY, queryFn: brandingApi.get });
   return (
@@ -80,6 +116,8 @@ export function BrandingSection() {
               </CardHeader>
               <CardContent className="grid gap-6 sm:grid-cols-2">
                 <ImageSetting kind="logo" url={b.logoUrl} />
+                <ImageSetting kind="logo-dark" url={b.logoDarkUrl ?? null} />
+                <ImageSetting kind="icon" url={b.iconUrl ?? null} />
                 <ImageSetting kind="cover" url={b.coverUrl} />
               </CardContent>
             </Card>
@@ -102,7 +140,7 @@ function useBrandingSaved() {
 }
 
 function ImageSetting({ kind, url }: { kind: BrandingImageKind; url: string | null }) {
-  const { title, hint, maxBytes } = IMAGES[kind];
+  const { title, hint, maxBytes, fallback, box, image } = IMAGES[kind];
   const input = useRef<HTMLInputElement>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const saved = useBrandingSaved();
@@ -139,20 +177,14 @@ function ImageSetting({ kind, url }: { kind: BrandingImageKind; url: string | nu
       <div className="text-sm font-medium">{title}</div>
       <div
         className={cn(
-          'flex items-center justify-center overflow-hidden rounded-md border bg-muted/40',
-          kind === 'logo' ? 'h-24' : 'h-32',
+          'flex items-center justify-center overflow-hidden rounded-md border bg-muted/40 text-muted-foreground',
+          box,
         )}
       >
         {url ? (
-          <img
-            src={url}
-            alt={`Current ${title.toLowerCase()}`}
-            className={kind === 'logo' ? 'max-h-20 max-w-[90%] object-contain' : 'size-full object-cover'}
-          />
+          <img src={url} alt={`Current ${title.toLowerCase()}`} className={image} />
         ) : (
-          <span className="text-sm text-muted-foreground">
-            {kind === 'logo' ? `${PRODUCT_NAME} logo shown` : 'No cover photo'}
-          </span>
+          <span className="px-3 text-center text-sm">{fallback}</span>
         )}
       </div>
       <p className="text-xs text-muted-foreground">{hint}</p>

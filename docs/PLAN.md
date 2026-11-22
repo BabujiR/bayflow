@@ -730,6 +730,15 @@ in the page `<meta name="description">`.
     and managers and refreshes every minute; `/reports` has one tab per report, each with CSV
     export built in the browser (formula-looking text is prefixed with `'`).
 
+31. **Branding, phase 2: icon and dark-mode logo.** Two more images beside the logo and cover
+    (`auth_tenant_assets.kind`, V13): `LOGO_DARK` (logo rules; used when the viewer has the dark
+    theme, otherwise the logo is used in both) and `ICON` (PNG up to 512 px, made square by centring
+    on a transparent square, never cropped). Uploaded at `/api/v1/auth/tenant/branding/{logo-dark,icon}`,
+    served publicly and cached like the logo at `/api/v1/tenants/current/{logo-dark,icon}`
+    (nginx and the public-GET list include them); `logoDarkUrl` and `iconUrl` in the branding. The
+    icon is the browser-tab icon (else the logo), the collapsed sidebar's mark and the phone
+    header's. In the sidebar the logo uses its full width (about 208 x 56 px).
+
 ---
 
 ## 10. Milestones

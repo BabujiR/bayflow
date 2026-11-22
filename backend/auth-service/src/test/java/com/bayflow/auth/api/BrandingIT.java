@@ -207,6 +207,40 @@ class BrandingIT extends IntegrationTestBase {
     }
 
     @Test
+    void anIconAndADarkModeLogoAreUploadedServedAndRemoved() throws Exception {
+        String admin = tokenFor(Role.ADMIN);
+
+        upload(admin, "icon", ImageFixtures.png(300, 150))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.iconUrl").value(startsWith("/api/v1/tenants/current/icon?v=")))
+                .andExpect(jsonPath("$.logoDarkUrl").value(nullValue()));
+        upload(admin, "logo-dark", ImageFixtures.png(800, 200))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.logoDarkUrl").value(startsWith("/api/v1/tenants/current/logo-dark?v=")));
+
+        mvc.perform(get("/api/v1/tenants/current"))
+                .andExpect(jsonPath("$.branding.iconUrl").value(startsWith("/api/v1/tenants/current/icon?v=")))
+                .andExpect(jsonPath("$.branding.logoDarkUrl").value(startsWith("/api/v1/tenants/current/logo-dark")))
+                .andExpect(jsonPath("$.branding.logoUrl").value(nullValue()));
+
+        // Public, like the logo; the icon is square.
+        byte[] icon = mvc.perform(get("/api/v1/tenants/current/icon"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "image/png"))
+                .andReturn().getResponse().getContentAsByteArray();
+        BufferedImage square = ImageIO.read(new ByteArrayInputStream(icon));
+        assertThat(square.getWidth()).isEqualTo(300);
+        assertThat(square.getHeight()).isEqualTo(300);
+        mvc.perform(get("/api/v1/tenants/current/logo-dark")).andExpect(status().isOk());
+
+        mvc.perform(delete("/api/v1/auth/tenant/branding/icon").header("Authorization", "Bearer " + admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.iconUrl").value(nullValue()))
+                .andExpect(jsonPath("$.logoDarkUrl").isNotEmpty());
+        mvc.perform(get("/api/v1/tenants/current/icon")).andExpect(status().isNotFound());
+    }
+
+    @Test
     void anAdminRemovesAnImage() throws Exception {
         String admin = tokenFor(Role.ADMIN);
         upload(admin, "logo", ImageFixtures.png(64, 64)).andExpect(status().isOk());

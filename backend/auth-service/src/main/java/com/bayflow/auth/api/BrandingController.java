@@ -39,12 +39,13 @@ public class BrandingController {
 
     /** Colour, "Powered by Bayflow" and the images; announcements are under /announcements. */
     public record BrandingResponse(String primaryColor, boolean showPoweredBy, String logoUrl, String coverUrl,
-            long version) {
+            String logoDarkUrl, String iconUrl, long version) {
 
         static BrandingResponse from(BrandingView view) {
             TenantBranding b = view.branding();
             return new BrandingResponse(b.getPrimaryColor(), b.isShowPoweredBy(),
                     imageUrl(Kind.LOGO, view.logoSha256()), imageUrl(Kind.COVER, view.coverSha256()),
+                    imageUrl(Kind.LOGO_DARK, view.logoDarkSha256()), imageUrl(Kind.ICON, view.iconSha256()),
                     b.getVersion() == null ? 0 : b.getVersion());
         }
     }
@@ -76,26 +77,41 @@ public class BrandingController {
                 request.showPoweredBy(), request.version())));
     }
 
-    @PutMapping(path = "/{kind:logo|cover}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload the logo or cover photo (workshop ADMIN)",
-            description = "kind = logo (PNG/JPEG, up to 1 MB, shown up to 512 px) or cover (PNG/JPEG, up to "
-                    + "3 MB, shown up to 2000 px wide). The image is re-encoded; its metadata is removed.")
+    @PutMapping(path = "/{kind:" + KINDS + "}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload the logo, dark-mode logo, icon or cover photo (workshop ADMIN)",
+            description = "kind = logo or logo-dark (PNG/JPEG, up to 1 MB, kept up to 512 px), icon (PNG/JPEG, "
+                    + "up to 1 MB, made square on a transparent background, up to 512 px) or cover (PNG/JPEG, "
+                    + "up to 3 MB, kept up to 2000 px). The image is re-encoded; its metadata is removed.")
     public BrandingResponse upload(@PathVariable String kind, @RequestPart("file") MultipartFile file)
             throws IOException {
         return BrandingResponse.from(branding.upload(kindOf(kind), file.getBytes()));
     }
 
-    @DeleteMapping("/{kind:logo|cover}")
-    @Operation(summary = "Remove the logo or cover photo (workshop ADMIN)")
+    @DeleteMapping("/{kind:" + KINDS + "}")
+    @Operation(summary = "Remove the logo, dark-mode logo, icon or cover photo (workshop ADMIN)")
     public BrandingResponse remove(@PathVariable String kind) {
         return BrandingResponse.from(branding.remove(kindOf(kind)));
     }
 
+    /** The image kinds in addresses (…/branding/logo-dark, /tenants/current/icon). */
+    static final String KINDS = "logo|logo-dark|icon|cover";
+
     static Kind kindOf(String kind) {
         return switch (kind) {
             case "logo" -> Kind.LOGO;
+            case "logo-dark" -> Kind.LOGO_DARK;
+            case "icon" -> Kind.ICON;
             case "cover" -> Kind.COVER;
             default -> throw ApiException.notFound("The branding image");
+        };
+    }
+
+    static String pathOf(Kind kind) {
+        return switch (kind) {
+            case LOGO -> "logo";
+            case LOGO_DARK -> "logo-dark";
+            case ICON -> "icon";
+            case COVER -> "cover";
         };
     }
 
@@ -104,7 +120,7 @@ public class BrandingController {
         if (sha256 == null) {
             return null;
         }
-        return "/api/v1/tenants/current/" + (kind == Kind.LOGO ? "logo" : "cover") + "?v=" + version(sha256);
+        return "/api/v1/tenants/current/" + pathOf(kind) + "?v=" + version(sha256);
     }
 
     static String version(String sha256) {

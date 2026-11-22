@@ -118,9 +118,9 @@ function SidebarBrand({
   nameTestId?: string;
 }) {
   return (
-    <div className={cn('grid gap-1', compact && 'justify-items-center')}>
-      <Link to="/" aria-label={homeLabel} className="w-fit rounded-md focus-visible:outline-2">
-        <WorkshopLogo compact={compact} />
+    <div className={cn('grid min-w-0 gap-1', compact && 'justify-items-center')}>
+      <Link to="/" aria-label={homeLabel} className="w-fit max-w-full rounded-md focus-visible:outline-2">
+        <WorkshopLogo size="sidebar" compact={compact} />
       </Link>
       {showName && workshopName && !compact && (
         <span

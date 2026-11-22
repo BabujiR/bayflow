@@ -248,3 +248,106 @@ describe('branding settings (workshop ADMIN)', () => {
     expect(screen.queryByRole('form', { name: 'Branding' })).not.toBeInTheDocument();
   });
 });
+
+describe('dark-mode logo and icon (branding phase 2)', () => {
+  const withBoth = () =>
+    branded({
+      logoDarkUrl: '/api/v1/tenants/current/logo-dark?v=dark',
+      iconUrl: '/api/v1/tenants/current/icon?v=ico',
+    });
+
+  const resetTheme = () => {
+    try {
+      localStorage.clear();
+    } catch {
+      // ignore
+    }
+  };
+
+  it('shows the dark-mode logo in dark mode and the normal one in light mode', async () => {
+    resetTheme();
+    server.use(sessionFor(user('ADMIN', 'admin')), withBoth());
+    const light = renderApp('/dashboard');
+    const sidebar = await screen.findByTestId('sidebar');
+    expect(await within(sidebar).findByTestId('workshop-logo')).toHaveAttribute(
+      'src',
+      '/api/v1/tenants/current/logo?v=abc',
+    );
+    light.unmount();
+
+    localStorage.setItem('bayflow-theme', 'dark');
+    renderApp('/dashboard');
+    const darkSidebar = await screen.findByTestId('sidebar');
+    expect(await within(darkSidebar).findByTestId('workshop-logo')).toHaveAttribute(
+      'src',
+      '/api/v1/tenants/current/logo-dark?v=dark',
+    );
+    resetTheme();
+  });
+
+  it('uses the icon in the browser tab, the collapsed sidebar and the phone header', async () => {
+    resetTheme();
+    server.use(sessionFor(user('ADMIN', 'admin')), withBoth());
+    renderApp('/dashboard');
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('link[rel="icon"]')).toHaveAttribute(
+        'href',
+        '/api/v1/tenants/current/icon?v=ico',
+      ),
+    );
+    // Phone header (hidden on wide screens by CSS): the square icon.
+    const header = screen.getByRole('banner');
+    expect(await within(header).findByTestId('workshop-icon')).toHaveAttribute(
+      'src',
+      '/api/v1/tenants/current/icon?v=ico',
+    );
+
+    const sidebar = screen.getByTestId('sidebar');
+    await userEvent.click(within(sidebar).getByRole('button', { name: 'Collapse sidebar' }));
+    expect(within(sidebar).getByTestId('workshop-icon')).toHaveAttribute('src', '/api/v1/tenants/current/icon?v=ico');
+    await userEvent.click(within(sidebar).getByRole('button', { name: 'Expand sidebar' }));
+    resetTheme();
+  });
+
+  it('falls back to the logo in the browser tab without an icon', async () => {
+    server.use(sessionFor(user('ADMIN', 'admin')), branded());
+    renderApp('/dashboard');
+    await vi.waitFor(() =>
+      expect(document.querySelector('link[rel="icon"]')).toHaveAttribute(
+        'href',
+        '/api/v1/tenants/current/logo?v=abc',
+      ),
+    );
+  });
+
+  it('lets the admin upload an icon and a dark-mode logo', async () => {
+    const upload = vi
+      .spyOn(brandingApi, 'upload')
+      .mockImplementation(async ({ kind }) =>
+        branding(
+          kind === 'icon'
+            ? { iconUrl: '/api/v1/tenants/current/icon?v=new' }
+            : { logoDarkUrl: '/api/v1/tenants/current/logo-dark?v=new' },
+        ),
+      );
+    server.use(sessionFor(user('ADMIN', 'admin')));
+    renderApp('/settings');
+    const person = userEvent.setup({ applyAccept: false });
+    const png = () => new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'x.png', { type: 'image/png' });
+
+    const icon = await screen.findByTestId('branding-icon');
+    expect(within(icon).getByText('Your logo is used')).toBeInTheDocument();
+    await person.upload(within(icon).getByLabelText('Upload icon'), png());
+    expect(await within(icon).findByRole('img', { name: 'Current icon' })).toHaveAttribute(
+      'src',
+      '/api/v1/tenants/current/icon?v=new',
+    );
+    expect(upload.mock.lastCall?.[0]).toMatchObject({ kind: 'icon' });
+
+    const dark = screen.getByTestId('branding-logo-dark');
+    await person.upload(within(dark).getByLabelText('Upload dark-mode logo'), png());
+    expect(await within(dark).findByRole('img', { name: 'Current dark-mode logo' })).toBeInTheDocument();
+    expect(upload.mock.lastCall?.[0]).toMatchObject({ kind: 'logo-dark' });
+  });
+});

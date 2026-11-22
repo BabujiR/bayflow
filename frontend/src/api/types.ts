@@ -292,6 +292,10 @@ export interface PublicAnnouncement {
 export interface PublicBranding {
   logoUrl: string | null;
   coverUrl: string | null;
+  /** For dark mode; none = logoUrl in both modes. Missing from older servers. */
+  logoDarkUrl?: string | null;
+  /** Square: browser tab, collapsed sidebar, phone header. Missing from older servers. */
+  iconUrl?: string | null;
   /** #rrggbb, or null for Bayflow's colours. */
   primaryColor: string | null;
   showPoweredBy: boolean;
@@ -305,6 +309,8 @@ export interface Branding {
   showPoweredBy: boolean;
   logoUrl: string | null;
   coverUrl: string | null;
+  logoDarkUrl?: string | null;
+  iconUrl?: string | null;
   version: number;
 }
 
@@ -334,7 +340,7 @@ export interface AnnouncementRequest {
   endsAt: string | null;
 }
 
-export type BrandingImageKind = 'logo' | 'cover';
+export type BrandingImageKind = 'logo' | 'logo-dark' | 'icon' | 'cover';
 
 export interface SignupRequest {
   workshopName: string;

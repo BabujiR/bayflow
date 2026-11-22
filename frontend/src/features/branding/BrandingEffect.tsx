@@ -55,16 +55,18 @@ export function BrandingEffect() {
 
   useEffect(() => {
     const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-    if (!icon || !branding.logoUrl) {
+    // The square icon fits a browser tab; the logo is the fallback.
+    const href = branding.iconUrl ?? branding.logoUrl;
+    if (!icon || !href) {
       return;
     }
-    icon.href = branding.logoUrl;
+    icon.href = href;
     icon.type = 'image/png';
     return () => {
       icon.href = DEFAULT_ICON;
       icon.type = 'image/svg+xml';
     };
-  }, [branding.logoUrl]);
+  }, [branding.iconUrl, branding.logoUrl]);
 
   return null;
 }

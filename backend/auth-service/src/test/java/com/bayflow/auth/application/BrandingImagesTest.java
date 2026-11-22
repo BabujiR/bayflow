@@ -36,6 +36,28 @@ class BrandingImagesTest {
     }
 
     @Test
+    void anIconIsMadeSquareOnATransparentBackgroundNotCropped() throws IOException {
+        BrandingImages.Processed icon = BrandingImages.process(Kind.ICON, image(1200, 600, "jpeg", false));
+
+        assertThat(icon.contentType()).isEqualTo("image/png");
+        assertThat(icon.width()).isEqualTo(512);
+        assertThat(icon.height()).isEqualTo(512);
+        BufferedImage stored = ImageIO.read(new ByteArrayInputStream(icon.content()));
+        assertThat(stored.getColorModel().hasAlpha()).isTrue();
+        // The 512 x 256 picture sits in the middle: transparent above it, opaque in it.
+        assertThat(stored.getRGB(256, 10) >>> 24).isZero();
+        assertThat(stored.getRGB(100, 256) >>> 24).isEqualTo(255);
+    }
+
+    @Test
+    void aDarkModeLogoFollowsTheLogoRules() throws IOException {
+        BrandingImages.Processed logo = BrandingImages.process(Kind.LOGO_DARK, image(1600, 800, "png", true));
+        assertThat(logo.contentType()).isEqualTo("image/png");
+        assertThat(logo.width()).isEqualTo(512);
+        assertThat(logo.height()).isEqualTo(256);
+    }
+
+    @Test
     void aSmallImageIsNeverScaledUp() throws IOException {
         BrandingImages.Processed logo = BrandingImages.process(Kind.LOGO, image(120, 40, "png", false));
         assertThat(logo.width()).isEqualTo(120);
