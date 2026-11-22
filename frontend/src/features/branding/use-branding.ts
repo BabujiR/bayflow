@@ -4,6 +4,8 @@ import { usePublicWorkshop } from '@/features/workshop/use-public-workshop';
 export const NO_BRANDING: PublicBranding = {
   logoUrl: null,
   coverUrl: null,
+  logoDarkUrl: null,
+  iconUrl: null,
   primaryColor: null,
   showPoweredBy: true,
   announcements: [],

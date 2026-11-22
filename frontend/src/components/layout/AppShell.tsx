@@ -111,7 +111,8 @@ export function AppShell() {
           <div className="flex h-16 items-center gap-2 px-4 lg:px-8">
             <MobileMenu {...menu} />
             <Link to="/" aria-label={homeLabel} className="shrink-0 lg:hidden">
-              <WorkshopLogo />
+              {/* The square icon suits the phone header; without one, the logo. */}
+              <WorkshopLogo compact={!!branding.iconUrl} />
             </Link>
             <div className="ml-auto flex shrink-0 items-center gap-1">
               <LocationSwitcher />

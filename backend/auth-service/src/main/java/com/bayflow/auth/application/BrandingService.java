@@ -26,7 +26,9 @@ public class BrandingService {
     private static final Pattern COLOR = Pattern.compile("^#[0-9a-fA-F]{6}$");
 
     /** Branding with the hashes of the images the workshop has (null when it has none). */
-    public record BrandingView(TenantBranding branding, String logoSha256, String coverSha256) {
+    /** The branding and the SHA-256 of each image the workshop has (null = none). */
+    public record BrandingView(TenantBranding branding, String logoSha256, String logoDarkSha256,
+            String iconSha256, String coverSha256) {
     }
 
     public record BrandingUpdate(String primaryColor, boolean showPoweredBy, long version) {
@@ -51,7 +53,8 @@ public class BrandingService {
         Map<Kind, String> versions = assets.findVersions().stream()
                 .collect(Collectors.toMap(TenantAssetRepository.AssetVersion::getKind,
                         TenantAssetRepository.AssetVersion::getSha256));
-        return new BrandingView(own, versions.get(Kind.LOGO), versions.get(Kind.COVER));
+        return new BrandingView(own, versions.get(Kind.LOGO), versions.get(Kind.LOGO_DARK), versions.get(Kind.ICON),
+                versions.get(Kind.COVER));
     }
 
     /** Changes colour and "Powered by Bayflow"; {@code version} must match what the caller read. */

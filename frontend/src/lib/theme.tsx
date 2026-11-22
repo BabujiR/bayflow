@@ -62,6 +62,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
+/** The theme in use; light outside a ThemeProvider (e.g. a component rendered on its own). */
+export function useResolvedTheme(): 'light' | 'dark' {
+  return useContext(ThemeContext)?.resolvedTheme ?? 'light';
+}
+
 export function useTheme(): ThemeContextValue {
   const value = useContext(ThemeContext);
   if (!value) {

@@ -49,9 +49,9 @@ server {
         proxy_pass http://${AUTH_UPSTREAM};
     }
 
-    # A workshop's logo and sign-in cover photo: public and cacheable (auth-service sets
+    # A workshop's logos, icon and sign-in cover photo: public and cacheable (auth-service sets
     # Cache-Control and ETag), unlike every other API response.
-    location ~ ^/api/v1/tenants/current/(logo|cover)$ {
+    location ~ ^/api/v1/tenants/current/(logo|logo-dark|icon|cover)$ {
         include /etc/nginx/snippets/proxy-pass.conf;
         include /etc/nginx/snippets/security-headers.conf;
         proxy_pass http://${AUTH_UPSTREAM};

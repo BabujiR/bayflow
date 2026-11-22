@@ -37,6 +37,8 @@ final class BrandingImages {
 
     static final Rules LOGO = new Rules(1024 * 1024, 512, 512, "image/png", "png");
     static final Rules COVER = new Rules(3 * 1024 * 1024, 2000, 2000, "image/jpeg", "jpeg");
+    /** Square: anything else is centred on a transparent square, never cropped. */
+    static final Rules ICON = new Rules(1024 * 1024, 512, 512, "image/png", "png");
 
     /** Refuse images whose header claims more pixels than this before decoding (decompression bombs). */
     static final long MAX_SOURCE_PIXELS = 40_000_000L;
@@ -49,7 +51,11 @@ final class BrandingImages {
     }
 
     static Rules rulesFor(Kind kind) {
-        return kind == Kind.LOGO ? LOGO : COVER;
+        return switch (kind) {
+            case LOGO, LOGO_DARK -> LOGO;
+            case ICON -> ICON;
+            case COVER -> COVER;
+        };
     }
 
     static Processed process(Kind kind, byte[] upload) {
@@ -66,7 +72,10 @@ final class BrandingImages {
                     "Unsupported Media Type", "Upload a PNG or JPEG image.");
         }
         BufferedImage source = decode(upload);
-        BufferedImage scaled = scale(source, rules, kind == Kind.LOGO);
+        BufferedImage scaled = scale(source, rules, kind != Kind.COVER);
+        if (kind == Kind.ICON) {
+            scaled = squared(scaled);
+        }
         byte[] content = encode(scaled, rules);
         return new Processed(rules.contentType(), content, sha256(content), scaled.getWidth(), scaled.getHeight());
     }
@@ -145,6 +154,22 @@ final class BrandingImages {
         return target;
     }
 
+    /** Centres the image on a transparent square as large as its longer side. */
+    private static BufferedImage squared(BufferedImage image) {
+        int side = Math.max(image.getWidth(), image.getHeight());
+        if (image.getWidth() == side && image.getHeight() == side) {
+            return image;
+        }
+        BufferedImage square = new BufferedImage(side, side, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = square.createGraphics();
+        try {
+            g.drawImage(image, (side - image.getWidth()) / 2, (side - image.getHeight()) / 2, null);
+        } finally {
+            g.dispose();
+        }
+        return square;
+    }
+
     private static byte[] encode(BufferedImage image, Rules rules) {
         try (ByteArrayOutputStream bytes = new ByteArrayOutputStream()) {
             ImageWriter writer = ImageIO.getImageWritersByFormatName(rules.format()).next();
@@ -166,7 +191,12 @@ final class BrandingImages {
     }
 
     private static String label(Kind kind) {
-        return kind == Kind.LOGO ? "logo" : "cover photo";
+        return switch (kind) {
+            case LOGO -> "logo";
+            case LOGO_DARK -> "dark-mode logo";
+            case ICON -> "icon";
+            case COVER -> "cover photo";
+        };
     }
 
     private static ApiException invalid(String detail) {
