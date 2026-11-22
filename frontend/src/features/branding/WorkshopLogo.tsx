@@ -7,15 +7,18 @@ import { useBranding } from './use-branding';
 export function WorkshopLogo({
   size = 'header',
   withTagline = false,
+  compact = false,
   className,
 }: {
   size?: 'header' | 'large';
   withTagline?: boolean;
+  /** Narrow (collapsed sidebar): the product's mark only, or the logo squeezed to an icon. */
+  compact?: boolean;
   className?: string;
 }) {
   const { branding, displayName } = useBranding();
   if (!branding.logoUrl) {
-    return <Logo withTagline={withTagline} className={className} />;
+    return <Logo withTagline={withTagline} compact={compact} className={className} />;
   }
   return (
     <img
@@ -24,7 +27,7 @@ export function WorkshopLogo({
       data-testid="workshop-logo"
       className={cn(
         'block w-auto object-contain',
-        size === 'header' ? 'h-9 max-w-40' : 'h-16 max-w-64',
+        compact ? 'h-8 max-w-10' : size === 'header' ? 'h-9 max-w-40' : 'h-16 max-w-64',
         className,
       )}
     />
