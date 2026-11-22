@@ -52,11 +52,7 @@ export function WorkshopLogo({
       src={logo}
       alt={alt}
       data-testid="workshop-logo"
-      className={cn(
-        'block w-auto object-contain',
-        compact ? 'h-8 max-w-10' : SIZES[size],
-        className,
-      )}
+      className={cn('block w-auto object-contain', compact ? 'h-8 max-w-10' : SIZES[size], className)}
     />
   );
 }

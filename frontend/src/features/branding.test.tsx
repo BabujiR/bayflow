@@ -305,7 +305,10 @@ describe('dark-mode logo and icon (branding phase 2)', () => {
 
     const sidebar = screen.getByTestId('sidebar');
     await userEvent.click(within(sidebar).getByRole('button', { name: 'Collapse sidebar' }));
-    expect(within(sidebar).getByTestId('workshop-icon')).toHaveAttribute('src', '/api/v1/tenants/current/icon?v=ico');
+    expect(within(sidebar).getByTestId('workshop-icon')).toHaveAttribute(
+      'src',
+      '/api/v1/tenants/current/icon?v=ico',
+    );
     await userEvent.click(within(sidebar).getByRole('button', { name: 'Expand sidebar' }));
     resetTheme();
   });
