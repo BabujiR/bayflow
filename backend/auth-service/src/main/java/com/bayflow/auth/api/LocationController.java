@@ -81,7 +81,7 @@ public class LocationController {
             @Size(max = 300) String address,
             @Size(max = 64) String timeZone,
             @DecimalMin("0.00") @DecimalMax("10000.00") @Digits(integer = 5, fraction = 2) BigDecimal labourRate,
-            /** Required for updates: the version read. */
+            // Required for updates: the version read.
             Long version) {
 
         LocationDetails details() {
