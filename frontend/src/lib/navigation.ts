@@ -10,6 +10,12 @@ export interface NavItem {
 /** Main navigation. Each user sees only the items for their role. */
 export const NAV_ITEMS: NavItem[] = [
   {
+    to: '/dashboard',
+    label: 'Dashboard',
+    description: 'Sales, car count, average repair order and close ratio at a glance.',
+    roles: ['ADMIN', 'MANAGER'],
+  },
+  {
     to: '/board',
     label: "Today's board",
     description: "Today's appointments by status: confirm, mark arrived and check in.",
@@ -44,6 +50,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Customers',
     description: 'Find customers, their vehicles and service history.',
     roles: ['SERVICE_ADVISOR', 'ADMIN'],
+  },
+  {
+    to: '/reports',
+    label: 'Reports',
+    description: 'Sales, advisors, technicians, declined work and parts, with CSV export.',
+    roles: ['ADMIN', 'MANAGER'],
   },
   {
     to: '/users',

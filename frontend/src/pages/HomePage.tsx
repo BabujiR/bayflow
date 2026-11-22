@@ -5,12 +5,17 @@ import { ROLE_LABELS } from '@/auth/roles';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRightIcon } from '@/components/ui/icons';
+import { DashboardPage } from '@/features/reports/DashboardPage';
 import { navItemsFor } from '@/lib/navigation';
 
 export function HomePage() {
   const { user } = useAuth();
   if (!user) {
     return null;
+  }
+  // Owners and managers start on their numbers.
+  if (user.roles.includes('ADMIN') || user.roles.includes('MANAGER')) {
+    return <DashboardPage />;
   }
   const items = navItemsFor(user.roles);
 

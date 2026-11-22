@@ -713,6 +713,23 @@ in the page `<meta name="description">`.
     off (503, and the sign-in page keeps the "ask the workshop" hint) while no mail host is set;
     `GET /api/v1/tenants/current` says which with `passwordResetByEmail`.
 
+30. **Owner dashboard and reports (reports, phase R1).** workshop-service `GET /api/v1/reports/…`
+    (ADMIN, MANAGER) with `from`/`to` ISO instants, half-open, at most 366 days: `summary` (this
+    period and the one of the same length before it, plus open work now), `daily` (`zone`),
+    `technicians`, `advisors`, `locations`, `declined` and `parts` (both at most 1,000 rows,
+    `truncated` beyond). Native read-only SQL inside the usual transaction, so row-level
+    security scopes every figure to the workshop and the caller's locations (managers: their
+    own; the switcher narrows further). Definitions: **car count** = COMPLETED cards by
+    `completed_at`; **sales** = their `grand_total` (split into parts and labour); **ARO** = sales ÷
+    car count; **hours billed** = labour on those cards; **ELR** = labour sales ÷ hours billed;
+    **approved / declined value** = recommendations by `decided_at`, at the card's labour rate;
+    **close ratio** = approved ÷ (approved + declined) value; **technician hours** by the time they
+    were logged, finished jobs or not; **advisors** by `submitted_by` (V9: who sent the estimate;
+    empty on older cards). No profit or part cost yet (phase R2). The web app works out period
+    boundaries as midnights in the workshop's time zone; `/dashboard` is the home page of admins
+    and managers and refreshes every minute; `/reports` has one tab per report, each with CSV
+    export built in the browser (formula-looking text is prefixed with `'`).
+
 ---
 
 ## 10. Milestones

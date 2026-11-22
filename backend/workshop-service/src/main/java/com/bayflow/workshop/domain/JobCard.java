@@ -21,6 +21,7 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import org.hibernate.Hibernate;
 import org.hibernate.annotations.TenantId;
 
 /**
@@ -81,28 +82,39 @@ public class JobCard {
     @Column(nullable = false, length = 30)
     private JobCardStatus status;
 
+    // The collections below are not final: JPA forbids final persistent fields, and Hibernate
+    // replaces each list with its own (lazy) collection when it loads a card.
     @OneToMany(mappedBy = "jobCard", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt ASC, id ASC")
+    @SuppressWarnings("FieldMayBeFinal")
     private List<InspectionFinding> findings = new ArrayList<>();
 
     @OneToMany(mappedBy = "jobCard", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt ASC, id ASC")
+    @SuppressWarnings("FieldMayBeFinal")
     private List<RecommendedWorkItem> recommendations = new ArrayList<>();
 
     @OneToMany(mappedBy = "jobCard", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("completedAt ASC, id ASC")
+    @SuppressWarnings("FieldMayBeFinal")
     private List<WorkLog> workLogs = new ArrayList<>();
 
     @OneToMany(mappedBy = "jobCard", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt ASC, id ASC")
+    @SuppressWarnings("FieldMayBeFinal")
     private List<PartUsage> parts = new ArrayList<>();
 
     @OneToMany(mappedBy = "jobCard", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt ASC, id ASC")
+    @SuppressWarnings("FieldMayBeFinal")
     private List<LabourEntry> labour = new ArrayList<>();
 
     @Column(name = "submitted_at")
     private Instant submittedAt;
+
+    /** Username of the advisor who sent the estimate (null on cards from before reports). */
+    @Column(name = "submitted_by", length = 100)
+    private String submittedBy;
 
     @Column(name = "decided_at")
     private Instant decidedAt;
@@ -197,9 +209,10 @@ public class JobCard {
      * Sends the recommendations to the customer. With nothing recommended the card goes
      * straight to DECLINED (inspection only).
      */
-    public void submitForApproval(Instant now) {
+    public void submitForApproval(String username, Instant now) {
         require(JobCardAction.SUBMIT_FOR_APPROVAL);
         submittedAt = now;
+        submittedBy = username;
         updatedAt = now;
         if (recommendations.isEmpty()) {
             status = JobCardStatus.DECLINED;
@@ -357,6 +370,19 @@ public class JobCard {
     public BigDecimal getLabourRate() { return labourRate; }
     public String getCurrency() { return currency; }
     public JobCardStatus getStatus() { return status; }
+    /**
+     * Loads the child collections (lazy by default) while the transaction is still open, so
+     * they can be read after it ends. On the fields themselves: the getters return read-only
+     * wrappers, which Hibernate.initialize would not recognise.
+     */
+    public void loadDetails() {
+        Hibernate.initialize(findings);
+        Hibernate.initialize(recommendations);
+        Hibernate.initialize(workLogs);
+        Hibernate.initialize(parts);
+        Hibernate.initialize(labour);
+    }
+
     public List<InspectionFinding> getFindings() { return Collections.unmodifiableList(findings); }
     public List<RecommendedWorkItem> getRecommendations() { return Collections.unmodifiableList(recommendations); }
     public List<WorkLog> getWorkLogs() { return Collections.unmodifiableList(workLogs); }
@@ -368,6 +394,7 @@ public class JobCard {
     public BigDecimal getLabourTotal() { return labourTotal; }
     public BigDecimal getGrandTotal() { return grandTotal; }
     public Instant getSubmittedAt() { return submittedAt; }
+    public String getSubmittedBy() { return submittedBy; }
     public Instant getDecidedAt() { return decidedAt; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

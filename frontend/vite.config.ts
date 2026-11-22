@@ -7,6 +7,7 @@ import { defineConfig } from 'vitest/config';
 const AUTH = process.env.BAYFLOW_AUTH_URL ?? 'http://localhost:8083';
 const APPOINTMENT = process.env.BAYFLOW_APPOINTMENT_URL ?? 'http://localhost:8081';
 const WORKSHOP = process.env.BAYFLOW_WORKSHOP_URL ?? 'http://localhost:8082';
+const NOTIFICATION = process.env.BAYFLOW_NOTIFICATION_URL ?? 'http://localhost:8084';
 
 // The dev server mirrors what nginx does in Docker: one origin for the UI and all three
 // services, so the refresh-token cookie works and no CORS is needed. Like nginx it serves every
@@ -30,6 +31,8 @@ export default defineConfig({
       '/api/v1/appointments': to(APPOINTMENT),
       '/api/v1/job-cards': to(WORKSHOP),
       '/api/v1/service-history': to(WORKSHOP),
+      '/api/v1/reports': to(WORKSHOP),
+      '/api/v1/notifications': to(NOTIFICATION),
     },
   },
   test: {
@@ -41,5 +44,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     css: false,
     restoreMocks: true,
+    // Room for a few 5 s waits (see src/test/setup.ts) before a test is failed as hung.
+    testTimeout: 15_000,
   },
 });

@@ -161,6 +161,18 @@ Notifications page (`/notifications`) lists the same, page by page.
 
 Nobody is told about their own action, and staff only hear about the locations they work at.
 
+### Dashboard and reports
+
+Owners (**admin**) and location **managers** start on the **Dashboard**: sales, car count,
+average repair order, close ratio, hours billed and effective labour rate for the period
+(this month by default) against the period before, what is in the shop now, sales by day,
+technicians and locations. It refreshes every minute. Managers see their own locations; the
+location switcher narrows to one.
+
+**Reports** has a tab per report, each for any period up to 366 days and exportable as CSV:
+Summary, Sales details, Service advisors, Technicians, Declined jobs (a follow-up list) and
+Parts usage. Periods follow the workshop's time zone.
+
 ### Try the whole workflow in the web app
 
 At http://demo.localhost:3000 (or the dev server on :5173):
@@ -177,8 +189,9 @@ At http://demo.localhost:3000 (or the dev server on :5173):
 6. **mechanic1** — *Start work*, log work (plus parts and labour) for each
    approved item, then *Complete job*.
 7. **customer1** — *My vehicles* → the vehicle → its service history.
-8. **admin1** — *User accounts* to create staff; *Workshop settings* for the
-   workshop's name, labour rate, currency and time zone; read-only views elsewhere.
+8. **admin1** — the *Dashboard* shows the completed job in today's numbers; *Reports* for
+   the details. *User accounts* to create staff; *Workshop settings* for the workshop's
+   name, labour rate, currency and time zone; read-only views elsewhere.
 
 ### Using the APIs directly
 
@@ -367,6 +380,7 @@ Caddy with a wildcard certificate, nightly backups). It applies everything below
 | Locations 3 | Locations page, switcher, booking per location | ✅ done |
 | Branding | Logo, colour, cover photo, announcement, "Powered by Ramplight" | ✅ done |
 | Notifications 1 | In-app notifications: bell, panel, Notifications page | 🔍 in review |
+| Reports 1 | Owner dashboard, reports with CSV export, who sent each estimate | 🔍 in review |
 
 ## Assumptions
 
