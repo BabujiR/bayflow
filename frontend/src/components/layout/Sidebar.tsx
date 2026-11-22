@@ -160,7 +160,8 @@ export function Sidebar({
       )}
     >
       <div
-        className={cn('flex min-h-16 items-center border-b py-3', compact ? 'justify-center px-2' : 'px-4')}
+        // Same height as the header row beside it (h-20), so their bottom lines meet.
+        className={cn('flex h-20 shrink-0 items-center border-b', compact ? 'justify-center px-2' : 'px-4')}
       >
         <SidebarBrand
           homeLabel={homeLabel}

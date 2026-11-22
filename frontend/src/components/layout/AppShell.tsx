@@ -107,8 +107,9 @@ export function AppShell() {
       <SkipLink />
       <Sidebar {...menu} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
-          <div className="flex h-16 items-center gap-2 px-4 lg:px-8">
+        <header className="sticky top-0 z-40 bg-background/90 backdrop-blur">
+          {/* As tall as the sidebar's logo area on wide screens, so their bottom lines meet. */}
+          <div className="flex h-16 items-center gap-2 border-b px-4 lg:h-20 lg:px-8">
             <MobileMenu {...menu} />
             <Link to="/" aria-label={homeLabel} className="shrink-0 lg:hidden">
               {/* The square icon suits the phone header; without one, the logo. */}
