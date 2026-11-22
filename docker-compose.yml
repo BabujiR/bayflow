@@ -146,6 +146,7 @@ services:
       BAYFLOW_LABOUR_RATE: ${BAYFLOW_LABOUR_RATE:-95.00}
       BAYFLOW_CURRENCY: ${BAYFLOW_CURRENCY:-USD}
       BAYFLOW_AUTH_URL: http://auth-service:8083
+      BAYFLOW_APPOINTMENT_URL: http://appointment-service:8081
       BAYFLOW_WORKSHOP_CLIENT_SECRET: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:-dev-workshop-secret}
       # Estimate and completion events go to notification-service through ws_outbox.
       BAYFLOW_NOTIFICATION_URL: http://notification-service:8084

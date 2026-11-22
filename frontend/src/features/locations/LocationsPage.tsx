@@ -22,6 +22,7 @@ import { useWorkshop } from '@/features/workshop/use-workshop';
 import { formatMoney, timeZones } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
+import { LocationBillingButton } from './LocationBilling';
 import { LOCATIONS_QUERY_KEY, useLocations } from './use-locations';
 
 const schema = z.object({
@@ -136,6 +137,7 @@ export function LocationsPage() {
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <EditLocation location={l} />
+                      <LocationBillingButton location={l} />
                       {l.status === 'ACTIVE' ? (
                         <Button
                           size="sm"

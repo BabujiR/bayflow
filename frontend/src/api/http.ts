@@ -61,6 +61,8 @@ export interface RequestOptions {
   /** Send the access token and refresh on 401 (default true). Public auth endpoints pass false. */
   auth?: boolean;
   signal?: AbortSignal;
+  /** Extra headers, e.g. Idempotency-Key. */
+  headers?: Record<string, string>;
 }
 
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -83,7 +85,11 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
   }
   // X-Bayflow-Client: auth-service's CSRF check for the cookie endpoints (/refresh, /logout).
   // A cross-site page cannot add custom headers without a CORS preflight, which Bayflow refuses.
-  const headers: Record<string, string> = { Accept: 'application/json', 'X-Bayflow-Client': 'web' };
+  const headers: Record<string, string> = {
+    ...options.headers,
+    Accept: 'application/json',
+    'X-Bayflow-Client': 'web',
+  };
   // FormData (file uploads) sets its own multipart Content-Type with the boundary.
   const isForm = options.body instanceof FormData;
   if (options.body !== undefined && !isForm) {

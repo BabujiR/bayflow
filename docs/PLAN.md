@@ -739,6 +739,26 @@ in the page `<meta name="description">`.
     icon is the browser-tab icon (else the logo), the collapsed sidebar's mark and the phone
     header's. In the sidebar the logo uses its full width (about 208 x 56 px).
 
+32. **Invoicing (R2a).** One invoice per COMPLETED job card (a new one only after a void), in
+    workshop-service (`ws_invoices`, `ws_invoice_lines`, `ws_payments`, `ws_invoice_counters`; V10,
+    tenant and location row-level security). A DRAFT copies the card's parts and labour as lines,
+    adds the location's shop supplies (% of labour, capped; recalculated on every change) and
+    disposal fee, and the location's tax rates per category (parts, labour, fees; auth-service V14,
+    `PUT /api/v1/auth/locations/{id}/billing`, new locations copy Main's). The bill-to (name, email,
+    phone, vehicle) comes from appointment-service's internal
+    `/api/v1/internal/tenants/{t}/appointments/{id}/billing`, falling back to the card's name.
+    Advisors reprice lines, enter part costs (profit; never shown to customers), add fees and
+    discounts (by category, before tax); lines from the card can't be removed. Each line is
+    rounded to cents, tax once per category. **Issue** takes the next gap-free number of the
+    organization (`INV-1001`…; the counter row is locked until commit, a rollback gives the number
+    back), locks the invoice, sets the due date from the payment terms and notifies the customer
+    (`INVOICE_ISSUED`). **Payments** (cash, card, check, transfer, other; `Idempotency-Key`) move it
+    to PARTIALLY_PAID / PAID; refunds (negative) and **void** (only with nothing paid; the number
+    stays) are for managers and admins. Drafts can be discarded. Customers see their own issued
+    invoices and print them; the print view (`/invoices/{id}/print`) is the browser's Save as PDF.
+    Not yet: emailing invoices and QuickBooks (R2b), online card payments (R2c), invoice-based
+    sales reports (R2a step 3).
+
 ---
 
 ## 10. Milestones

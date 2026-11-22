@@ -10,6 +10,7 @@ import { ApprovalBadge, JobCardStatusBadge, SeverityBadge } from '@/components/c
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { JobCardInvoiceAction } from '@/features/invoices/JobCardInvoice';
 import { useLocationLookup } from '@/features/locations/use-locations';
 import { formatDateTime, formatMileage, formatMoney } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
@@ -122,6 +123,7 @@ function JobCardView({ card }: { card: JobCard }) {
                 <Link to={`/vehicles/${card.vehicleId}`}>Vehicle history</Link>
               </Button>
             )}
+            {status === 'COMPLETED' && !mechanic && <JobCardInvoiceAction jobCardId={card.id} />}
           </>
         }
       />

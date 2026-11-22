@@ -129,6 +129,26 @@ class LocationsIT extends IntegrationTestBase {
     // ---- days are the location's days -----------------------------------------------------
 
     @Test
+    void workshopServiceReadsWhoToBillForAnAppointment() throws Exception {
+        String appointment = JsonPath.read(book(vehicle(), null).andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString(), "$.id");
+        String url = "/api/v1/internal/tenants/" + MAIN + "/appointments/" + appointment + "/billing";
+
+        mvc.perform(get(url).with(as("SYSTEM", UUID.randomUUID(), MAIN))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Kiri Tane"))
+                .andExpect(jsonPath("$.email").value("kiri@example.com"))
+                .andExpect(jsonPath("$.phone").value("+64 9 555 0100"))
+                .andExpect(jsonPath("$.vehicleMake").value("Toyota"))
+                .andExpect(jsonPath("$.vehicleModel").value("Aqua"))
+                .andExpect(jsonPath("$.vehicleYear").value(2020));
+        // Only services; and another organization's id finds nothing.
+        mvc.perform(get(url).with(advisor)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/internal/tenants/" + UUID.randomUUID() + "/appointments/" + appointment + "/billing")
+                        .with(as("SYSTEM", UUID.randomUUID(), MAIN)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void dateFiltersUseTheLocationsTimeZone() throws Exception {
         String vehicleId = vehicle();
         String id = JsonPath.read(book(vehicleId, null).andExpect(status().isCreated())

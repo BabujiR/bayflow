@@ -56,6 +56,8 @@ final class NotificationTexts {
                             event.approved() + " approved, " + event.declined() + " declined.", jobCard);
             case WORK_COMPLETED -> new Text("Your car is ready",
                     "The work on " + car + " is complete. You can collect it.", jobCard);
+            case INVOICE_ISSUED -> new Text("Your invoice is ready",
+                    "The invoice for the work on " + car + " is ready to view.", "/invoices");
         };
     }
 

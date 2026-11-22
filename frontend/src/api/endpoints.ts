@@ -1,4 +1,4 @@
-import { http } from './http';
+import { http, request } from './http';
 import type {
   AdvisorRow,
   Announcement,
@@ -19,6 +19,11 @@ import type {
   JobCard,
   JobCardStatus,
   JobCardSummary,
+  Invoice,
+  InvoiceLineRequest,
+  InvoiceSummary,
+  LocationBilling,
+  PaymentRequest,
   Location,
   LocationRequest,
   LocationSalesRow,
@@ -195,6 +200,9 @@ export const locationsApi = {
   update: (id: string, body: LocationRequest & { version: number }) =>
     http.put<Location>(`/api/v1/auth/locations/${id}`, body),
   archive: (id: string) => http.post<Location>(`/api/v1/auth/locations/${id}/archive`),
+  /** ADMIN: tax rates, fees and invoice terms; send the location's version. */
+  updateBilling: (id: string, billing: LocationBilling, version: number) =>
+    http.put<Location>(`/api/v1/auth/locations/${id}/billing`, { billing, version }),
   reactivate: (id: string) => http.post<Location>(`/api/v1/auth/locations/${id}/reactivate`),
 };
 
@@ -226,4 +234,35 @@ export const reportsApi = {
   declined: (range: ReportRange) =>
     http.get<ReportRows<DeclinedRow>>('/api/v1/reports/declined', { ...range }),
   parts: (range: ReportRange) => http.get<ReportRows<PartUsageRow>>('/api/v1/reports/parts', { ...range }),
+};
+
+export interface InvoiceFilters extends Paging {
+  /** DRAFT, ISSUED, PARTIALLY_PAID, PAID, VOID, or UNPAID (issued or partly paid). */
+  status?: string;
+  from?: string;
+  to?: string;
+  /** Number, customer or registration. */
+  q?: string;
+}
+
+/** Invoices (workshop-service). Customers get their own issued ones. */
+export const invoicesApi = {
+  list: (filters: InvoiceFilters) =>
+    http.get<PageResponse<InvoiceSummary>>('/api/v1/invoices', { ...filters }),
+  get: (id: string) => http.get<Invoice>(`/api/v1/invoices/${id}`),
+  /** 404 when the job has none (or, for a customer, only a draft). */
+  forJobCard: (jobCardId: string) => http.get<Invoice>(`/api/v1/job-cards/${jobCardId}/invoice`),
+  create: (jobCardId: string) => http.post<Invoice>(`/api/v1/job-cards/${jobCardId}/invoice`),
+  update: (id: string, body: { lines: InvoiceLineRequest[]; notes: string | null; version: number }) =>
+    http.put<Invoice>(`/api/v1/invoices/${id}`, body),
+  discard: (id: string) => http.delete<void>(`/api/v1/invoices/${id}`),
+  issue: (id: string, version: number) => http.post<Invoice>(`/api/v1/invoices/${id}/issue`, { version }),
+  /** The key makes a retried or double-clicked payment count once. */
+  pay: (id: string, payment: PaymentRequest, idempotencyKey: string) =>
+    request<Invoice>(`/api/v1/invoices/${id}/payments`, {
+      method: 'POST',
+      body: payment,
+      headers: { 'Idempotency-Key': idempotencyKey },
+    }),
+  void: (id: string, reason: string) => http.post<Invoice>(`/api/v1/invoices/${id}/void`, { reason }),
 };

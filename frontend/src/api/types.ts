@@ -387,6 +387,23 @@ export interface Location {
   ownTimeZone?: string | null;
   ownLabourRate?: number | null;
   version: number;
+  /** Tax, fees and invoice terms (R2a). Missing from older servers. */
+  billing?: LocationBilling;
+}
+
+/**
+ * A location's invoice settings: tax rates in percent (8.875 = 8.875 %), fees (null = off),
+ * paymentTermsDays (0 = due on receipt). Copied onto each invoice when it is created.
+ */
+export interface LocationBilling {
+  partsTaxRate: number;
+  labourTaxRate: number;
+  feesTaxRate: number;
+  shopSuppliesPercent: number | null;
+  shopSuppliesCap: number | null;
+  disposalFee: number | null;
+  paymentTermsDays: number;
+  invoiceFooter: string | null;
 }
 
 /** What an admin sets on a location; empty timeZone / labourRate = use the organization's. */
@@ -411,7 +428,8 @@ export type NotificationType =
   | 'VEHICLE_CHECKED_IN'
   | 'ESTIMATE_READY'
   | 'ESTIMATE_DECIDED'
-  | 'WORK_COMPLETED';
+  | 'WORK_COMPLETED'
+  | 'INVOICE_ISSUED';
 
 /** One unread message to the signed-in user (reading it deletes it). Title and body are plain text. */
 export interface AppNotification {
@@ -549,4 +567,127 @@ export interface ReportRows<T> {
   rows: T[];
   /** More rows matched than the 1000 returned. */
   truncated: boolean;
+}
+
+// ---- invoices (workshop-service, phase R2a) ----------------------------------------------
+// Hand-written until `pnpm api:update`. Money is in the invoice's currency.
+
+export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PARTIALLY_PAID' | 'PAID' | 'VOID';
+export type InvoiceLineType = 'PART' | 'LABOUR' | 'FEE' | 'DISCOUNT';
+export type TaxCategory = 'PARTS' | 'LABOUR' | 'FEES';
+export type PaymentMethod = 'CASH' | 'CARD' | 'CHECK' | 'BANK_TRANSFER' | 'OTHER';
+
+export interface InvoiceLine {
+  id: string;
+  type: InvoiceLineType;
+  /** SHOP_SUPPLIES (follows labour) or DISPOSAL; null otherwise. */
+  feeCode: string | null;
+  description: string;
+  partNumber: string | null;
+  quantity: number;
+  unitPrice: number;
+  /** What the shop paid (parts); staff only. */
+  unitCost: number | null;
+  /** Negative for a discount. */
+  lineTotal: number;
+  taxable: boolean;
+  taxCategory: TaxCategory;
+  /** Parts and labour from the job card: repriced, never removed. */
+  fromJobCard: boolean;
+}
+
+export interface InvoicePayment {
+  id: string;
+  method: PaymentMethod;
+  /** Negative for a refund. */
+  amount: number;
+  reference: string | null;
+  receivedAt: string;
+  receivedBy: string;
+}
+
+export interface InvoiceTax {
+  category: TaxCategory;
+  /** Percent. */
+  rate: number;
+  tax: number;
+}
+
+export interface Invoice {
+  id: string;
+  number: string | null;
+  status: InvoiceStatus;
+  jobCardId: string;
+  locationId: string;
+  customerUserId: string | null;
+  customerName: string;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  registration: string;
+  vin: string;
+  mileage: number;
+  vehicleDescription: string | null;
+  currency: string;
+  lines: InvoiceLine[];
+  partsTotal: number;
+  labourTotal: number;
+  feesTotal: number;
+  discountTotal: number;
+  subtotal: number;
+  taxes: InvoiceTax[];
+  taxTotal: number;
+  total: number;
+  amountPaid: number;
+  balanceDue: number;
+  payments: InvoicePayment[];
+  notes: string | null;
+  footer: string | null;
+  paymentTermsDays: number;
+  issuedAt: string | null;
+  issuedBy: string | null;
+  dueAt: string | null;
+  voidedAt: string | null;
+  voidedBy: string | null;
+  voidReason: string | null;
+  createdAt: string;
+  createdBy: string;
+  /** Staff only: profit on the parts that have a cost entered. */
+  partsProfit: { partsWithCost: number; partsCost: number; profit: number } | null;
+  version: number;
+}
+
+export interface InvoiceSummary {
+  id: string;
+  number: string | null;
+  status: InvoiceStatus;
+  jobCardId: string;
+  locationId: string;
+  customerName: string;
+  registration: string;
+  currency: string;
+  total: number;
+  balanceDue: number;
+  issuedAt: string | null;
+  dueAt: string | null;
+  createdAt: string;
+}
+
+/** One line of a draft as edited; id omitted = a new fee or discount. */
+export interface InvoiceLineRequest {
+  id?: string;
+  type?: InvoiceLineType;
+  description: string;
+  partNumber?: string | null;
+  quantity: number;
+  unitPrice: number;
+  unitCost?: number | null;
+  taxable?: boolean;
+  taxCategory?: TaxCategory;
+}
+
+export interface PaymentRequest {
+  method: PaymentMethod;
+  /** Negative = refund (managers and admins). */
+  amount: number;
+  reference?: string;
 }

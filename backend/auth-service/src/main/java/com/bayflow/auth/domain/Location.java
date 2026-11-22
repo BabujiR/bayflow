@@ -56,6 +56,32 @@ public class Location {
     @Column(name = "labour_rate", precision = 10, scale = 2)
     private BigDecimal labourRate;
 
+    // ---- invoice settings (R2a) ----
+
+    @Column(name = "parts_tax_rate", nullable = false, precision = 6, scale = 3)
+    private BigDecimal partsTaxRate = BigDecimal.ZERO;
+
+    @Column(name = "labour_tax_rate", nullable = false, precision = 6, scale = 3)
+    private BigDecimal labourTaxRate = BigDecimal.ZERO;
+
+    @Column(name = "fees_tax_rate", nullable = false, precision = 6, scale = 3)
+    private BigDecimal feesTaxRate = BigDecimal.ZERO;
+
+    @Column(name = "shop_supplies_percent", precision = 6, scale = 3)
+    private BigDecimal shopSuppliesPercent;
+
+    @Column(name = "shop_supplies_cap", precision = 10, scale = 2)
+    private BigDecimal shopSuppliesCap;
+
+    @Column(name = "disposal_fee", precision = 10, scale = 2)
+    private BigDecimal disposalFee;
+
+    @Column(name = "payment_terms_days", nullable = false)
+    private int paymentTermsDays;
+
+    @Column(name = "invoice_footer", length = 500)
+    private String invoiceFooter;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Status status;
@@ -101,6 +127,24 @@ public class Location {
         this.timeZone = timeZone;
         this.labourRate = labourRate;
         this.updatedAt = now;
+    }
+
+    /** Changes the tax rates, fees and invoice terms. */
+    public void updateBilling(LocationBilling billing, Instant now) {
+        this.partsTaxRate = billing.partsTaxRate();
+        this.labourTaxRate = billing.labourTaxRate();
+        this.feesTaxRate = billing.feesTaxRate();
+        this.shopSuppliesPercent = billing.shopSuppliesPercent();
+        this.shopSuppliesCap = billing.shopSuppliesCap();
+        this.disposalFee = billing.disposalFee();
+        this.paymentTermsDays = billing.paymentTermsDays();
+        this.invoiceFooter = billing.invoiceFooter();
+        this.updatedAt = now;
+    }
+
+    public LocationBilling billing() {
+        return new LocationBilling(partsTaxRate, labourTaxRate, feesTaxRate, shopSuppliesPercent, shopSuppliesCap,
+                disposalFee, paymentTermsDays, invoiceFooter);
     }
 
     public void archive(Instant now) {
