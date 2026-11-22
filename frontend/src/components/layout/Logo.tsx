@@ -3,8 +3,19 @@ import { cn } from '@/lib/utils';
 
 export const TAGLINE = 'The smarter way to run your auto workshop.';
 
-/** The product's mark and wordmark; the tagline shows on wide screens when requested. */
-export function Logo({ withTagline = false, className }: { withTagline?: boolean; className?: string }) {
+/**
+ * The product's mark and wordmark; the tagline shows on wide screens when requested. compact:
+ * the mark only (collapsed sidebar).
+ */
+export function Logo({
+  withTagline = false,
+  compact = false,
+  className,
+}: {
+  withTagline?: boolean;
+  compact?: boolean;
+  className?: string;
+}) {
   return (
     <span className={cn('flex items-center gap-2.5', className)}>
       <svg aria-hidden viewBox="0 0 32 32" className="size-8 shrink-0">
@@ -12,7 +23,7 @@ export function Logo({ withTagline = false, className }: { withTagline?: boolean
         <path d="M7 22V12l9-5 9 5v10" fill="none" stroke="white" strokeWidth="2.4" strokeLinejoin="round" />
         <path d="M10 22c3-4 9-4 12 0" fill="none" stroke="#5eead4" strokeWidth="2.4" strokeLinecap="round" />
       </svg>
-      <span className="flex flex-col leading-tight">
+      <span className={cn('flex flex-col leading-tight', compact && 'sr-only')}>
         <span className="text-lg font-bold tracking-tight">{PRODUCT_NAME}</span>
         {withTagline && <span className="hidden text-xs text-muted-foreground lg:block">{TAGLINE}</span>}
       </span>

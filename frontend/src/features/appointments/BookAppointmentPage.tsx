@@ -187,8 +187,10 @@ export function BookAppointmentPage() {
                       : undefined
                   }
                 >
+                  {/* Controlled by `chosen` alone (not register): the form library would write its
+                      empty default into it when the list loads after the form. */}
                   <Select
-                    {...register('locationId')}
+                    name="locationId"
                     value={chosen?.id ?? ''}
                     onChange={(e) => setLocationId(e.target.value)}
                   >
