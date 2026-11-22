@@ -48,9 +48,9 @@ public final class WorkshopDtos {
             UUID customerUserId,
             @NotBlank @Size(max = 100) String customerName,
             @NotNull @PositiveOrZero Integer mileage,
-            /** The workshop; required from SYSTEM callers, ignored for users (their token decides). */
+            // The workshop; required from SYSTEM callers, ignored for users (their token decides).
             UUID tenantId,
-            /** The location of the appointment; none = the organization's first location ("Main"). */
+            // The location of the appointment; none = the organization's first location ("Main").
             UUID locationId) {
 
         OpenCommand toCommand() {
@@ -147,7 +147,7 @@ public final class WorkshopDtos {
             List<WorkLogResponse> workLogs, List<PartResponse> parts, List<LabourResponse> labour,
             BigDecimal labourRate, String currency, BigDecimal estimatedTotal, BigDecimal approvedEstimate,
             BigDecimal partsTotal, BigDecimal labourTotal, BigDecimal grandTotal,
-            Instant submittedAt, Instant decidedAt, Instant startedAt, Instant completedAt,
+            Instant submittedAt, String submittedBy, Instant decidedAt, Instant startedAt, Instant completedAt,
             Instant createdAt, Instant updatedAt) {
 
         static JobCardResponse from(JobCard c) {
@@ -163,8 +163,8 @@ public final class WorkshopDtos {
                     c.getLabour().stream().map(LabourResponse::from).toList(),
                     rate, currency, c.estimatedTotal(rate), c.approvedEstimate(rate),
                     c.getPartsTotal(), c.getLabourTotal(), c.getGrandTotal(),
-                    c.getSubmittedAt(), c.getDecidedAt(), c.getStartedAt(), c.getCompletedAt(),
-                    c.getCreatedAt(), c.getUpdatedAt());
+                    c.getSubmittedAt(), c.getSubmittedBy(), c.getDecidedAt(), c.getStartedAt(),
+                    c.getCompletedAt(), c.getCreatedAt(), c.getUpdatedAt());
         }
     }
 

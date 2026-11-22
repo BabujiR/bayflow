@@ -10,6 +10,8 @@ import type {
   Customer,
   JobCard,
   PageResponse,
+  PeriodMetrics,
+  ReportSummary,
   Role,
   TokenResponse,
   User,
@@ -38,6 +40,14 @@ const defaults = [
   http.get('*/api/v1/vehicles', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/appointments', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/job-cards', () => HttpResponse.json(pageOf([]))),
+  // The owner's dashboard (home page of admins and managers): an empty period.
+  http.get('*/api/v1/reports/summary', () => HttpResponse.json(reportSummary())),
+  http.get('*/api/v1/reports/daily', () => HttpResponse.json({ from: '', to: '', zone: 'UTC', days: [] })),
+  http.get('*/api/v1/reports/technicians', () => HttpResponse.json([])),
+  http.get('*/api/v1/reports/locations', () => HttpResponse.json([])),
+  http.get('*/api/v1/reports/advisors', () => HttpResponse.json([])),
+  http.get('*/api/v1/reports/declined', () => HttpResponse.json({ from: '', to: '', rows: [], truncated: false })),
+  http.get('*/api/v1/reports/parts', () => HttpResponse.json({ from: '', to: '', rows: [], truncated: false })),
 ];
 
 /** MSW server shared by all tests. */
@@ -238,5 +248,42 @@ export function notification(overrides: Partial<AppNotification> = {}): AppNotif
     locationId: '00000000-0000-0000-0000-000000000001',
     createdAt: '2026-11-19T15:00:00Z',
     ...overrides,
+  };
+}
+
+/** A period's figures; all zero unless overridden. */
+export function periodMetrics(overrides: Partial<PeriodMetrics> = {}): PeriodMetrics {
+  return {
+    carCount: 0,
+    sales: 0,
+    partsSales: 0,
+    labourSales: 0,
+    averageRepairOrder: 0,
+    labourHours: 0,
+    effectiveLabourRate: 0,
+    itemsApproved: 0,
+    itemsDeclined: 0,
+    approvedValue: 0,
+    declinedValue: 0,
+    hoursApproved: 0,
+    hoursDeclined: 0,
+    closeRatio: null,
+    ...overrides,
+  };
+}
+
+export function reportSummary(
+  current: Partial<PeriodMetrics> = {},
+  previous: Partial<PeriodMetrics> = {},
+  open: Partial<ReportSummary['open']> = {},
+): ReportSummary {
+  return {
+    from: '2026-11-01T04:00:00Z',
+    to: '2026-11-22T05:00:00Z',
+    current: periodMetrics(current),
+    previousFrom: '2026-10-11T04:00:00Z',
+    previousTo: '2026-11-01T04:00:00Z',
+    previous: periodMetrics(previous),
+    open: { openCards: 0, awaitingApproval: 0, inWork: 0, pendingValue: 0, ...open },
   };
 }

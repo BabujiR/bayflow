@@ -418,3 +418,129 @@ export interface AppNotification {
   locationId: string | null;
   createdAt: string;
 }
+
+// ---- reports (workshop-service, phase R1) -----------------------------------------------
+// Hand-written until `pnpm api:update`. Money is in the workshop's currency; ratios are 0–1.
+
+export interface PeriodMetrics {
+  carCount: number;
+  sales: number;
+  partsSales: number;
+  labourSales: number;
+  averageRepairOrder: number;
+  labourHours: number;
+  effectiveLabourRate: number;
+  itemsApproved: number;
+  itemsDeclined: number;
+  approvedValue: number;
+  declinedValue: number;
+  hoursApproved: number;
+  hoursDeclined: number;
+  /** Approved ÷ (approved + declined) value; null when nothing was decided. */
+  closeRatio: number | null;
+}
+
+export interface OpenWork {
+  openCards: number;
+  awaitingApproval: number;
+  inWork: number;
+  pendingValue: number;
+}
+
+export interface ReportSummary {
+  from: string;
+  to: string;
+  current: PeriodMetrics;
+  previousFrom: string;
+  previousTo: string;
+  previous: PeriodMetrics;
+  open: OpenWork;
+}
+
+export interface DailySales {
+  /** YYYY-MM-DD in the requested zone. */
+  day: string;
+  carCount: number;
+  sales: number;
+  partsSales: number;
+  labourSales: number;
+}
+
+export interface DailyReport {
+  from: string;
+  to: string;
+  zone: string;
+  days: DailySales[];
+}
+
+export interface TechnicianRow {
+  mechanic: string;
+  hours: number;
+  labourValue: number;
+  jobCards: number;
+  hoursOnCompleted: number;
+}
+
+export interface AdvisorRow {
+  /** Empty for estimates sent before reports existed. */
+  advisor: string;
+  estimatesSent: number;
+  presentedValue: number;
+  approvedValue: number;
+  declinedValue: number;
+  closeRatio: number | null;
+  completedCards: number;
+  completedSales: number;
+  averageRepairOrder: number;
+}
+
+export interface LocationSalesRow {
+  locationId: string;
+  carCount: number;
+  sales: number;
+  partsSales: number;
+  labourSales: number;
+  averageRepairOrder: number;
+  labourHours: number;
+}
+
+export interface DeclinedRow {
+  itemId: string;
+  jobCardId: string;
+  locationId: string;
+  customerUserId: string | null;
+  customerName: string;
+  registration: string;
+  vin: string;
+  description: string;
+  estimatedPartsCost: number;
+  estimatedLabourHours: number;
+  value: number;
+  decidedBy: string | null;
+  decidedAt: string;
+  submittedBy: string | null;
+}
+
+export interface PartUsageRow {
+  id: string;
+  jobCardId: string;
+  locationId: string;
+  partNumber: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  recordedBy: string;
+  recordedAt: string;
+  registration: string;
+  customerName: string;
+  recommendation: string | null;
+}
+
+export interface ReportRows<T> {
+  from: string;
+  to: string;
+  rows: T[];
+  /** More rows matched than the 1000 returned. */
+  truncated: boolean;
+}

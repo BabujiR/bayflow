@@ -167,7 +167,7 @@ class JobCardTest {
         JobCard card = inStatus(JobCardStatus.INSPECTED);
         card.addRecommendation("Replace front pads", new BigDecimal("120"), new BigDecimal("1.5"), NOW);
 
-        card.submitForApproval(NOW);
+        card.submitForApproval("sam", NOW);
 
         assertThat(card.getStatus()).isEqualTo(JobCardStatus.AWAITING_APPROVAL);
         assertThat(card.getSubmittedAt()).isEqualTo(NOW);
@@ -178,7 +178,7 @@ class JobCardTest {
     void submittingWithoutRecommendationsIsInspectionOnly() {
         JobCard card = inStatus(JobCardStatus.INSPECTED);
 
-        card.submitForApproval(NOW);
+        card.submitForApproval("sam", NOW);
 
         assertThat(card.getStatus()).isEqualTo(JobCardStatus.DECLINED);
         assertThat(card.getDecidedAt()).isEqualTo(NOW);
@@ -238,7 +238,7 @@ class JobCardTest {
         assertThat(card.estimatedTotal(RATE)).isEqualByComparingTo("326.75");
         assertThat(card.approvedEstimate(RATE)).isEqualByComparingTo("0.00");
 
-        card.submitForApproval(NOW);
+        card.submitForApproval("sam", NOW);
         card.decide(pads.getId(), true, "c", NOW);
         assertThat(card.approvedEstimate(RATE)).isEqualByComparingTo("263.00");
     }
@@ -326,7 +326,7 @@ class JobCardTest {
         card.addFinding("Pads worn", Severity.HIGH, "mechanic1", NOW);
         card.addRecommendation("Replace front pads", new BigDecimal("120.00"), new BigDecimal("1.5"), NOW);
         card.addRecommendation("Replace wipers", new BigDecimal("40.00"), new BigDecimal("0.5"), NOW);
-        card.submitForApproval(NOW);
+        card.submitForApproval("sam", NOW);
         return card;
     }
 
@@ -354,7 +354,7 @@ class JobCardTest {
         switch (action) {
             case ADD_FINDING -> card.addFinding("Leak", Severity.MEDIUM, "mechanic1", NOW);
             case ADD_RECOMMENDATION -> card.addRecommendation("Fix leak", BigDecimal.TEN, BigDecimal.ONE, NOW);
-            case SUBMIT_FOR_APPROVAL -> card.submitForApproval(NOW);
+            case SUBMIT_FOR_APPROVAL -> card.submitForApproval("sam", NOW);
             case DECIDE_ITEM -> {
                 UUID itemId = card.getRecommendations().isEmpty()
                         ? UUID.randomUUID()

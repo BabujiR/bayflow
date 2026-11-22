@@ -31,8 +31,10 @@ import com.bayflow.workshop.integration.WorkshopSettingsClient.WorkshopSettings;
 @Service
 public class JobCardService {
 
-    /** What appointment-service (or an advisor) sends when a vehicle is checked in. */
-    /** locationId null = the organization's first location, "Main" (id = tenant id). */
+    /**
+     * What appointment-service (or an advisor) sends when a vehicle is checked in. locationId
+     * null = the organization's first location, "Main" (id = tenant id).
+     */
     public record OpenCommand(UUID appointmentId, UUID locationId, UUID vehicleId, String vin, String registration,
             UUID customerUserId, String customerName, int mileage) {
     }
@@ -140,9 +142,9 @@ public class JobCardService {
     }
 
     @Transactional
-    public JobCard submitForApproval(UUID id) {
+    public JobCard submitForApproval(CurrentUser user, UUID id) {
         JobCard card = find(id);
-        card.submitForApproval(clock.instant());
+        card.submitForApproval(user.username(), clock.instant());
         if (card.getStatus() == JobCardStatus.AWAITING_APPROVAL) {
             outbox.enqueue(card, OutboxService.ESTIMATE_READY);
         }
@@ -246,11 +248,7 @@ public class JobCardService {
 
     /** Loads the child collections while the transaction is open, so the API layer can map them. */
     private static JobCard loaded(JobCard card) {
-        card.getFindings().size();
-        card.getRecommendations().size();
-        card.getWorkLogs().size();
-        card.getParts().size();
-        card.getLabour().size();
+        card.loadDetails();
         return card;
     }
 }

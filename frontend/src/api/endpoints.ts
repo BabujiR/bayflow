@@ -1,5 +1,6 @@
 import { http } from './http';
 import type {
+  AdvisorRow,
   Announcement,
   AnnouncementRequest,
   AppNotification,
@@ -12,23 +13,30 @@ import type {
   CreateStaffRequest,
   CreateVehicleRequest,
   Customer,
+  DailyReport,
+  DeclinedRow,
   FindingRequest,
   JobCard,
   JobCardStatus,
   JobCardSummary,
   Location,
   LocationRequest,
+  LocationSalesRow,
   LabourRequest,
   PageResponse,
   PartRequest,
+  PartUsageRow,
   PublicWorkshop,
   ProfileRequest,
   RecommendationRequest,
+  ReportRows,
+  ReportSummary,
   RescheduleRequest,
   ServiceHistoryEntry,
   SignupRequest,
   SignupResponse,
   SlugAvailability,
+  TechnicianRow,
   TemporaryPassword,
   UpdateBrandingRequest,
   UpdateVehicleRequest,
@@ -199,4 +207,22 @@ export const notificationsApi = {
   /** Deletes it (204). */
   markRead: (id: string) => http.post<void>(`/api/v1/notifications/${id}/read`),
   markAllRead: () => http.post<{ count: number }>('/api/v1/notifications/read-all'),
+};
+
+/** A report period: ISO instants, from inclusive, to exclusive. */
+export interface ReportRange {
+  from: string;
+  to: string;
+}
+
+/** Owner dashboard and reports (ADMIN, MANAGER), for the locations in view. */
+export const reportsApi = {
+  summary: (range: ReportRange) => http.get<ReportSummary>('/api/v1/reports/summary', { ...range }),
+  daily: (range: ReportRange, zone?: string) =>
+    http.get<DailyReport>('/api/v1/reports/daily', { ...range, zone }),
+  technicians: (range: ReportRange) => http.get<TechnicianRow[]>('/api/v1/reports/technicians', { ...range }),
+  advisors: (range: ReportRange) => http.get<AdvisorRow[]>('/api/v1/reports/advisors', { ...range }),
+  locations: (range: ReportRange) => http.get<LocationSalesRow[]>('/api/v1/reports/locations', { ...range }),
+  declined: (range: ReportRange) => http.get<ReportRows<DeclinedRow>>('/api/v1/reports/declined', { ...range }),
+  parts: (range: ReportRange) => http.get<ReportRows<PartUsageRow>>('/api/v1/reports/parts', { ...range }),
 };

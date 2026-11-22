@@ -120,8 +120,8 @@ public class JobCardController {
     @PostMapping("/{id}/submit-for-approval")
     @PreAuthorize("hasRole('SERVICE_ADVISOR')")
     @Operation(summary = "INSPECTED → AWAITING_APPROVAL (or DECLINED when nothing is recommended)")
-    public JobCardResponse submit(@PathVariable UUID id) {
-        return response(jobCards.submitForApproval(id));
+    public JobCardResponse submit(@PathVariable UUID id, Authentication auth) {
+        return response(jobCards.submitForApproval(CurrentUser.from(auth), id));
     }
 
     @PostMapping("/{id}/recommendations/{itemId}/approve")

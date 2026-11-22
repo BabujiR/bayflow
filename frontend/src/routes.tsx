@@ -8,6 +8,8 @@ import { BookAppointmentPage } from '@/features/appointments/BookAppointmentPage
 import { BoardPage } from '@/features/board/BoardPage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
+import { DashboardPage } from '@/features/reports/DashboardPage';
+import { ReportsPage } from '@/features/reports/ReportsPage';
 import { JobCardDetailPage } from '@/features/jobcards/JobCardDetailPage';
 import { LocationsPage } from '@/features/locations/LocationsPage';
 import { JobCardsPage } from '@/features/jobcards/JobCardsPage';
@@ -100,6 +102,14 @@ export const routes: RouteObject[] = [
             children: [
               { path: '/customers', element: <CustomersPage /> },
               { path: '/customers/:id', element: <CustomerDetailPage /> },
+            ],
+          },
+          {
+            // Owners and managers (managers see their own locations' figures).
+            element: <RequireRole roles={['ADMIN', 'MANAGER']} />,
+            children: [
+              { path: '/dashboard', element: <DashboardPage /> },
+              { path: '/reports', element: <ReportsPage /> },
             ],
           },
           {
