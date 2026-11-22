@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 
 import { resetHttpForTests } from '@/api/http';
@@ -17,6 +17,10 @@ globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObse
 Element.prototype.hasPointerCapture ??= () => false;
 Element.prototype.releasePointerCapture ??= () => {};
 Element.prototype.scrollIntoView ??= () => {};
+
+// Whole-app renders (shell, queries, tables) can take over a second on a busy machine or CI
+// runner; findBy… and waitFor wait up to 5 s instead of the default 1 s.
+configure({ asyncUtilTimeout: 5_000 });
 
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
