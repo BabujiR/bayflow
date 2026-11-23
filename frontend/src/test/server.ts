@@ -44,6 +44,20 @@ const defaults = [
   http.get('*/api/v1/job-cards/:id/invoice', () =>
     HttpResponse.json({ status: 404, title: 'Not Found', detail: 'Invoice was not found.' }, { status: 404 }),
   ),
+  // QuickBooks: not set up on the server.
+  http.get('*/api/v1/quickbooks', () =>
+    HttpResponse.json({
+      available: false,
+      connected: false,
+      ready: false,
+      environment: null,
+      companyName: null,
+      country: null,
+      connectedAt: null,
+      connectedBy: null,
+      mapping: null,
+    }),
+  ),
   // The owner's dashboard (home page of admins and managers): an empty period.
   http.get('*/api/v1/reports/summary', () => HttpResponse.json(reportSummary())),
   http.get('*/api/v1/reports/daily', () => HttpResponse.json({ from: '', to: '', zone: 'UTC', days: [] })),

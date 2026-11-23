@@ -186,6 +186,26 @@ next number (`INV-1001`, …) and the customer sees it under *Invoices*. **Recor
 card, check or transfer; managers and admins can refund or void. *Print / Save as PDF* gives a
 clean printable invoice.
 
+**Email invoice** sends the whole invoice in the email body (with a *View online* link when the
+customer has an account); replies go to the location's address. Locally it lands in Mailpit
+(http://localhost:8025). Managers and admins can **Export** a period from the Invoices page: an
+invoices CSV in QuickBooks Online's import layout and a payments CSV.
+
+### QuickBooks Online
+
+An admin connects the company under *Settings → QuickBooks Online* and chooses the QuickBooks
+products/services for parts, labour and fees (and optionally the account payments go to). Then
+**Send to QuickBooks** on an issued invoice creates the customer (if new) and the invoice, with
+Ramplight's number and tax total, then its payments; sending again sends only new payments, and a
+voided invoice is voided there too. Refunds are entered in QuickBooks by hand. US companies, in
+their home currency.
+
+To try it, create an app at https://developer.intuit.com (it comes with a sandbox company), add
+the redirect URI `http://localhost:3000/api/v1/quickbooks/callback`, and set in `.env`:
+`BAYFLOW_QBO_CLIENT_ID`, `BAYFLOW_QBO_CLIENT_SECRET` and `BAYFLOW_QBO_TOKEN_KEY`
+(`openssl rand -base64 32`). On the server the redirect URI is
+`https://<domain>/api/v1/quickbooks/callback` (one for every workshop).
+
 ### Try the whole workflow in the web app
 
 At http://demo.localhost:3000 (or the dev server on :5173):
@@ -395,6 +415,7 @@ Caddy with a wildcard certificate, nightly backups). It applies everything below
 | Notifications 1 | In-app notifications: bell, panel, Notifications page | 🔍 in review |
 | Reports 1 | Owner dashboard, reports with CSV export, who sent each estimate | 🔍 in review |
 | Invoicing 1 | Invoices, tax and fees, payments, print; sales, payments, unpaid and tax reports | 🔍 in review |
+| Invoicing 2 | Email invoices, CSV export for QuickBooks, QuickBooks Online connection | 🔍 in review |
 
 ## Assumptions
 

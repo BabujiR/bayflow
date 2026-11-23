@@ -56,6 +56,9 @@ public class Payment {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "qbo_payment_id", length = 32)
+    private String qboPaymentId;
+
     protected Payment() {
         // for JPA
     }
@@ -80,7 +83,18 @@ public class Payment {
         return amount.signum() < 0;
     }
 
+    /** Sent to QuickBooks as this payment (refunds are entered there by hand). */
+    public void sentToQuickBooks(String paymentId) {
+        this.qboPaymentId = paymentId;
+    }
+
+    void notInQuickBooks() {
+        this.qboPaymentId = null;
+    }
+
+    public String getQboPaymentId() { return qboPaymentId; }
     public UUID getId() { return id; }
+    public Invoice getInvoice() { return invoice; }
     public PaymentMethod getMethod() { return method; }
     public BigDecimal getAmount() { return amount; }
     public String getReference() { return reference; }

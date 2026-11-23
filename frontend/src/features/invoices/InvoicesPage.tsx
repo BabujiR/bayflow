@@ -14,6 +14,7 @@ import { useLocationLookup } from '@/features/locations/use-locations';
 import { formatDate, formatMoney } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
+import { InvoiceExportButton } from './InvoiceExport';
 import { InvoiceStatusBadge, invoiceTitle } from './invoice-format';
 
 export const INVOICES_QUERY_KEY = 'invoices';
@@ -33,6 +34,7 @@ const TABS = [
 export function InvoicesPage() {
   const { hasRole } = useAuth();
   const customer = hasRole('CUSTOMER') && !hasRole('SERVICE_ADVISOR', 'ADMIN');
+  const manager = hasRole('MANAGER', 'ADMIN');
   const [status, setStatus] = useState('');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(0);
@@ -53,6 +55,7 @@ export function InvoicesPage() {
             ? 'Bills for the work on your vehicles. Open one to view or print it.'
             : 'Create an invoice from a completed job card, then issue it and record payments.'
         }
+        actions={manager ? <InvoiceExportButton /> : undefined}
       />
       {!customer && (
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">

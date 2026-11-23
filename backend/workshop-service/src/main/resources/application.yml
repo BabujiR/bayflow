@@ -56,6 +56,18 @@ bayflow:
     auth-url: ${BAYFLOW_AUTH_URL:http://localhost:8083}
     # Invoices: the customer and vehicle to bill, from appointment-service.
     appointment-url: ${BAYFLOW_APPOINTMENT_URL:http://localhost:8081}
+    # Invoice e-mails link to the workshop's site: https://<slug>.<host of this URL>.
+    site-url: ${BAYFLOW_SITE_URL:http://localhost:3000}
+    # QuickBooks Online (R2b): off until the Intuit app keys and the token key are set.
+    quickbooks:
+      client-id: ${BAYFLOW_QBO_CLIENT_ID:}
+      client-secret: ${BAYFLOW_QBO_CLIENT_SECRET:}
+      # sandbox (development keys) or production
+      environment: ${BAYFLOW_QBO_ENVIRONMENT:sandbox}
+      # Registered at Intuit; one for every workshop, on the main domain.
+      redirect-uri: ${BAYFLOW_QBO_REDIRECT_URI:http://localhost:3000/api/v1/quickbooks/callback}
+      # openssl rand -base64 32: encrypts the QuickBooks tokens in the database.
+      token-key: ${BAYFLOW_QBO_TOKEN_KEY:}
     client-id: workshop-service
     client-secret: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:dev-workshop-secret}
     settings-cache-ttl: 5m

@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
@@ -60,6 +61,10 @@ public final class InvoiceDtos {
     public record VoidRequest(@NotBlank @Size(max = 300) String reason) {
     }
 
+    /** to: blank = the customer's address on the invoice. */
+    public record EmailRequest(@Email @Size(max = 254) String to) {
+    }
+
     // ---- responses --------------------------------------------------------------------------
 
     /** unitCost: staff only (null for customers). */
@@ -98,10 +103,11 @@ public final class InvoiceDtos {
             BigDecimal discountTotal, BigDecimal subtotal, List<TaxResponse> taxes, BigDecimal taxTotal,
             BigDecimal total, BigDecimal amountPaid, BigDecimal balanceDue, List<PaymentResponse> payments,
             String notes, String footer, int paymentTermsDays, Instant issuedAt, String issuedBy, Instant dueAt,
-            Instant voidedAt, String voidedBy, String voidReason, Instant createdAt, String createdBy,
-            PartsProfit partsProfit, long version) {
+            Instant voidedAt, String voidedBy, String voidReason, Instant emailedAt, String emailedTo,
+            Instant createdAt, String createdBy, PartsProfit partsProfit, QuickBooksState quickbooks,
+            long version) {
 
-        static InvoiceResponse from(Invoice i, boolean staff) {
+        public static InvoiceResponse from(Invoice i, boolean staff) {
             List<TaxResponse> taxes = List.of(
                     new TaxResponse(TaxCategory.PARTS, i.getPartsTaxRate(), i.getPartsTax()),
                     new TaxResponse(TaxCategory.LABOUR, i.getLabourTaxRate(), i.getLabourTax()),
@@ -116,8 +122,36 @@ public final class InvoiceDtos {
                     i.getTotal(), i.getAmountPaid(), i.getBalanceDue(),
                     i.getPayments().stream().map(PaymentResponse::from).toList(), i.getNotes(), i.getFooter(),
                     i.getPaymentTermsDays(), i.getIssuedAt(), i.getIssuedBy(), i.getDueAt(), i.getVoidedAt(),
-                    i.getVoidedBy(), i.getVoidReason(), i.getCreatedAt(), i.getCreatedBy(), profit,
+                    i.getVoidedBy(), i.getVoidReason(), staff ? i.getEmailedAt() : null,
+                    staff ? i.getEmailedTo() : null, i.getCreatedAt(), i.getCreatedBy(), profit,
+                    staff ? QuickBooksState.from(i) : null,
                     i.getVersion() == null ? 0 : i.getVersion());
+        }
+    }
+
+    /**
+     * Where the invoice stands in QuickBooks. status: NOT_SENT, SENT, OUT_OF_DATE (payments or a void
+     * not sent yet) or FAILED (the last send failed: error). refundsByHand: refunds to enter there.
+     */
+    public record QuickBooksState(String status, String invoiceId, Instant syncedAt, String error,
+            int paymentsToSend, int refundsByHand) {
+
+        static QuickBooksState from(Invoice i) {
+            int toSend = (int) i.getPayments().stream()
+                    .filter(p -> p.getAmount().signum() > 0 && p.getQboPaymentId() == null).count();
+            int refunds = (int) i.getPayments().stream().filter(p -> p.getAmount().signum() < 0).count();
+            String status;
+            if (i.getQboError() != null) {
+                status = "FAILED";
+            } else if (i.getQboInvoiceId() == null) {
+                status = "NOT_SENT";
+            } else if (toSend > 0 || (i.getStatus() == InvoiceStatus.VOID && i.getQboVoidedAt() == null)) {
+                status = "OUT_OF_DATE";
+            } else {
+                status = "SENT";
+            }
+            return new QuickBooksState(status, i.getQboInvoiceId(), i.getQboSyncedAt(), i.getQboError(), toSend,
+                    refunds);
         }
     }
 

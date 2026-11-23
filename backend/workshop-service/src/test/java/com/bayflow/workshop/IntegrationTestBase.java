@@ -23,7 +23,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.bayflow.security.Tenants;
+import com.bayflow.workshop.integration.AuthServiceClient;
 import com.bayflow.workshop.integration.BillingContactClient;
+import com.bayflow.workshop.quickbooks.QuickBooksApi;
 import com.bayflow.workshop.integration.WorkshopSettingsClient;
 import com.bayflow.workshop.integration.WorkshopSettingsClient.WorkshopSettings;
 
@@ -53,6 +55,14 @@ public abstract class IntegrationTestBase {
     /** Who to bill lives in appointment-service; tests answer for it (null = unknown). */
     @MockitoBean
     protected BillingContactClient billingContacts;
+
+    /** Workshop and location details and e-mail sending live in auth-service; tests answer for it. */
+    @MockitoBean
+    protected AuthServiceClient authService;
+
+    /** Intuit (OAuth and the QuickBooks API) is never called from tests. */
+    @MockitoBean
+    protected QuickBooksApi quickBooksApi;
 
     /** Every workshop charges 95.00 USD unless a test says otherwise. */
     @BeforeEach

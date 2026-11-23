@@ -767,6 +767,19 @@ in the page `<meta name="description">`.
     per method, for the till), **Unpaid invoices** (now, oldest first, ageing 0–30 / 31–60 / 61–90 /
     over 90 days since issue) and **Tax** (per category and rate, from the invoices issued in the
     period).
+34. **Email invoices and CSV export (R2b).** workshop-service writes the e-mail (the whole invoice,
+    HTML and text, "View online" for customers with an account) and auth-service sends it through
+    its mail outbox (`POST /api/v1/auth/internal/tenants/{id}/mail`, SYSTEM); the invoice keeps the
+    last address and time (V11). `GET /api/v1/invoices/export` (managers, admins) gives a period's
+    issued invoices and payments, which the web app turns into QuickBooks' invoice-import CSV and a
+    payments CSV.
+35. **QuickBooks Online (R2b).** OAuth 2.0 with one redirect URI on the main domain
+    (`/api/v1/quickbooks/callback`); the state is `<tenant>.<random>` and only its hash is stored.
+    Tokens are AES-GCM encrypted (key `BAYFLOW_QBO_TOKEN_KEY`, the tenant as associated data) and
+    refreshed under a row lock (Intuit rotates refresh tokens). Manual **Send to QuickBooks** per
+    invoice: customer by display name, invoice with mapped items, one discount line and
+    `TxnTaxDetail.TotalTax`, payments linked to it, void when voided here; errors are kept on the
+    invoice (V12). Refunds, multi-currency and non-US tax codes are out of scope.
 
 ---
 

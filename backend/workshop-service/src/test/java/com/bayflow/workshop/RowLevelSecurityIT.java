@@ -72,8 +72,9 @@ class RowLevelSecurityIT {
         // auth_tenant_branding and auth_tenant_assets; 22 since Notifications added ws_outbox,
         // ntf_notifications and ntf_received_events; 23 with auth_tenant_announcements; 25 with
         // auth_password_resets and auth_mail_outbox; 29 since Invoicing added ws_invoices,
-        // ws_invoice_lines, ws_payments and ws_invoice_counters.
-        assertThat(tables).hasSize(29);
+        // ws_invoice_lines, ws_payments and ws_invoice_counters; 31 with QuickBooks
+        // (ws_qbo_connections, ws_qbo_oauth_states).
+        assertThat(tables).hasSize(31);
         try (Connection owner = owner(); Statement statement = owner.createStatement()) {
             for (String table : tables) {
                 try (ResultSet rs = statement.executeQuery("select c.relrowsecurity, (select count(*) from pg_policies p"

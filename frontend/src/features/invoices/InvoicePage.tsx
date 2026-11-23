@@ -4,7 +4,14 @@ import { Link, useNavigate, useParams } from 'react-router';
 
 import { invoicesApi } from '@/api/endpoints';
 import { ApiError } from '@/api/errors';
-import type { Invoice, InvoiceLineRequest, InvoiceLineType, PaymentMethod, TaxCategory } from '@/api/types';
+import type {
+  Invoice,
+  InvoiceLineRequest,
+  InvoiceLineType,
+  PaymentMethod,
+  QuickBooksState,
+  TaxCategory,
+} from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
 import { PageHeader } from '@/components/common/PageHeader';
 import { QueryState } from '@/components/common/QueryState';
@@ -16,7 +23,8 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { formatMoney } from '@/lib/format';
+import { useQuickBooksStatus } from '@/features/quickbooks/QuickBooksSection';
+import { formatDateTime, formatMoney } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
 import { InvoiceDocument } from './InvoiceDocument';
@@ -52,8 +60,24 @@ function InvoiceView({ invoice }: { invoice: Invoice }) {
   const queryClient = useQueryClient();
   const [paying, setPaying] = useState<'payment' | 'refund' | null>(null);
   const [voiding, setVoiding] = useState(false);
+  const [emailing, setEmailing] = useState(false);
+  const quickbooks = useQuickBooksStatus(staff);
+  const sendToQuickBooks = useAction(() => invoicesApi.sendToQuickBooks(invoice.id), {
+    success: (i) =>
+      i.quickbooks?.status === 'FAILED'
+        ? 'QuickBooks refused it; see the note on the invoice'
+        : 'Sent to QuickBooks',
+    onSuccess: saved,
+  });
   const draft = invoice.status === 'DRAFT';
   const open = invoice.status === 'ISSUED' || invoice.status === 'PARTIALLY_PAID';
+  const canSend =
+    staff &&
+    !draft &&
+    quickbooks.data?.ready === true &&
+    invoice.quickbooks !== null &&
+    invoice.quickbooks.status !== 'SENT' &&
+    (invoice.status !== 'VOID' || invoice.quickbooks.invoiceId !== null);
 
   const issue = useAction(() => invoicesApi.issue(invoice.id, invoice.version), {
     success: (i) => `Invoice ${i.number} issued; the customer can see it now`,
@@ -90,6 +114,20 @@ function InvoiceView({ invoice }: { invoice: Invoice }) {
                 <Link to={`/invoices/${invoice.id}/print`} target="_blank" rel="noopener">
                   Print / Save as PDF
                 </Link>
+              </Button>
+            )}
+            {staff && !draft && invoice.status !== 'VOID' && (
+              <Button variant="outline" onClick={() => setEmailing(true)}>
+                Email invoice
+              </Button>
+            )}
+            {canSend && (
+              <Button
+                variant="outline"
+                onClick={() => sendToQuickBooks.mutate(undefined)}
+                disabled={sendToQuickBooks.isPending}
+              >
+                {sendToQuickBooks.isPending ? 'Sending…' : 'Send to QuickBooks'}
               </Button>
             )}
             {staff && open && <Button onClick={() => setPaying('payment')}>Record payment</Button>}
@@ -129,6 +167,15 @@ function InvoiceView({ invoice }: { invoice: Invoice }) {
               {formatMoney(invoice.partsProfit.partsCost, invoice.currency)} cost)
             </p>
           )}
+          {staff && quickbooks.data?.connected && invoice.quickbooks && (
+            <QuickBooksNote state={invoice.quickbooks} />
+          )}
+          {staff && invoice.emailedAt && (
+            <p className="text-sm text-muted-foreground" data-testid="emailed">
+              Emailed to <span className="font-medium text-foreground">{invoice.emailedTo}</span> on{' '}
+              {formatDateTime(invoice.emailedAt)}
+            </p>
+          )}
           <InvoiceDocument invoice={invoice} />
         </>
       )}
@@ -142,6 +189,7 @@ function InvoiceView({ invoice }: { invoice: Invoice }) {
         />
       )}
       {voiding && <VoidDialog invoice={invoice} onClose={() => setVoiding(false)} onSaved={saved} />}
+      {emailing && <EmailDialog invoice={invoice} onClose={() => setEmailing(false)} onSaved={saved} />}
     </div>
   );
 }
@@ -559,6 +607,101 @@ function PaymentDialog({
           )}
           <Button type="submit" disabled={!valid || pay.isPending}>
             {refund ? 'Record refund' : 'Record payment'}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Where the invoice stands in QuickBooks. */
+function QuickBooksNote({ state }: { state: QuickBooksState }) {
+  const payments = `${state.paymentsToSend} ${state.paymentsToSend === 1 ? 'payment' : 'payments'}`;
+  const refunds =
+    state.refundsByHand > 0
+      ? ` Enter ${state.refundsByHand === 1 ? 'the refund' : `the ${state.refundsByHand} refunds`} in QuickBooks yourself.`
+      : '';
+  let text: string;
+  switch (state.status) {
+    case 'NOT_SENT':
+      text = 'Not sent to QuickBooks yet.';
+      break;
+    case 'SENT':
+      text = `In QuickBooks, sent ${formatDateTime(state.syncedAt)}.${refunds}`;
+      break;
+    case 'OUT_OF_DATE':
+      text = `In QuickBooks, but ${state.paymentsToSend > 0 ? `${payments} not sent yet` : 'the void is not sent yet'}.${refunds}`;
+      break;
+    default:
+      text = `QuickBooks: ${state.error ?? 'the last send failed'}`;
+      break;
+  }
+  return (
+    <p
+      className={state.status === 'FAILED' ? 'text-sm text-destructive' : 'text-sm text-muted-foreground'}
+      data-testid="quickbooks-state"
+    >
+      {text}
+    </p>
+  );
+}
+
+/** E-mails the whole invoice to the customer's address, or to one typed in. */
+function EmailDialog({
+  invoice,
+  onClose,
+  onSaved,
+}: {
+  invoice: Invoice;
+  onClose: () => void;
+  onSaved: (invoice: Invoice) => void;
+}) {
+  const [to, setTo] = useState(invoice.customerEmail ?? '');
+  const address = to.trim();
+  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address);
+  const send = useAction(() => invoicesApi.email(invoice.id, address), {
+    success: (i) => `${invoiceTitle(i)} emailed to ${i.emailedTo}`,
+    onSuccess: (sent) => {
+      onSaved(sent);
+      onClose();
+    },
+  });
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        title={`Email ${invoiceTitle(invoice)}`}
+        description={
+          invoice.customerUserId
+            ? 'The whole invoice goes in the email, with a link to view it in their account.'
+            : 'The whole invoice goes in the email.'
+        }
+      >
+        <form
+          noValidate
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (valid) {
+              send.mutate(undefined);
+            }
+          }}
+        >
+          <Field label="Send to" error={address && !valid ? 'Enter an email address.' : undefined}>
+            <Input
+              type="email"
+              autoComplete="off"
+              maxLength={254}
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+            />
+          </Field>
+          {invoice.emailedAt && (
+            <p className="text-sm text-muted-foreground">
+              Last sent to {invoice.emailedTo} on {formatDateTime(invoice.emailedAt)}.
+            </p>
+          )}
+          <Button type="submit" disabled={!valid || send.isPending}>
+            {send.isPending ? 'Sending…' : 'Send email'}
           </Button>
         </form>
       </DialogContent>

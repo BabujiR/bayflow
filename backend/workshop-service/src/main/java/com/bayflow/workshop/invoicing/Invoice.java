@@ -178,6 +178,33 @@ public class Invoice {
     @Column(name = "void_reason", length = 300)
     private String voidReason;
 
+    @Column(name = "qbo_realm_id", length = 32)
+    private String qboRealmId;
+
+    @Column(name = "qbo_invoice_id", length = 32)
+    private String qboInvoiceId;
+
+    @Column(name = "qbo_customer_id", length = 32)
+    private String qboCustomerId;
+
+    @Column(name = "qbo_synced_at")
+    private Instant qboSyncedAt;
+
+    @Column(name = "qbo_voided_at")
+    private Instant qboVoidedAt;
+
+    @Column(name = "qbo_error", length = 500)
+    private String qboError;
+
+    @Column(name = "emailed_at")
+    private Instant emailedAt;
+
+    @Column(name = "emailed_to", length = 254)
+    private String emailedTo;
+
+    @Column(name = "emailed_by", length = 100)
+    private String emailedBy;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -387,6 +414,58 @@ public class Invoice {
         this.updatedAt = now;
     }
 
+    /** Only issued invoices (not drafts, not voided) go to the customer. */
+    public void requireSendable(String action) {
+        if (status == InvoiceStatus.DRAFT || status == InvoiceStatus.VOID) {
+            throw new InvalidTransitionException(ENTITY, status, action);
+        }
+    }
+
+    /** Records an e-mail to the customer; an address typed in for a customer without one is kept. */
+    public void markEmailed(String to, String by, Instant now) {
+        requireSendable("e-mail");
+        if (customerEmail == null) {
+            customerEmail = to;
+        }
+        this.emailedAt = now;
+        this.emailedTo = to;
+        this.emailedBy = by;
+        this.updatedAt = now;
+    }
+
+    // ---- QuickBooks -----------------------------------------------------------------------------
+
+    /** Sent to this QuickBooks company (connected to another one later, it counts as not sent). */
+    public boolean isInQuickBooks(String realmId) {
+        return qboInvoiceId != null && realmId != null && realmId.equals(qboRealmId);
+    }
+
+    /** Created in QuickBooks; payments sent to an earlier company are sent again. */
+    public void sentToQuickBooks(String realmId, String invoiceId, String customerId, Instant now) {
+        if (!realmId.equals(qboRealmId)) {
+            payments.forEach(Payment::notInQuickBooks);
+            qboVoidedAt = null;
+        }
+        this.qboRealmId = realmId;
+        this.qboInvoiceId = invoiceId;
+        this.qboCustomerId = customerId;
+        this.qboSyncedAt = now;
+    }
+
+    public void voidedInQuickBooks(Instant now) {
+        this.qboVoidedAt = now;
+    }
+
+    public void syncedWithQuickBooks(Instant now) {
+        this.qboSyncedAt = now;
+        this.qboError = null;
+    }
+
+    public void quickBooksFailed(String error) {
+        String message = error == null || error.isBlank() ? "QuickBooks refused the invoice." : error.strip();
+        this.qboError = message.length() > 500 ? message.substring(0, 500) : message;
+    }
+
     public void requireDraft(String action) {
         if (status != InvoiceStatus.DRAFT) {
             throw new InvalidTransitionException(ENTITY, status, action);
@@ -523,6 +602,15 @@ public class Invoice {
     public Instant getVoidedAt() { return voidedAt; }
     public String getVoidedBy() { return voidedBy; }
     public String getVoidReason() { return voidReason; }
+    public Instant getEmailedAt() { return emailedAt; }
+    public String getQboRealmId() { return qboRealmId; }
+    public String getQboInvoiceId() { return qboInvoiceId; }
+    public String getQboCustomerId() { return qboCustomerId; }
+    public Instant getQboSyncedAt() { return qboSyncedAt; }
+    public Instant getQboVoidedAt() { return qboVoidedAt; }
+    public String getQboError() { return qboError; }
+    public String getEmailedTo() { return emailedTo; }
+    public String getEmailedBy() { return emailedBy; }
     public Instant getCreatedAt() { return createdAt; }
     public String getCreatedBy() { return createdBy; }
     public Instant getUpdatedAt() { return updatedAt; }

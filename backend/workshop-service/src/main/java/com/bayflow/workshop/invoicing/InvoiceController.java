@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.bayflow.security.CurrentUser;
 import com.bayflow.workshop.api.WorkshopDtos.PageResponse;
+import com.bayflow.workshop.invoicing.InvoiceDtos.EmailRequest;
 import com.bayflow.workshop.invoicing.InvoiceDtos.InvoiceResponse;
 import com.bayflow.workshop.invoicing.InvoiceDtos.InvoiceSummary;
 import com.bayflow.workshop.invoicing.InvoiceDtos.IssueRequest;
@@ -50,9 +51,11 @@ public class InvoiceController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final InvoiceService invoices;
+    private final InvoiceMailService mail;
 
-    public InvoiceController(InvoiceService invoices) {
+    public InvoiceController(InvoiceService invoices, InvoiceMailService mail) {
         this.invoices = invoices;
+        this.mail = mail;
     }
 
     @PostMapping("/job-cards/{jobCardId}/invoice")
@@ -142,6 +145,17 @@ public class InvoiceController {
             Authentication auth) {
         CurrentUser user = CurrentUser.from(auth);
         return response(invoices.voidInvoice(user, id, request.reason()), user);
+    }
+
+    @PostMapping("/invoices/{id}/email")
+    @PreAuthorize("hasAnyRole('SERVICE_ADVISOR', 'ADMIN')")
+    @Operation(summary = "E-mail an issued invoice to the customer",
+            description = "The whole invoice in the e-mail body, with a link to view it online when the customer "
+                    + "has an account. to: blank = the customer's address. 503 when e-mail is not set up.")
+    public InvoiceResponse email(@PathVariable UUID id, @Valid @RequestBody(required = false) EmailRequest request,
+            Authentication auth) {
+        CurrentUser user = CurrentUser.from(auth);
+        return response(mail.email(user, id, request == null ? null : request.to()), user);
     }
 
     private static InvoiceResponse response(Invoice invoice, CurrentUser user) {

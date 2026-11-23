@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { Invoice, InvoiceLine } from '@/api/types';
+import type { ExportInvoice, Invoice, InvoiceLine } from '@/api/types';
+import { paymentsCsv, quickbooksDate, quickbooksInvoicesCsv } from '@/features/invoices/quickbooks-csv';
 import { renderApp } from '@/test/render';
 import { jobCard, location, pageOf, server, sessionFor, user } from '@/test/server';
 
@@ -79,6 +80,16 @@ function invoice(overrides: Partial<Invoice> = {}): Invoice {
     voidedAt: null,
     voidedBy: null,
     voidReason: null,
+    emailedAt: null,
+    emailedTo: null,
+    quickbooks: {
+      status: 'NOT_SENT',
+      invoiceId: null,
+      syncedAt: null,
+      error: null,
+      paymentsToSend: 0,
+      refundsByHand: 0,
+    },
     createdAt: '2026-11-20T15:00:00Z',
     createdBy: 'sam',
     partsProfit: { partsWithCost: 0, partsCost: 0, profit: 0 },
@@ -206,6 +217,180 @@ describe('invoices (R2a)', () => {
     expect(screen.queryByRole('button', { name: 'Refund' })).not.toBeInTheDocument();
   });
 
+  it('emails an issued invoice to the customer, or to an address typed in', async () => {
+    let sentTo: unknown;
+    server.use(
+      sessionFor(user('SERVICE_ADVISOR', 'sam')),
+      serve(issued()),
+      http.post(`*/api/v1/invoices/${INVOICE_ID}/email`, async ({ request }) => {
+        sentTo = await request.json();
+        return HttpResponse.json(
+          issued({ emailedAt: '2026-11-21T10:00:00Z', emailedTo: 'accounts@example.com', version: 2 }),
+        );
+      }),
+    );
+    renderApp(`/invoices/${INVOICE_ID}`);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Email invoice' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Email INV-1001' });
+    const to = within(dialog).getByLabelText('Send to');
+    expect(to).toHaveValue('ana@example.com');
+    await userEvent.clear(to);
+    await userEvent.type(to, 'not-an-address');
+    expect(within(dialog).getByRole('button', { name: 'Send email' })).toBeDisabled();
+    await userEvent.clear(to);
+    await userEvent.type(to, 'accounts@example.com');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Send email' }));
+
+    expect(await screen.findByTestId('emailed')).toHaveTextContent('Emailed to accounts@example.com');
+    expect(sentTo).toEqual({ to: 'accounts@example.com' });
+  });
+
+  it('builds the QuickBooks invoice import and the payments file', () => {
+    const exported: ExportInvoice = {
+      id: INVOICE_ID,
+      number: 'INV-1001',
+      status: 'PARTIALLY_PAID',
+      locationId: '00000000-0000-0000-0000-000000000001',
+      customerName: 'Silva, Ana',
+      customerEmail: 'ana@example.com',
+      customerPhone: null,
+      registration: 'BFL 1234',
+      vin: '1HGCM82633A004352',
+      vehicleDescription: '2019 Toyota Corolla',
+      currency: 'USD',
+      issuedAt: '2026-11-20T16:00:00Z',
+      dueAt: '2026-12-05T16:00:00Z',
+      paymentTermsDays: 15,
+      lines: [
+        { ...line({}) },
+        {
+          ...line({
+            type: 'DISCOUNT',
+            description: 'Loyalty',
+            partNumber: null,
+            quantity: 1,
+            unitPrice: 10,
+            lineTotal: -10,
+            taxCategory: 'LABOUR',
+          }),
+        },
+      ],
+      subtotal: 80.5,
+      taxTotal: 8.03,
+      total: 88.53,
+      amountPaid: 50,
+      balanceDue: 38.53,
+    };
+    const csv = quickbooksInvoicesCsv([exported], 'America/New_York').split('\r\n');
+    expect(csv[0]).toBe(
+      'InvoiceNo,Customer,Email,InvoiceDate,DueDate,Terms,Memo,Item(Product/Service),ItemDescription,ItemQuantity,ItemRate,ItemAmount,Taxable,Currency',
+    );
+    expect(csv[1]).toBe(
+      'INV-1001,"Silva, Ana",ana@example.com,11/20/2026,12/05/2026,Net 15,BFL 1234 · 2019 Toyota Corolla,Parts,Front brake pad set (BP-220),2,45.25,90.5,Y,USD',
+    );
+    expect(csv[2]).toContain(',Discount,Loyalty,1,-10,-10,Y,USD');
+    expect(csv[3]).toContain(',Sales tax,Sales tax,1,8.03,8.03,N,USD');
+    expect(quickbooksDate('2026-11-21T03:00:00Z', 'America/Los_Angeles')).toBe('11/20/2026');
+
+    const payments = paymentsCsv(
+      [
+        {
+          id: 'p1',
+          invoiceId: INVOICE_ID,
+          invoiceNumber: 'INV-1001',
+          locationId: '00000000-0000-0000-0000-000000000001',
+          customerName: 'Ana Silva',
+          currency: 'USD',
+          method: 'CARD',
+          amount: -12.5,
+          reference: '=cmd',
+          receivedAt: '2026-11-21T10:00:00Z',
+          receivedBy: 'sam',
+        },
+      ],
+      'UTC',
+    ).split('\r\n');
+    expect(payments[0]).toBe('Date,InvoiceNo,Customer,Method,Reference,Amount,Currency,ReceivedBy');
+    expect(payments[1]).toBe("11/21/2026,INV-1001,Ana Silva,Card,'=cmd,-12.5,USD,sam");
+  });
+
+  it('exports a period for the accountant (managers and admins)', async () => {
+    let asked: URL | undefined;
+    URL.createObjectURL = vi.fn(() => 'blob:export');
+    URL.revokeObjectURL = vi.fn();
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    server.use(
+      sessionFor(user('MANAGER', 'maria')),
+      http.get('*/api/v1/invoices', () => HttpResponse.json(pageOf([]))),
+      http.get('*/api/v1/invoices/export', ({ request }) => {
+        asked = new URL(request.url);
+        return HttpResponse.json({ from: '', to: '', invoices: [], payments: [] });
+      }),
+    );
+    renderApp('/invoices');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Export' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Export invoices' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Download invoices CSV' }));
+
+    expect(await within(dialog).findByRole('status')).toHaveTextContent('0 invoices exported.');
+    expect(click).toHaveBeenCalled();
+    expect(asked?.searchParams.get('from')).toBeTruthy();
+    expect(asked?.searchParams.get('to')).toBeTruthy();
+    click.mockRestore();
+  });
+
+  it('sends an issued invoice to QuickBooks and shows where it stands', async () => {
+    server.use(
+      sessionFor(user('SERVICE_ADVISOR', 'sam')),
+      http.get('*/api/v1/quickbooks', () =>
+        HttpResponse.json({
+          available: true,
+          connected: true,
+          ready: true,
+          environment: 'sandbox',
+          companyName: 'Sandbox Co',
+          country: 'US',
+          connectedAt: '2026-11-20T10:00:00Z',
+          connectedBy: 'owner',
+          mapping: null,
+        }),
+      ),
+      serve(issued()),
+      http.post(`*/api/v1/invoices/${INVOICE_ID}/quickbooks`, () =>
+        HttpResponse.json(
+          issued({
+            version: 2,
+            quickbooks: {
+              status: 'FAILED',
+              invoiceId: null,
+              syncedAt: null,
+              error: 'Duplicate Name Exists Error',
+              paymentsToSend: 0,
+              refundsByHand: 0,
+            },
+          }),
+        ),
+      ),
+    );
+    renderApp(`/invoices/${INVOICE_ID}`);
+
+    expect(await screen.findByTestId('quickbooks-state')).toHaveTextContent('Not sent to QuickBooks yet.');
+    await userEvent.click(screen.getByRole('button', { name: 'Send to QuickBooks' }));
+
+    expect(await screen.findByText('QuickBooks: Duplicate Name Exists Error')).toBeInTheDocument();
+  });
+
+  it('offers no QuickBooks button when QuickBooks is not connected', async () => {
+    server.use(sessionFor(user('SERVICE_ADVISOR', 'sam')), serve(issued()));
+    renderApp(`/invoices/${INVOICE_ID}`);
+
+    expect(await screen.findByRole('button', { name: 'Email invoice' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Send to QuickBooks' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('quickbooks-state')).not.toBeInTheDocument();
+  });
+
   it('lets a manager void an unpaid invoice with a reason', async () => {
     let reason: unknown;
     server.use(
@@ -266,6 +451,7 @@ describe('invoices (R2a)', () => {
       `/invoices/${INVOICE_ID}/print`,
     );
     expect(screen.queryByRole('button', { name: 'Record payment' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Email invoice' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Job card' })).not.toBeInTheDocument();
   });
 

@@ -148,6 +148,13 @@ services:
       BAYFLOW_AUTH_URL: http://auth-service:8083
       BAYFLOW_APPOINTMENT_URL: http://appointment-service:8081
       BAYFLOW_WORKSHOP_CLIENT_SECRET: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:-dev-workshop-secret}
+      # Links in invoice e-mails, and where QuickBooks sends the admin back to.
+      BAYFLOW_SITE_URL: ${BAYFLOW_SITE_URL:-http://localhost:3000}
+      BAYFLOW_QBO_CLIENT_ID: ${BAYFLOW_QBO_CLIENT_ID:-}
+      BAYFLOW_QBO_CLIENT_SECRET: ${BAYFLOW_QBO_CLIENT_SECRET:-}
+      BAYFLOW_QBO_ENVIRONMENT: ${BAYFLOW_QBO_ENVIRONMENT:-sandbox}
+      BAYFLOW_QBO_REDIRECT_URI: ${BAYFLOW_QBO_REDIRECT_URI:-http://localhost:3000/api/v1/quickbooks/callback}
+      BAYFLOW_QBO_TOKEN_KEY: ${BAYFLOW_QBO_TOKEN_KEY:-}
       # Estimate and completion events go to notification-service through ws_outbox.
       BAYFLOW_NOTIFICATION_URL: http://notification-service:8084
     ports:
@@ -211,7 +218,7 @@ services:
   # A test inbox: catches every e-mail the stack sends (http://localhost:8025); nothing reaches
   # real people.
   mailpit:
-    image: axllent/mailpit:v1.31.6
+    image: axllent/mailpit:v1.34.0
     container_name: bayflow-mailpit
     restart: unless-stopped
     ports:
