@@ -35,6 +35,9 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
                         .permitAll()
                         .requestMatchers("/error").permitAll()
+                        // Intuit sends the browser back here; the one-time state names the organization.
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/quickbooks/callback")
+                        .permitAll()
                         .anyRequest().authenticated());
         return http.build();
     }

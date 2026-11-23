@@ -716,6 +716,11 @@ export interface Invoice {
   voidedAt: string | null;
   voidedBy: string | null;
   voidReason: string | null;
+  /** Where it stands in QuickBooks Online (staff only). */
+  quickbooks: QuickBooksState | null;
+  /** The last time it was e-mailed to the customer, and to which address (staff only). */
+  emailedAt: string | null;
+  emailedTo: string | null;
   createdAt: string;
   createdBy: string;
   /** Staff only: profit on the parts that have a cost entered. */
@@ -737,6 +742,105 @@ export interface InvoiceSummary {
   issuedAt: string | null;
   dueAt: string | null;
   createdAt: string;
+}
+
+/** QuickBooks Online: NOT_SENT, SENT, OUT_OF_DATE (payments or the void not sent yet) or FAILED. */
+export type QuickBooksSyncStatus = 'NOT_SENT' | 'SENT' | 'OUT_OF_DATE' | 'FAILED';
+
+export interface QuickBooksState {
+  status: QuickBooksSyncStatus;
+  invoiceId: string | null;
+  syncedAt: string | null;
+  error: string | null;
+  paymentsToSend: number;
+  refundsByHand: number;
+}
+
+export interface QuickBooksMapping {
+  partsItemId: string;
+  partsItemName: string | null;
+  labourItemId: string;
+  labourItemName: string | null;
+  feesItemId: string;
+  feesItemName: string | null;
+  depositAccountId: string | null;
+  depositAccountName: string | null;
+}
+
+/** available: the server has Intuit keys; ready: connected with parts, labour and fees mapped. */
+export interface QuickBooksStatus {
+  available: boolean;
+  connected: boolean;
+  ready: boolean;
+  environment: 'sandbox' | 'production' | null;
+  companyName: string | null;
+  country: string | null;
+  connectedAt: string | null;
+  connectedBy: string | null;
+  mapping: QuickBooksMapping | null;
+}
+
+/** A product/service or an account in QuickBooks. */
+export interface QuickBooksChoice {
+  id: string;
+  name: string;
+  type: string;
+}
+
+/** Exports for the accountant: issued invoices with their lines, and payments, of a period. */
+export interface ExportLine {
+  type: InvoiceLineType;
+  description: string;
+  partNumber: string | null;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  taxable: boolean;
+  taxCategory: TaxCategory;
+}
+
+export interface ExportInvoice {
+  id: string;
+  number: string;
+  status: InvoiceStatus;
+  locationId: string;
+  customerName: string;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  registration: string;
+  vin: string;
+  vehicleDescription: string | null;
+  currency: string;
+  issuedAt: string;
+  dueAt: string | null;
+  paymentTermsDays: number;
+  lines: ExportLine[];
+  subtotal: number;
+  taxTotal: number;
+  total: number;
+  amountPaid: number;
+  balanceDue: number;
+}
+
+export interface ExportPayment {
+  id: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  locationId: string;
+  customerName: string;
+  currency: string;
+  method: PaymentMethod;
+  amount: number;
+  reference: string | null;
+  receivedAt: string;
+  receivedBy: string;
+}
+
+export interface InvoiceExport {
+  from: string;
+  to: string;
+  invoices: ExportInvoice[];
+  payments: ExportPayment[];
 }
 
 /** One line of a draft as edited; id omitted = a new fee or discount. */

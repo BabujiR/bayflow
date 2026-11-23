@@ -26,6 +26,7 @@ import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.springframework.http.MediaType;
@@ -36,6 +37,10 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.bayflow.security.Tenants;
 import com.bayflow.workshop.IntegrationTestBase;
+import com.bayflow.workshop.integration.AuthServiceClient;
+import com.bayflow.workshop.integration.AuthServiceClient.LocationProfile;
+import com.bayflow.workshop.integration.AuthServiceClient.Mail;
+import com.bayflow.workshop.integration.AuthServiceClient.WorkshopProfile;
 import com.bayflow.workshop.integration.BillingContactClient.BillingContact;
 import com.bayflow.workshop.integration.WorkshopSettingsClient.LocationBilling;
 import com.bayflow.workshop.integration.WorkshopSettingsClient.WorkshopSettings;
@@ -296,7 +301,116 @@ class InvoiceIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.content", hasSize(0)));
     }
 
+    @Test
+    void anIssuedInvoiceIsEmailedWithTheWholeInvoiceAndALink() throws Exception {
+        Mockito.doReturn(new WorkshopProfile("main", "Main Street Garage LLC", "Main Street Garage", "+1 555 0199",
+                "desk@example.com", "1 Main St")).when(authService).workshop(ArgumentMatchers.any());
+        Mockito.doReturn(new LocationProfile("Main", "America/New_York", "+1 555 0100", "main@example.com",
+                "1 Main St, Springfield")).when(authService).location(ArgumentMatchers.any(), ArgumentMatchers.any());
+        Job job = completedJob(Tenants.DEFAULT_TENANT_ID);
+        String id = JsonPath.read(body(createDraft(job.cardId())), "$.id");
+
+        // A draft is not sent.
+        email(id, "{}").andExpect(status().isConflict());
+        String number = JsonPath.read(body(issue(id, 0)), "$.number");
+
+        email(id, "{}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.emailedTo").value("ana@example.com"))
+                .andExpect(jsonPath("$.emailedAt").isNotEmpty());
+        ArgumentCaptor<Mail> sent = ArgumentCaptor.forClass(Mail.class);
+        Mockito.verify(authService).send(ArgumentMatchers.eq(Tenants.DEFAULT_TENANT_ID), sent.capture());
+        Mail mail = sent.getValue();
+        assertThat(mail.to()).isEqualTo("ana@example.com");
+        assertThat(mail.senderName()).isEqualTo("Main Street Garage");
+        assertThat(mail.replyTo()).isEqualTo("main@example.com");
+        assertThat(mail.subject()).isEqualTo("Invoice " + number + " from Main Street Garage");
+        assertThat(mail.text()).contains("Front brake pad set").contains("Total: $227.56");
+        assertThat(mail.html()).contains("$227.56").contains("Tax on parts (8.875%)")
+                .contains("://main.").contains("/invoices/" + id);
+
+        // Another address can be typed in; a bad one is refused.
+        email(id, "{\"to\":\"accounts@example.com\"}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.emailedTo").value("accounts@example.com"))
+                .andExpect(jsonPath("$.customerEmail").value("ana@example.com"));
+        email(id, "{\"to\":\"not-an-address\"}").andExpect(status().isBadRequest());
+        mvc.perform(post("/api/v1/invoices/" + id + "/email").with(mechanic)
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
+
+        // E-mail not set up: a clear 503, and nothing recorded.
+        Mockito.doThrow(new AuthServiceClient.MailUnavailableException()).when(authService)
+                .send(ArgumentMatchers.any(), ArgumentMatchers.any());
+        email(id, "{}").andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.type").value("urn:bayflow:problem:mail-unavailable"));
+    }
+
+    @Test
+    void aCustomerWithoutAnEmailAddressNeedsOneTypedIn() throws Exception {
+        Mockito.doReturn(new BillingContact(UUID.randomUUID(), "Ben Ode", null, null, null, null, null))
+                .when(billingContacts).get(ArgumentMatchers.any(), ArgumentMatchers.any());
+        Mockito.doReturn(new WorkshopProfile("main", "Main Street Garage", null, null, null, null))
+                .when(authService).workshop(ArgumentMatchers.any());
+        Mockito.doReturn(new LocationProfile("Main", null, null, null, null))
+                .when(authService).location(ArgumentMatchers.any(), ArgumentMatchers.any());
+        Job job = completedJob(Tenants.DEFAULT_TENANT_ID);
+        String id = JsonPath.read(body(createDraft(job.cardId())), "$.id");
+        issue(id, 0).andExpect(status().isOk());
+
+        email(id, "{}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("urn:bayflow:problem:no-email-address"));
+        email(id, "{\"to\":\"ben@example.com\"}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.customerEmail").value("ben@example.com"));
+    }
+
+    @Test
+    void managersExportTheIssuedInvoicesAndPaymentsOfAPeriod() throws Exception {
+        UUID tenant = UUID.randomUUID();
+        RequestPostProcessor desk = staff(tenant, "SERVICE_ADVISOR", "desk", "*");
+        RequestPostProcessor manager = staff(tenant, "MANAGER", "maria", "*");
+        Instant before = Instant.now().minusSeconds(5);
+        String paid = draftIn(desk, completedJob(tenant));
+        String voided = draftIn(desk, completedJob(tenant));
+        draftIn(desk, completedJob(tenant)); // stays a draft
+        for (String id : List.of(paid, voided)) {
+            mvc.perform(post("/api/v1/invoices/" + id + "/issue").with(desk).contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"version\":0}")).andExpect(status().isOk());
+        }
+        mvc.perform(post("/api/v1/invoices/" + paid + "/payments").with(desk).header("Idempotency-Key", "x-1")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"method\":\"CASH\",\"amount\":50.00}"))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/v1/invoices/" + voided + "/void").with(manager).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"reason\":\"Duplicate\"}")).andExpect(status().isOk());
+        String to = Instant.now().plusSeconds(5).toString();
+
+        mvc.perform(get("/api/v1/invoices/export").param("from", before.toString()).param("to", to).with(manager))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.invoices", hasSize(1)))
+                .andExpect(jsonPath("$.invoices[0].id").value(paid))
+                .andExpect(jsonPath("$.invoices[0].number").value("INV-1001"))
+                .andExpect(jsonPath("$.invoices[0].lines", hasSize(4)))
+                .andExpect(jsonPath("$.invoices[0].taxTotal", closeTo(8.87, 0.001)))
+                .andExpect(jsonPath("$.payments", hasSize(1)))
+                .andExpect(jsonPath("$.payments[0].invoiceNumber").value("INV-1001"))
+                .andExpect(jsonPath("$.payments[0].amount", closeTo(50.00, 0.001)));
+        // Accounting: not for advisors; a year at most.
+        mvc.perform(get("/api/v1/invoices/export").param("from", before.toString()).param("to", to).with(desk))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/invoices/export").param("from", "2024-01-01T00:00:00Z")
+                        .param("to", "2026-01-01T00:00:00Z").with(manager))
+                .andExpect(status().isBadRequest());
+    }
+
     // ---- helpers ------------------------------------------------------------------------------
+
+    private String draftIn(RequestPostProcessor desk, Job job) throws Exception {
+        return JsonPath.read(body(mvc.perform(post("/api/v1/job-cards/" + job.cardId() + "/invoice").with(desk))
+                .andExpect(status().isCreated())), "$.id");
+    }
+
+    private ResultActions email(String id, String json) throws Exception {
+        return mvc.perform(post("/api/v1/invoices/" + id + "/email").with(advisor)
+                .contentType(MediaType.APPLICATION_JSON).content(json));
+    }
 
     private record Job(String cardId, UUID customerId, String registration) {
     }

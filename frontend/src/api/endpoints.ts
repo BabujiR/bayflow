@@ -22,6 +22,10 @@ import type {
   Invoice,
   InvoiceLineRequest,
   InvoiceSummary,
+  InvoiceExport,
+  QuickBooksChoice,
+  QuickBooksMapping,
+  QuickBooksStatus,
   LocationBilling,
   PaymentRequest,
   Location,
@@ -253,6 +257,17 @@ export interface InvoiceFilters extends Paging {
 }
 
 /** Invoices (workshop-service). Customers get their own issued ones. */
+export const quickbooksApi = {
+  status: () => http.get<QuickBooksStatus>('/api/v1/quickbooks'),
+  /** Intuit's sign-in address; Intuit sends the browser back to returnUrl. */
+  connect: (returnUrl: string) =>
+    http.post<{ authorizeUrl: string }>('/api/v1/quickbooks/connect', { returnUrl }),
+  disconnect: () => http.delete<void>('/api/v1/quickbooks/connection'),
+  items: () => http.get<QuickBooksChoice[]>('/api/v1/quickbooks/items'),
+  accounts: () => http.get<QuickBooksChoice[]>('/api/v1/quickbooks/accounts'),
+  saveMapping: (mapping: QuickBooksMapping) => http.put<QuickBooksStatus>('/api/v1/quickbooks/mapping', mapping),
+};
+
 export const invoicesApi = {
   list: (filters: InvoiceFilters) =>
     http.get<PageResponse<InvoiceSummary>>('/api/v1/invoices', { ...filters }),
@@ -272,4 +287,10 @@ export const invoicesApi = {
       headers: { 'Idempotency-Key': idempotencyKey },
     }),
   void: (id: string, reason: string) => http.post<Invoice>(`/api/v1/invoices/${id}/void`, { reason }),
+  /** Issued invoices and payments of [from, to), for CSV files (managers and admins). */
+  export: (from: string, to: string) => http.get<InvoiceExport>('/api/v1/invoices/export', { from, to }),
+  /** Sends what QuickBooks doesn't have yet; a QuickBooks error comes back in quickbooks.error. */
+  sendToQuickBooks: (id: string) => http.post<Invoice>(`/api/v1/invoices/${id}/quickbooks`),
+  /** to: null = the customer's address on the invoice. */
+  email: (id: string, to: string | null) => http.post<Invoice>(`/api/v1/invoices/${id}/email`, { to }),
 };

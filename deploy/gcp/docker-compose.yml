@@ -141,6 +141,13 @@ services:
       BAYFLOW_APPOINTMENT_URL: http://appointment-service:8081
       BAYFLOW_WORKSHOP_CLIENT_SECRET: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:?set BAYFLOW_WORKSHOP_CLIENT_SECRET in .env}
       BAYFLOW_NOTIFICATION_URL: http://notification-service:8084
+      # Links in invoice e-mails; QuickBooks Online is off until the four BAYFLOW_QBO_* are set in .env.
+      BAYFLOW_SITE_URL: https://${BAYFLOW_BASE_DOMAIN}
+      BAYFLOW_QBO_CLIENT_ID: ${BAYFLOW_QBO_CLIENT_ID:-}
+      BAYFLOW_QBO_CLIENT_SECRET: ${BAYFLOW_QBO_CLIENT_SECRET:-}
+      BAYFLOW_QBO_ENVIRONMENT: ${BAYFLOW_QBO_ENVIRONMENT:-sandbox}
+      BAYFLOW_QBO_REDIRECT_URI: https://${BAYFLOW_BASE_DOMAIN}/api/v1/quickbooks/callback
+      BAYFLOW_QBO_TOKEN_KEY: ${BAYFLOW_QBO_TOKEN_KEY:-}
 
   notification-service:
     <<: *service
