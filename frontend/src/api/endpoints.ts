@@ -265,7 +265,8 @@ export const quickbooksApi = {
   disconnect: () => http.delete<void>('/api/v1/quickbooks/connection'),
   items: () => http.get<QuickBooksChoice[]>('/api/v1/quickbooks/items'),
   accounts: () => http.get<QuickBooksChoice[]>('/api/v1/quickbooks/accounts'),
-  saveMapping: (mapping: QuickBooksMapping) => http.put<QuickBooksStatus>('/api/v1/quickbooks/mapping', mapping),
+  saveMapping: (mapping: QuickBooksMapping) =>
+    http.put<QuickBooksStatus>('/api/v1/quickbooks/mapping', mapping),
 };
 
 export const invoicesApi = {

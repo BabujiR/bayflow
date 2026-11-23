@@ -64,7 +64,9 @@ function InvoiceView({ invoice }: { invoice: Invoice }) {
   const quickbooks = useQuickBooksStatus(staff);
   const sendToQuickBooks = useAction(() => invoicesApi.sendToQuickBooks(invoice.id), {
     success: (i) =>
-      i.quickbooks?.status === 'FAILED' ? 'QuickBooks refused it; see the note on the invoice' : 'Sent to QuickBooks',
+      i.quickbooks?.status === 'FAILED'
+        ? 'QuickBooks refused it; see the note on the invoice'
+        : 'Sent to QuickBooks',
     onSuccess: saved,
   });
   const draft = invoice.status === 'DRAFT';
@@ -685,7 +687,13 @@ function EmailDialog({
           }}
         >
           <Field label="Send to" error={address && !valid ? 'Enter an email address.' : undefined}>
-            <Input type="email" autoComplete="off" maxLength={254} value={to} onChange={(e) => setTo(e.target.value)} />
+            <Input
+              type="email"
+              autoComplete="off"
+              maxLength={254}
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+            />
           </Field>
           {invoice.emailedAt && (
             <p className="text-sm text-muted-foreground">

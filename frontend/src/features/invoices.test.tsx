@@ -264,7 +264,17 @@ describe('invoices (R2a)', () => {
       paymentTermsDays: 15,
       lines: [
         { ...line({}) },
-        { ...line({ type: 'DISCOUNT', description: 'Loyalty', partNumber: null, quantity: 1, unitPrice: 10, lineTotal: -10, taxCategory: 'LABOUR' }) },
+        {
+          ...line({
+            type: 'DISCOUNT',
+            description: 'Loyalty',
+            partNumber: null,
+            quantity: 1,
+            unitPrice: 10,
+            lineTotal: -10,
+            taxCategory: 'LABOUR',
+          }),
+        },
       ],
       subtotal: 80.5,
       taxTotal: 8.03,
