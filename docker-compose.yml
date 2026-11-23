@@ -218,7 +218,7 @@ services:
   # A test inbox: catches every e-mail the stack sends (http://localhost:8025); nothing reaches
   # real people.
   mailpit:
-    image: axllent/mailpit:v1.31.6
+    image: axllent/mailpit:v1.34.0
     container_name: bayflow-mailpit
     restart: unless-stopped
     ports:
