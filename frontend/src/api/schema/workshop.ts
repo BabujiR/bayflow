@@ -356,6 +356,8 @@ export interface components {
             decidedBy?: string;
             /** Format: date-time */
             decidedAt?: string;
+            /** Format: uuid */
+            cannedJobId?: string;
         };
         WorkLogResponse: {
             /** Format: uuid */
@@ -376,6 +378,8 @@ export interface components {
             description: string;
             estimatedPartsCost: number;
             estimatedLabourHours: number;
+            /** Format: uuid */
+            cannedJobId?: string;
         };
         PartRequest: {
             /** Format: uuid */

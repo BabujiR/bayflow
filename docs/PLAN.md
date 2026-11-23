@@ -780,6 +780,13 @@ in the page `<meta name="description">`.
     invoice: customer by display name, invoice with mapped items, one discount line and
     `TxnTaxDetail.TotalTax`, payments linked to it, void when voided here; errors are kept on the
     invoice (V12). Refunds, multi-currency and non-US tax codes are out of scope.
+36. **Canned jobs (R3a).** `ws_canned_jobs` and `ws_canned_job_parts` (V13; location NULL = every
+    location, row-level security shows those plus the caller's locations'). Managers and admins
+    keep them (`/api/v1/canned-jobs`, archive instead of delete); a recommendation may name the
+    canned job it was made from (`cannedJobId`, checked against the card's location), and a
+    mechanic records its usual parts and labour at once with
+    `POST /job-cards/{id}/recommendations/{itemId}/work` (all or nothing, labour at the card's
+    rate). Next: R3b, maintenance reminders from the shop's own intervals.
 
 ---
 

@@ -60,6 +60,10 @@ public class RecommendedWorkItem {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    /** The canned job it was made from, if any. */
+    @Column(name = "canned_job_id", updatable = false)
+    private UUID cannedJobId;
+
     protected RecommendedWorkItem() {
         // for JPA
     }
@@ -117,4 +121,9 @@ public class RecommendedWorkItem {
     public String getDecidedBy() { return decidedBy; }
     public Instant getDecidedAt() { return decidedAt; }
     public Instant getCreatedAt() { return createdAt; }
+    public UUID getCannedJobId() { return cannedJobId; }
+
+    void fromCannedJob(UUID cannedJobId) {
+        this.cannedJobId = cannedJobId;
+    }
 }

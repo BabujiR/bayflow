@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { ComponentProps } from 'react';
+import { type ComponentProps, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import type { Recommendation, Severity } from '@/api/types';
+import type { CannedJob, Recommendation, Severity } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -69,14 +69,18 @@ const recommendationSchema = z.object({
 export function RecommendationForm({
   labourRate,
   currency,
+  cannedJobs = [],
   onSubmit,
 }: {
   labourRate: number;
   /** The job card's currency (ISO code). */
   currency: string;
-  onSubmit: Submit<z.output<typeof recommendationSchema>>;
+  /** Canned jobs usable at the card's location, offered to start from. */
+  cannedJobs?: CannedJob[];
+  onSubmit: Submit<z.output<typeof recommendationSchema> & { cannedJobId?: string }>;
 }) {
-  const { register, handleSubmit, reset, formState } = useForm<
+  const [cannedJobId, setCannedJobId] = useState('');
+  const { register, handleSubmit, reset, setValue, formState } = useForm<
     z.input<typeof recommendationSchema>,
     unknown,
     z.output<typeof recommendationSchema>
@@ -84,17 +88,47 @@ export function RecommendationForm({
     resolver: zodResolver(recommendationSchema),
     defaultValues: { description: '', estimatedPartsCost: '', estimatedLabourHours: '' },
   });
+  const pick = (id: string) => {
+    setCannedJobId(id);
+    const job = cannedJobs.find((j) => j.id === id);
+    if (job) {
+      const options = { shouldValidate: true, shouldDirty: true };
+      setValue('description', job.description, options);
+      setValue('estimatedPartsCost', job.partsTotal.toFixed(2), options);
+      setValue('estimatedLabourHours', String(job.labourHours), options);
+    }
+  };
   return (
     <form
       noValidate
       aria-label="Add recommendation"
       className="grid gap-3 sm:grid-cols-[1fr_9rem_9rem_auto] sm:items-start"
       onSubmit={handleSubmit(async (values) => {
-        await onSubmit(values)
-          .then(() => reset())
+        await onSubmit(cannedJobId ? { ...values, cannedJobId } : values)
+          .then(() => {
+            reset();
+            setCannedJobId('');
+          })
           .catch(() => undefined);
       })}
     >
+      {cannedJobs.length > 0 && (
+        <div className="sm:col-span-4">
+          <Field
+            label="From canned job"
+            hint="Fills in the work and the estimate; you can still change them."
+          >
+            <Select value={cannedJobId} onChange={(e) => pick(e.target.value)}>
+              <option value="">Type it in instead</option>
+              {cannedJobs.map((job) => (
+                <option key={job.id} value={job.id}>
+                  {job.category ? `${job.category} · ${job.name}` : job.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+      )}
       <Field label="Recommended work" error={formState.errors.description?.message}>
         <Input placeholder="e.g. Replace front brake pads" {...register('description')} />
       </Field>

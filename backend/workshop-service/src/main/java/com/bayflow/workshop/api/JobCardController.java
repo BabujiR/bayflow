@@ -27,6 +27,7 @@ import com.bayflow.workshop.api.WorkshopDtos.PageResponse;
 import com.bayflow.workshop.api.WorkshopDtos.PartRequest;
 import com.bayflow.workshop.api.WorkshopDtos.RecommendationRequest;
 import com.bayflow.workshop.api.WorkshopDtos.WorkLogRequest;
+import com.bayflow.workshop.api.WorkshopDtos.WorkRequest;
 import com.bayflow.workshop.application.JobCardService;
 import com.bayflow.workshop.application.JobCardService.OpenResult;
 import com.bayflow.workshop.domain.JobCard;
@@ -114,7 +115,7 @@ public class JobCardController {
     public JobCardResponse addRecommendation(@PathVariable UUID id,
             @Valid @RequestBody RecommendationRequest request) {
         return response(jobCards.addRecommendation(id, request.description(), request.estimatedPartsCost(),
-                request.estimatedLabourHours()));
+                request.estimatedLabourHours(), request.cannedJobId()));
     }
 
     @PostMapping("/{id}/submit-for-approval")
@@ -171,6 +172,18 @@ public class JobCardController {
             Authentication auth) {
         return response(jobCards.addLabour(CurrentUser.from(auth), id, request.recommendationId(),
                 request.hours(), request.hourlyRate()));
+    }
+
+    @PostMapping("/{id}/recommendations/{itemId}/work")
+    @PreAuthorize("hasRole('MECHANIC')")
+    @Operation(summary = "Record several parts and the labour for an approved item at once (IN_PROGRESS)",
+            description = "For a canned job's usual parts and hours, as ticked by the mechanic. Labour is at the "
+                    + "card's rate. All or nothing.")
+    public JobCardResponse addWork(@PathVariable UUID id, @PathVariable UUID itemId,
+            @Valid @RequestBody WorkRequest request, Authentication auth) {
+        return response(jobCards.addWork(CurrentUser.from(auth), id, itemId, request.parts().stream()
+                .map(p -> new JobCardService.WorkPart(p.partNumber(), p.name(), p.quantity(), p.unitPrice()))
+                .toList(), request.hours()));
     }
 
     @PostMapping("/{id}/complete")

@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 
 import { jobCardsApi } from '@/api/endpoints';
@@ -10,6 +11,8 @@ import { ApprovalBadge, JobCardStatusBadge, SeverityBadge } from '@/components/c
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useCannedJobs } from '@/features/cannedjobs/canned-jobs';
+import { CannedWorkDialog } from '@/features/cannedjobs/CannedWorkDialog';
 import { JobCardInvoiceAction } from '@/features/invoices/JobCardInvoice';
 import { useLocationLookup } from '@/features/locations/use-locations';
 import { formatDateTime, formatMileage, formatMoney } from '@/lib/format';
@@ -96,6 +99,10 @@ function JobCardView({ card }: { card: JobCard }) {
   );
 
   const canComplete = (advisor || mechanic) && (status === 'IN_PROGRESS' || status === 'DECLINED');
+  // Canned jobs to start a recommendation from, while the advisor can still recommend.
+  const cannedJobs = useCannedJobs(card.locationId, advisor && inspecting);
+  const queryClient = useQueryClient();
+  const [cannedWorkFor, setCannedWorkFor] = useState<Recommendation | null>(null);
 
   return (
     <div className="grid gap-6">
@@ -207,6 +214,7 @@ function JobCardView({ card }: { card: JobCard }) {
             <RecommendationForm
               labourRate={card.labourRate}
               currency={card.currency}
+              cannedJobs={cannedJobs.data ?? []}
               onSubmit={(v) => addRecommendation.mutateAsync(v)}
             />
           )}
@@ -242,8 +250,26 @@ function JobCardView({ card }: { card: JobCard }) {
           </CardHeader>
           <CardContent className="grid gap-6">
             {approved.map((item) => (
-              <WorkSummary key={item.id} card={card} item={item} money={money} />
+              <WorkSummary
+                key={item.id}
+                card={card}
+                item={item}
+                money={money}
+                onCannedWork={
+                  mechanic && status === 'IN_PROGRESS' && item.cannedJobId
+                    ? () => setCannedWorkFor(item)
+                    : undefined
+                }
+              />
             ))}
+            {cannedWorkFor && (
+              <CannedWorkDialog
+                card={card}
+                item={cannedWorkFor}
+                onClose={() => setCannedWorkFor(null)}
+                onSaved={(saved) => queryClient.setQueryData(['job-card', card.id], saved)}
+              />
+            )}
             {mechanic && status === 'IN_PROGRESS' && (
               <WorkForms
                 items={approved}
@@ -327,17 +353,27 @@ function WorkSummary({
   card,
   item,
   money,
+  onCannedWork,
 }: {
   card: JobCard;
   item: Recommendation;
   money: (amount?: number | null) => string;
+  /** Set when the mechanic can add the item's canned job's usual parts and labour. */
+  onCannedWork?: () => void;
 }) {
   const logs = card.workLogs.filter((w) => w.recommendationId === item.id);
   const parts = card.parts.filter((p) => p.recommendationId === item.id);
   const labour = card.labour.filter((l) => l.recommendationId === item.id);
   return (
     <section aria-label={item.description} className="grid gap-2 rounded-lg border p-4 text-sm">
-      <h3 className="font-medium">{item.description}</h3>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-medium">{item.description}</h3>
+        {onCannedWork && (
+          <Button size="sm" variant="outline" onClick={onCannedWork}>
+            Add usual parts &amp; labour
+          </Button>
+        )}
+      </div>
       {logs.length === 0 && parts.length === 0 && labour.length === 0 ? (
         <p className="text-muted-foreground">Nothing logged yet.</p>
       ) : (

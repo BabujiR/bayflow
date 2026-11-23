@@ -23,6 +23,9 @@ import type {
   InvoiceLineRequest,
   InvoiceSummary,
   InvoiceExport,
+  CannedJob,
+  CannedJobRequest,
+  WorkRequest,
   QuickBooksChoice,
   QuickBooksMapping,
   QuickBooksStatus,
@@ -138,6 +141,20 @@ export const jobCardsApi = {
   addPart: (id: string, body: PartRequest) => http.post<JobCard>(`/api/v1/job-cards/${id}/parts`, body),
   addLabour: (id: string, body: LabourRequest) => http.post<JobCard>(`/api/v1/job-cards/${id}/labour`, body),
   complete: (id: string) => http.post<JobCard>(`/api/v1/job-cards/${id}/complete`),
+  /** A canned job's usual parts and labour for one approved item, all at once (mechanics). */
+  addWork: (id: string, itemId: string, body: WorkRequest) =>
+    http.post<JobCard>(`/api/v1/job-cards/${id}/recommendations/${itemId}/work`, body),
+};
+
+export const cannedJobsApi = {
+  /** locationId: only those usable there; includeInactive: archived ones too (settings page). */
+  list: (params: { locationId?: string; q?: string; includeInactive?: boolean } = {}) =>
+    http.get<CannedJob[]>('/api/v1/canned-jobs', { ...params }),
+  get: (id: string) => http.get<CannedJob>(`/api/v1/canned-jobs/${id}`),
+  create: (body: CannedJobRequest) => http.post<CannedJob>('/api/v1/canned-jobs', body),
+  update: (id: string, body: CannedJobRequest) => http.put<CannedJob>(`/api/v1/canned-jobs/${id}`, body),
+  setActive: (id: string, active: boolean) =>
+    http.put<CannedJob>(`/api/v1/canned-jobs/${id}/active`, { active }),
 };
 
 export const historyApi = {

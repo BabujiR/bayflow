@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.bayflow.security.CurrentUser;
 import com.bayflow.security.LocationContext;
 import com.bayflow.security.TenantContext;
+import com.bayflow.workshop.cannedjobs.CannedJobService;
 import com.bayflow.workshop.domain.JobCard;
 import com.bayflow.workshop.domain.JobCardStatus;
 import com.bayflow.workshop.domain.Severity;
@@ -49,10 +50,12 @@ public class JobCardService {
 
     private final WorkshopSettingsClient settings;
     private final OutboxService outbox;
+    private final CannedJobService cannedJobs;
     private final Clock clock;
 
     public JobCardService(JobCardRepository jobCards, ServiceHistoryService history,
-            WorkshopSettingsClient settings, OutboxService outbox, Clock clock) {
+            WorkshopSettingsClient settings, OutboxService outbox, CannedJobService cannedJobs, Clock clock) {
+        this.cannedJobs = cannedJobs;
         this.jobCards = jobCards;
         this.history = history;
         this.settings = settings;
@@ -136,8 +139,44 @@ public class JobCardService {
     @Transactional
     public JobCard addRecommendation(UUID id, String description, BigDecimal estimatedPartsCost,
             BigDecimal estimatedLabourHours) {
+        return addRecommendation(id, description, estimatedPartsCost, estimatedLabourHours, null);
+    }
+
+    /** cannedJobId: must be an active canned job usable at the card's location (400 otherwise). */
+    @Transactional
+    public JobCard addRecommendation(UUID id, String description, BigDecimal estimatedPartsCost,
+            BigDecimal estimatedLabourHours, UUID cannedJobId) {
         JobCard card = find(id);
-        card.addRecommendation(description, estimatedPartsCost, estimatedLabourHours, clock.instant());
+        if (cannedJobId != null) {
+            cannedJobs.forJobCard(cannedJobId, card.getLocationId());
+        }
+        card.addRecommendation(description, estimatedPartsCost, estimatedLabourHours, cannedJobId, clock.instant());
+        return loaded(card);
+    }
+
+    /** One part to record in {@link #addWork}. */
+    public record WorkPart(String partNumber, String name, int quantity, BigDecimal unitPrice) {
+    }
+
+    /**
+     * Several parts and labour for one approved item at once (a canned job's usual parts and
+     * hours, as the mechanic ticked them); all or nothing. hours null = no labour.
+     */
+    @Transactional
+    public JobCard addWork(CurrentUser user, UUID id, UUID recommendationId, java.util.List<WorkPart> parts,
+            BigDecimal hours) {
+        if (parts.isEmpty() && hours == null) {
+            throw ApiException.badRequest("nothing-to-add", "Choose at least one part or the labour.");
+        }
+        JobCard card = find(id);
+        java.time.Instant now = clock.instant();
+        for (WorkPart part : parts) {
+            card.addPart(recommendationId, part.partNumber(), part.name(), part.quantity(), part.unitPrice(),
+                    user.username(), now);
+        }
+        if (hours != null) {
+            card.addLabour(recommendationId, user.username(), hours, card.getLabourRate(), now);
+        }
         return loaded(card);
     }
 
