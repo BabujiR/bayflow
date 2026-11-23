@@ -737,7 +737,7 @@ in the page `<meta name="description">`.
     served publicly and cached like the logo at `/api/v1/tenants/current/{logo-dark,icon}`
     (nginx and the public-GET list include them); `logoDarkUrl` and `iconUrl` in the branding. The
     icon is the browser-tab icon (else the logo), the collapsed sidebar's mark and the phone
-    header's. In the sidebar the logo uses its full width (about 208 x 56 px).
+    header's. In the sidebar the logo uses its full width (about 208 x 48 px).
 
 32. **Invoicing (R2a).** One invoice per COMPLETED job card (a new one only after a void), in
     workshop-service (`ws_invoices`, `ws_invoice_lines`, `ws_payments`, `ws_invoice_counters`; V10,
@@ -756,8 +756,17 @@ in the page `<meta name="description">`.
     to PARTIALLY_PAID / PAID; refunds (negative) and **void** (only with nothing paid; the number
     stays) are for managers and admins. Drafts can be discarded. Customers see their own issued
     invoices and print them; the print view (`/invoices/{id}/print`) is the browser's Save as PDF.
-    Not yet: emailing invoices and QuickBooks (R2b), online card payments (R2c), invoice-based
-    sales reports (R2a step 3).
+    Not yet: emailing invoices and QuickBooks (R2b), online card payments (R2c).
+
+33. **Reports from invoices (R2a step 3).** Sales (before tax) count each job once: its issued
+    invoice by issue time (parts, labour, fees, discounts, hours on its labour lines), or, while it
+    has none, its completed card by completion time. A draft or voided invoice leaves the job counted
+    from its card, so shops that don't invoice see the same figures as before. New: **collected**
+    (payments in the period, net of refunds) and **unpaid** (issued invoices still owed, the balance
+    and the part past due) on the summary and the dashboard; report tabs **Payments** (with totals
+    per method, for the till), **Unpaid invoices** (now, oldest first, ageing 0–30 / 31–60 / 61–90 /
+    over 90 days since issue) and **Tax** (per category and rate, from the invoices issued in the
+    period).
 
 ---
 

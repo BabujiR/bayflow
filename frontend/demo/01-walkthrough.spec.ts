@@ -169,9 +169,9 @@ test('Ramplight walkthrough: one auto shop, from sign-up to service history', as
     "This is what John, a customer, sees at Summit's address: their logo, photo and announcements.",
   );
   const banner = page.getByTestId('workshop-banner');
-  const more = banner.getByRole('button', { name: /more/ });
-  if (await more.isVisible().catch(() => false)) {
-    await p.click(more);
+  const next = banner.getByRole('button', { name: 'Next announcement' });
+  if (await next.isVisible().catch(() => false)) {
+    await p.click(next);
     await p.say('The seasonal offer is right there.');
   }
   await p.say('John is new here, so he creates an account.');

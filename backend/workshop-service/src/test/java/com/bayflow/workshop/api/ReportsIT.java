@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -20,6 +21,8 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.ResultActions;
@@ -28,6 +31,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.bayflow.security.Tenants;
 import com.bayflow.workshop.IntegrationTestBase;
+import com.bayflow.workshop.integration.WorkshopSettingsClient.LocationBilling;
+import com.bayflow.workshop.integration.WorkshopSettingsClient.WorkshopSettings;
 import com.jayway.jsonpath.JsonPath;
 
 /**
@@ -50,6 +55,7 @@ class ReportsIT extends IntegrationTestBase {
     private RequestPostProcessor mike;
     private Instant from;
     private Instant to;
+    private Card jobA;
 
     @BeforeEach
     void aWeekOfWork() throws Exception {
@@ -65,6 +71,7 @@ class ReportsIT extends IntegrationTestBase {
 
         // Main, by sam: pads approved (90.50 + 1.25 h × 95 = 209.25), wipers declined (30 + 0.25 h = 53.75).
         Card a = open(main);
+        jobA = a;
         String pads = recommend(sam, a, "Replace front pads", "90.50", "1.25");
         String wipers = recommend(sam, a, "Replace wiper blades", "30", "0.25");
         act(sam, a, "submit-for-approval", null).andExpect(status().isOk())
@@ -176,6 +183,77 @@ class ReportsIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.current.carCount").value(1))
                 .andExpect(jsonPath("$.current.sales", closeTo(209.25, 0.001)))
                 .andExpect(jsonPath("$.open.openCards").value(1));
+    }
+
+    @Test
+    void anIssuedInvoiceReplacesItsJobInSalesAndFeedsPaymentsUnpaidAndTax() throws Exception {
+        // Main charges 10 % tax on parts and fees, none on labour, and a 5.00 disposal fee.
+        Mockito.doReturn(new WorkshopSettings(new BigDecimal("95.00"), "USD", new LocationBilling(
+                new BigDecimal("10"), BigDecimal.ZERO, new BigDecimal("10"), null, null, new BigDecimal("5.00"), 0,
+                null))).when(workshopSettings).get(ArgumentMatchers.any(), ArgumentMatchers.any());
+        String draft = mvc.perform(post("/api/v1/job-cards/" + jobA.id() + "/invoice").with(sam))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String invoice = JsonPath.read(draft, "$.id");
+
+        // A draft changes nothing: the job still counts from its card.
+        report("summary", admin).andExpect(jsonPath("$.current.sales", closeTo(499.25, 0.001)));
+
+        // Issued: 90.50 parts + 118.75 labour + 5.00 fee = 214.25 before tax (9.05 + 0.50 tax = 223.80).
+        mvc.perform(post("/api/v1/invoices/" + invoice + "/issue").with(sam).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":0}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total", closeTo(223.80, 0.001)));
+        mvc.perform(post("/api/v1/invoices/" + invoice + "/payments").with(sam).header("Idempotency-Key", "r-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"method\":\"CASH\",\"amount\":100}"))
+                .andExpect(status().isOk());
+
+        report("summary", admin)
+                .andExpect(jsonPath("$.current.carCount").value(2))
+                .andExpect(jsonPath("$.current.sales", closeTo(504.25, 0.001)))
+                .andExpect(jsonPath("$.current.feesSales", closeTo(5.00, 0.001)))
+                .andExpect(jsonPath("$.current.labourHours", closeTo(3.25, 0.001)))
+                .andExpect(jsonPath("$.current.collected", closeTo(100.00, 0.001)))
+                .andExpect(jsonPath("$.open.unpaidInvoices").value(1))
+                .andExpect(jsonPath("$.open.unpaidBalance", closeTo(123.80, 0.001)))
+                // Due on receipt: owed money is already past due.
+                .andExpect(jsonPath("$.open.overdueBalance", closeTo(123.80, 0.001)));
+        report("locations", admin)
+                .andExpect(jsonPath("$[1].locationId").value(main.toString()))
+                .andExpect(jsonPath("$[1].sales", closeTo(214.25, 0.001)));
+
+        report("payments", admin)
+                .andExpect(jsonPath("$.rows", hasSize(1)))
+                .andExpect(jsonPath("$.rows[0].method").value("CASH"))
+                .andExpect(jsonPath("$.rows[0].invoiceNumber").value(org.hamcrest.Matchers.startsWith("INV-")))
+                .andExpect(jsonPath("$.byMethod[0].amount", closeTo(100.00, 0.001)))
+                .andExpect(jsonPath("$.total", closeTo(100.00, 0.001)));
+
+        mvc.perform(get("/api/v1/reports/unpaid").with(admin)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.rows", hasSize(1)))
+                .andExpect(jsonPath("$.rows[0].balanceDue", closeTo(123.80, 0.001)))
+                .andExpect(jsonPath("$.rows[0].overdue").value(true))
+                .andExpect(jsonPath("$.buckets[0].label").value("0–30 days"))
+                .andExpect(jsonPath("$.buckets[0].count").value(1))
+                .andExpect(jsonPath("$.buckets[3].count").value(0))
+                .andExpect(jsonPath("$.totalBalance", closeTo(123.80, 0.001)));
+
+        report("tax", admin)
+                .andExpect(jsonPath("$.rows", hasSize(3)))
+                .andExpect(jsonPath("$.rows[0].category").value("FEES"))
+                .andExpect(jsonPath("$.rows[0].taxableAmount", closeTo(5.00, 0.001)))
+                .andExpect(jsonPath("$.rows[0].tax", closeTo(0.50, 0.001)))
+                .andExpect(jsonPath("$.rows[1].category").value("LABOUR"))
+                .andExpect(jsonPath("$.rows[1].tax", closeTo(0.00, 0.001)))
+                .andExpect(jsonPath("$.rows[2].category").value("PARTS"))
+                .andExpect(jsonPath("$.rows[2].rate", closeTo(10.0, 0.0001)))
+                .andExpect(jsonPath("$.rows[2].taxableAmount", closeTo(90.50, 0.001)))
+                .andExpect(jsonPath("$.rows[2].tax", closeTo(9.05, 0.001)))
+                .andExpect(jsonPath("$.totalTax", closeTo(9.55, 0.001)));
+
+        // A manager at North sees none of Main's money.
+        mvc.perform(get("/api/v1/reports/unpaid").with(nora)).andExpect(jsonPath("$.rows", hasSize(0)));
+        report("payments", nora).andExpect(jsonPath("$.rows", hasSize(0)));
     }
 
     @Test

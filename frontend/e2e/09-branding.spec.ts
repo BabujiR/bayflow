@@ -95,7 +95,8 @@ test.describe('Workshop branding', () => {
     const banner = customer.page.getByTestId('workshop-banner');
     await expect(banner.getByTestId('announcement').first()).toContainText(bannerText);
     await expect(banner.getByText(offerText)).toBeHidden();
-    await banner.getByRole('button', { name: '1 more' }).click();
+    await expect(banner.getByRole('button', { name: 'Previous announcement' })).toHaveCount(0);
+    await banner.getByRole('button', { name: 'Next announcement' }).click();
     await expect(banner.getByText(offerText)).toBeVisible();
     await expect(customer.page.getByTestId('powered-by')).toHaveCount(0);
     const primary = await customer.page.evaluate(() =>

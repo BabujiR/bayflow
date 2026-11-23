@@ -462,6 +462,11 @@ export interface PeriodMetrics {
   hoursDeclined: number;
   /** Approved ÷ (approved + declined) value; null when nothing was decided. */
   closeRatio: number | null;
+  /** Invoiced fees and discounts: sales = parts + labour + fees − discounts (before tax). */
+  feesSales: number;
+  discounts: number;
+  /** Payments received in the period, net of refunds. */
+  collected: number;
 }
 
 export interface OpenWork {
@@ -469,6 +474,68 @@ export interface OpenWork {
   awaitingApproval: number;
   inWork: number;
   pendingValue: number;
+  /** Issued invoices not fully paid, what they owe, and how much of it is past due. */
+  unpaidInvoices: number;
+  unpaidBalance: number;
+  overdueBalance: number;
+}
+
+export interface PaymentRow {
+  id: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  locationId: string;
+  customerName: string;
+  registration: string;
+  method: PaymentMethod;
+  /** Negative for a refund. */
+  amount: number;
+  reference: string | null;
+  receivedAt: string;
+  receivedBy: string;
+}
+
+export interface PaymentsReport {
+  from: string;
+  to: string;
+  rows: PaymentRow[];
+  truncated: boolean;
+  byMethod: { method: PaymentMethod; count: number; amount: number }[];
+  total: number;
+}
+
+export interface UnpaidRow {
+  invoiceId: string;
+  number: string;
+  locationId: string;
+  customerName: string;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  registration: string;
+  issuedAt: string;
+  dueAt: string;
+  total: number;
+  balanceDue: number;
+  /** Days since it was issued. */
+  days: number;
+  overdue: boolean;
+}
+
+export interface UnpaidReport {
+  asOf: string;
+  rows: UnpaidRow[];
+  truncated: boolean;
+  /** 0–30, 31–60, 61–90 and over 90 days since issue. */
+  buckets: { label: string; count: number; balance: number }[];
+  totalBalance: number;
+  overdueBalance: number;
+}
+
+export interface TaxReport {
+  from: string;
+  to: string;
+  rows: { category: TaxCategory; rate: number; invoices: number; taxableAmount: number; tax: number }[];
+  totalTax: number;
 }
 
 export interface ReportSummary {

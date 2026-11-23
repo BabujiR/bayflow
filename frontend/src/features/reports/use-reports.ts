@@ -113,3 +113,26 @@ export function usePartsReport(period: Period) {
     queryFn: () => reportsApi.parts(range(period)),
   });
 }
+
+export function usePaymentsReport(period: Period) {
+  return useQuery({
+    queryKey: [REPORTS_QUERY_KEY, 'payments', period.from, period.to],
+    queryFn: () => reportsApi.payments(range(period)),
+  });
+}
+
+/** Invoices still owed right now (not for a period). */
+export function useUnpaidReport(live = false) {
+  return useQuery({
+    queryKey: [REPORTS_QUERY_KEY, 'unpaid'],
+    queryFn: reportsApi.unpaid,
+    refetchInterval: live ? DASHBOARD_REFRESH_MS : false,
+  });
+}
+
+export function useTaxReport(period: Period) {
+  return useQuery({
+    queryKey: [REPORTS_QUERY_KEY, 'tax', period.from, period.to],
+    queryFn: () => reportsApi.tax(range(period)),
+  });
+}

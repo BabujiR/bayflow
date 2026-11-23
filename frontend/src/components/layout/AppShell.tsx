@@ -107,13 +107,19 @@ export function AppShell() {
       <SkipLink />
       <Sidebar {...menu} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
-          <div className="flex h-16 items-center gap-2 px-4 lg:px-8">
+        <header className="sticky top-0 z-40 bg-background/90 backdrop-blur">
+          {/* As tall as the sidebar's logo area on wide screens, so their bottom lines meet. */}
+          <div className="flex min-h-16 flex-wrap items-center gap-2 border-b px-4 lg:h-16 lg:flex-nowrap lg:px-8">
             <MobileMenu {...menu} />
             <Link to="/" aria-label={homeLabel} className="shrink-0 lg:hidden">
               {/* The square icon suits the phone header; without one, the logo. */}
               <WorkshopLogo compact={!!branding.iconUrl} />
             </Link>
+            {/* Announcements: in the header's free space; on small screens a line of their own below. */}
+            <BrandBanner
+              variant="slim"
+              className="order-last mb-2 w-full lg:order-none lg:mx-auto lg:mb-0 lg:w-auto lg:max-w-2xl lg:flex-1"
+            />
             <div className="ml-auto flex shrink-0 items-center gap-1">
               <LocationSwitcher />
               <NotificationBell />
@@ -121,7 +127,6 @@ export function AppShell() {
               <UserMenu />
             </div>
           </div>
-          <BrandBanner variant="slim" />
         </header>
         {page}
         <PoweredBy />

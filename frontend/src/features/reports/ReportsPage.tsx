@@ -4,6 +4,8 @@ import { Link, useSearchParams } from 'react-router';
 
 import type {
   AdvisorRow,
+  PaymentRow,
+  UnpaidRow,
   DailySales,
   DeclinedRow,
   LocationSalesRow,
@@ -30,6 +32,9 @@ import { eachDay, type Period } from './period';
 import { PeriodPicker } from './PeriodPicker';
 import {
   useAdvisorReport,
+  usePaymentsReport,
+  useTaxReport,
+  useUnpaidReport,
   useDailySales,
   useDeclinedReport,
   useLocationSales,
@@ -42,6 +47,9 @@ import {
 export const REPORT_TABS = {
   summary: 'Summary',
   sales: 'Sales details',
+  payments: 'Payments',
+  unpaid: 'Unpaid invoices',
+  tax: 'Tax',
   advisors: 'Service advisors',
   technicians: 'Technicians',
   declined: 'Declined jobs',
@@ -125,6 +133,9 @@ function Reports({ zone, currency }: { zone?: string; currency: string }) {
         {tab === 'technicians' && <TechnicianReport period={period} currency={currency} />}
         {tab === 'declined' && <DeclinedReport period={period} currency={currency} />}
         {tab === 'parts' && <PartsReport period={period} currency={currency} />}
+        {tab === 'payments' && <PaymentsReport period={period} currency={currency} />}
+        {tab === 'unpaid' && <UnpaidReport period={period} currency={currency} />}
+        {tab === 'tax' && <TaxReport period={period} currency={currency} />}
       </div>
     </>
   );
@@ -248,10 +259,13 @@ function SummaryReport({ period, currency }: { period: Period; currency: string 
           points = false,
         ): SummaryLine => ({ measure, current: pick(current), previous: pick(previous), show, points });
         const lines: SummaryLine[] = [
-          line('Car count (completed jobs)', (p) => p.carCount, count),
-          line('Sales', (p) => p.sales, amount),
+          line('Car count (jobs sold)', (p) => p.carCount, count),
+          line('Sales (before tax)', (p) => p.sales, amount),
           line('Parts sales', (p) => p.partsSales, amount),
           line('Labour sales', (p) => p.labourSales, amount),
+          line('Fees', (p) => p.feesSales, amount),
+          line('Discounts', (p) => p.discounts, amount),
+          line('Collected (payments)', (p) => p.collected, amount),
           line('Average repair order', (p) => p.averageRepairOrder, amount),
           line('Hours billed', (p) => p.labourHours, formatHours),
           line('Effective labour rate', (p) => p.effectiveLabourRate, amount),
@@ -632,6 +646,252 @@ function PartsReport({ period, currency }: { period: Period; currency: string })
                 {m(report.rows.reduce((sum, r) => sum + r.total, 0))} at the prices charged.
               </p>
             </>
+          }
+        />
+      )}
+    </Report>
+  );
+}
+
+// ---- Payments (R2a) -----------------------------------------------------------------------------
+
+const METHOD_LABELS: Record<string, string> = {
+  CASH: 'Cash',
+  CARD: 'Card',
+  CHECK: 'Check',
+  BANK_TRANSFER: 'Bank transfer',
+  OTHER: 'Other',
+};
+
+function PaymentsReport({ period, currency }: { period: Period; currency: string }) {
+  const payments = usePaymentsReport(period);
+  const { nameOf, zoneOf, hasSeveral } = useLocationLookup();
+  const m = money(currency);
+  const columns: Column<PaymentRow>[] = [
+    {
+      header: 'Received',
+      value: (r) => r.receivedAt,
+      cell: (r) => formatDateTime(r.receivedAt, zoneOf(r.locationId)),
+    },
+    {
+      header: 'Invoice',
+      value: (r) => r.invoiceNumber,
+      cell: (r) => (
+        <Link to={`/invoices/${r.invoiceId}`} className="font-medium text-primary hover:underline">
+          {r.invoiceNumber}
+        </Link>
+      ),
+    },
+    { header: 'Customer', value: (r) => r.customerName, cell: (r) => r.customerName },
+    { header: 'Vehicle', value: (r) => r.registration, cell: (r) => r.registration },
+    {
+      header: 'Method',
+      value: (r) => (r.amount < 0 ? 'Refund' : (METHOD_LABELS[r.method] ?? r.method)),
+      cell: (r) => (r.amount < 0 ? 'Refund' : (METHOD_LABELS[r.method] ?? r.method)),
+    },
+    { header: 'Reference', value: (r) => r.reference ?? '', cell: (r) => r.reference ?? '—' },
+    { header: 'Amount', value: (r) => r.amount, cell: (r) => m(r.amount), numeric: true },
+    { header: 'Taken by', value: (r) => r.receivedBy, cell: (r) => r.receivedBy },
+    ...(hasSeveral
+      ? [
+          {
+            header: 'Location',
+            value: (r: PaymentRow) => nameOf(r.locationId),
+            cell: (r: PaymentRow) => nameOf(r.locationId),
+          },
+        ]
+      : []),
+  ];
+  return (
+    <Report query={payments}>
+      {(report) => (
+        <div className="grid gap-6">
+          <section aria-label="Collected by method" className="flex flex-wrap gap-3">
+            {report.byMethod.map((b) => (
+              <div key={b.method} className="rounded-lg border px-4 py-3 text-sm">
+                <p className="text-muted-foreground">
+                  {METHOD_LABELS[b.method] ?? b.method} · {formatCount(b.count)}
+                </p>
+                <p className="text-lg font-semibold tabular-nums">{m(b.amount)}</p>
+              </div>
+            ))}
+            <div className="rounded-lg border border-primary/40 px-4 py-3 text-sm">
+              <p className="text-muted-foreground">Total collected</p>
+              <p className="text-lg font-semibold tabular-nums" data-testid="payments-total">
+                {m(report.total)}
+              </p>
+            </div>
+          </section>
+          <ReportTable
+            name="payments"
+            label="Payments"
+            period={period}
+            columns={columns}
+            rows={report.rows}
+            rowKey={(r) => r.id}
+            empty="No payments were recorded in this period."
+            footer={
+              <>
+                <Truncated report={report} />
+                <p className="text-sm text-muted-foreground">
+                  Money taken at the counter, by the time it was recorded; refunds count against it. Use it to
+                  balance the till at the end of the day.
+                </p>
+              </>
+            }
+          />
+        </div>
+      )}
+    </Report>
+  );
+}
+
+// ---- Unpaid invoices (R2a) ----------------------------------------------------------------------
+
+function UnpaidReport({ period, currency }: { period: Period; currency: string }) {
+  const unpaid = useUnpaidReport();
+  const { nameOf, zoneOf, hasSeveral } = useLocationLookup();
+  const m = money(currency);
+  const columns: Column<UnpaidRow>[] = [
+    {
+      header: 'Invoice',
+      value: (r) => r.number,
+      cell: (r) => (
+        <Link to={`/invoices/${r.invoiceId}`} className="font-medium text-primary hover:underline">
+          {r.number}
+        </Link>
+      ),
+    },
+    {
+      header: 'Issued',
+      value: (r) => r.issuedAt,
+      cell: (r) => formatDateTime(r.issuedAt, zoneOf(r.locationId)),
+    },
+    {
+      header: 'Customer',
+      value: (r) => r.customerName,
+      cell: (r) => <span className="font-medium">{r.customerName}</span>,
+    },
+    {
+      header: 'Contact',
+      value: (r) => [r.customerPhone, r.customerEmail].filter(Boolean).join(' · '),
+      cell: (r) => [r.customerPhone, r.customerEmail].filter(Boolean).join(' · ') || '—',
+    },
+    { header: 'Vehicle', value: (r) => r.registration, cell: (r) => r.registration },
+    { header: 'Total', value: (r) => r.total, cell: (r) => m(r.total), numeric: true },
+    { header: 'Owed', value: (r) => r.balanceDue, cell: (r) => m(r.balanceDue), numeric: true },
+    {
+      header: 'Age',
+      value: (r) => r.days,
+      cell: (r) => (
+        <span className={cn(r.overdue && 'font-medium text-destructive')}>
+          {r.days === 1 ? '1 day' : `${r.days} days`}
+          {r.overdue ? ' · overdue' : ''}
+        </span>
+      ),
+      numeric: true,
+    },
+    ...(hasSeveral
+      ? [
+          {
+            header: 'Location',
+            value: (r: UnpaidRow) => nameOf(r.locationId),
+            cell: (r: UnpaidRow) => nameOf(r.locationId),
+          },
+        ]
+      : []),
+  ];
+  return (
+    <Report query={unpaid}>
+      {(report) => (
+        <div className="grid gap-6">
+          <section aria-label="Owed by age" className="flex flex-wrap gap-3">
+            {report.buckets.map((b) => (
+              <div key={b.label} className="rounded-lg border px-4 py-3 text-sm">
+                <p className="text-muted-foreground">
+                  {b.label} · {formatCount(b.count)}
+                </p>
+                <p className="text-lg font-semibold tabular-nums">{m(b.balance)}</p>
+              </div>
+            ))}
+            <div className="rounded-lg border border-primary/40 px-4 py-3 text-sm">
+              <p className="text-muted-foreground">Total owed</p>
+              <p className="text-lg font-semibold tabular-nums" data-testid="unpaid-total">
+                {m(report.totalBalance)}
+              </p>
+              {report.overdueBalance > 0 && (
+                <p className="text-xs text-destructive">{m(report.overdueBalance)} overdue</p>
+              )}
+            </div>
+          </section>
+          <ReportTable
+            name="unpaid-invoices"
+            label="Unpaid invoices"
+            period={period}
+            columns={columns}
+            rows={report.rows}
+            rowKey={(r) => r.invoiceId}
+            empty="Every issued invoice is paid."
+            footer={
+              <>
+                {report.truncated && <Alert>Showing the oldest 1,000 invoices.</Alert>}
+                <p className="text-sm text-muted-foreground">
+                  Issued invoices not yet paid in full, oldest first, as of now: the period above doesn't
+                  apply.
+                </p>
+              </>
+            }
+          />
+        </div>
+      )}
+    </Report>
+  );
+}
+
+// ---- Tax (R2a) ----------------------------------------------------------------------------------
+
+const TAX_CATEGORY_LABELS: Record<string, string> = { PARTS: 'Parts', LABOUR: 'Labour', FEES: 'Fees' };
+
+type TaxLine = { category: string; rate: number; invoices: number; taxableAmount: number; tax: number };
+
+function TaxReport({ period, currency }: { period: Period; currency: string }) {
+  const tax = useTaxReport(period);
+  const m = money(currency);
+  const columns: Column<TaxLine>[] = [
+    {
+      header: 'Category',
+      value: (r) => TAX_CATEGORY_LABELS[r.category] ?? r.category,
+      cell: (r) => <span className="font-medium">{TAX_CATEGORY_LABELS[r.category] ?? r.category}</span>,
+    },
+    { header: 'Rate (%)', value: (r) => r.rate, cell: (r) => `${r.rate} %`, numeric: true },
+    { header: 'Invoices', value: (r) => r.invoices, cell: (r) => formatCount(r.invoices), numeric: true },
+    {
+      header: 'Taxable amount',
+      value: (r) => r.taxableAmount,
+      cell: (r) => m(r.taxableAmount),
+      numeric: true,
+    },
+    { header: 'Tax', value: (r) => r.tax, cell: (r) => m(r.tax), numeric: true },
+  ];
+  return (
+    <Report query={tax}>
+      {(report) => (
+        <ReportTable
+          name="tax"
+          label="Tax collected"
+          period={period}
+          columns={columns}
+          rows={report.rows}
+          rowKey={(r) => `${r.category}-${r.rate}`}
+          empty="No invoices were issued in this period."
+          footer={
+            <p className="text-sm text-muted-foreground">
+              Tax on the invoices issued in the period (voided ones excluded), per category and rate: total{' '}
+              <span className="font-medium text-foreground" data-testid="tax-total">
+                {m(report.totalTax)}
+              </span>
+              . A rate change shows as a row of its own.
+            </p>
           }
         />
       )}

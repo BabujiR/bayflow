@@ -161,6 +161,152 @@ describe('reports page (reports phase R1)', () => {
   });
 });
 
+describe('money reports (invoicing R2a)', () => {
+  it('shows what was collected and what is owed on the dashboard', async () => {
+    server.use(
+      sessionFor(user('ADMIN', 'admin1')),
+      http.get('*/api/v1/reports/summary', () =>
+        HttpResponse.json(
+          reportSummary(
+            { collected: 1200 },
+            { collected: 800 },
+            { unpaidInvoices: 3, unpaidBalance: 450.5, overdueBalance: 120 },
+          ),
+        ),
+      ),
+    );
+    renderApp('/dashboard');
+
+    const money = await screen.findByRole('region', { name: 'Money' });
+    const [collected, unpaid] = within(money).getAllByTestId('kpi');
+    expect(collected).toHaveTextContent('$1,200.00');
+    expect(collected).toHaveTextContent('▲ 50%');
+    expect(unpaid).toHaveTextContent('$450.50');
+    expect(within(unpaid).getByRole('link', { name: '3 invoices, $120.00 overdue' })).toHaveAttribute(
+      'href',
+      expect.stringContaining('tab=unpaid'),
+    );
+  });
+
+  it('lists payments with totals per method', async () => {
+    server.use(
+      sessionFor(user('ADMIN', 'admin1')),
+      http.get('*/api/v1/reports/payments', () =>
+        HttpResponse.json({
+          from: '',
+          to: '',
+          truncated: false,
+          total: 190,
+          byMethod: [
+            { method: 'CARD', count: 1, amount: 200 },
+            { method: 'CASH', count: 1, amount: -10 },
+          ],
+          rows: [
+            {
+              id: 'p1',
+              invoiceId: 'i1',
+              invoiceNumber: 'INV-1001',
+              locationId: '00000000-0000-0000-0000-000000000001',
+              customerName: 'Ana Silva',
+              registration: 'BFL 1234',
+              method: 'CARD',
+              amount: 200,
+              reference: 'slip 42',
+              receivedAt: '2026-11-20T15:00:00Z',
+              receivedBy: 'sam',
+            },
+            {
+              id: 'p2',
+              invoiceId: 'i1',
+              invoiceNumber: 'INV-1001',
+              locationId: '00000000-0000-0000-0000-000000000001',
+              customerName: 'Ana Silva',
+              registration: 'BFL 1234',
+              method: 'CASH',
+              amount: -10,
+              reference: null,
+              receivedAt: '2026-11-20T16:00:00Z',
+              receivedBy: 'maria',
+            },
+          ],
+        }),
+      ),
+    );
+    renderApp('/reports?tab=payments');
+
+    const table = await screen.findByRole('table', { name: 'Payments' });
+    expect(within(table).getAllByRole('link', { name: 'INV-1001' })).toHaveLength(2);
+    expect(within(table).getByText('Refund')).toBeInTheDocument();
+    expect(screen.getByTestId('payments-total')).toHaveTextContent('$190.00');
+  });
+
+  it('lists unpaid invoices by age, whatever the period', async () => {
+    server.use(
+      sessionFor(user('ADMIN', 'admin1')),
+      http.get('*/api/v1/reports/unpaid', () =>
+        HttpResponse.json({
+          asOf: '2026-11-22T12:00:00Z',
+          truncated: false,
+          totalBalance: 123.8,
+          overdueBalance: 123.8,
+          buckets: [
+            { label: '0–30 days', count: 1, balance: 123.8 },
+            { label: '31–60 days', count: 0, balance: 0 },
+            { label: '61–90 days', count: 0, balance: 0 },
+            { label: 'Over 90 days', count: 0, balance: 0 },
+          ],
+          rows: [
+            {
+              invoiceId: 'i1',
+              number: 'INV-1001',
+              locationId: '00000000-0000-0000-0000-000000000001',
+              customerName: 'Ana Silva',
+              customerEmail: 'ana@example.com',
+              customerPhone: '+1 555 0100',
+              registration: 'BFL 1234',
+              issuedAt: '2026-11-10T15:00:00Z',
+              dueAt: '2026-11-10T15:00:00Z',
+              total: 223.8,
+              balanceDue: 123.8,
+              days: 12,
+              overdue: true,
+            },
+          ],
+        }),
+      ),
+    );
+    renderApp('/reports?tab=unpaid');
+
+    const table = await screen.findByRole('table', { name: 'Unpaid invoices' });
+    expect(within(table).getByText('12 days · overdue')).toBeInTheDocument();
+    expect(within(table).getByText('+1 555 0100 · ana@example.com')).toBeInTheDocument();
+    expect(screen.getByTestId('unpaid-total')).toHaveTextContent('$123.80');
+  });
+
+  it('sums tax per category and rate', async () => {
+    server.use(
+      sessionFor(user('ADMIN', 'admin1')),
+      http.get('*/api/v1/reports/tax', () =>
+        HttpResponse.json({
+          from: '',
+          to: '',
+          totalTax: 9.55,
+          rows: [
+            { category: 'FEES', rate: 10, invoices: 1, taxableAmount: 5, tax: 0.5 },
+            { category: 'PARTS', rate: 10, invoices: 1, taxableAmount: 90.5, tax: 9.05 },
+          ],
+        }),
+      ),
+    );
+    renderApp('/reports?tab=tax');
+
+    const table = await screen.findByRole('table', { name: 'Tax collected' });
+    expect(within(table).getByText('Parts')).toBeInTheDocument();
+    expect(within(table).getByText('$9.05')).toBeInTheDocument();
+    expect(screen.getByTestId('tax-total')).toHaveTextContent('$9.55');
+  });
+});
+
 describe('report helpers', () => {
   it('writes safe CSV', () => {
     expect(csvField('Smith, "Bob"')).toBe('"Smith, ""Bob"""');

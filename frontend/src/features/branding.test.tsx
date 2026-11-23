@@ -72,10 +72,11 @@ describe('a branded workshop', () => {
       '/api/v1/tenants/current/cover?v=def',
     );
     const banner = screen.getByRole('complementary', { name: 'Workshop announcements' });
-    const [first, second] = within(banner).getAllByTestId('announcement');
-    expect(first).toHaveTextContent('Closed on 24 December');
-    expect(first).toHaveAttribute('data-style', 'IMPORTANT');
-    expect(second).not.toBeVisible();
+    // One at a time, the important one first.
+    const shown = within(banner).getByTestId('announcement');
+    expect(shown).toHaveTextContent('Closed on 24 December');
+    expect(shown).toHaveAttribute('data-style', 'IMPORTANT');
+    expect(within(banner).queryByText('Winter tyres in stock')).not.toBeInTheDocument();
     expect(screen.queryByTestId('powered-by')).not.toBeInTheDocument();
 
     await vi.waitFor(() => expect(brandRule()).toContain('--primary: #be123c;'));
@@ -83,21 +84,40 @@ describe('a branded workshop', () => {
     expect(document.title).toBe('Acme Auto');
   });
 
-  it('shows one announcement, and the rest behind "more"', async () => {
-    server.use(noSession, branded());
-    renderApp('/login');
-
-    const banner = await screen.findByRole('complementary', { name: 'Workshop announcements' });
-    const more = within(banner).getByRole('button', { name: '1 more' });
-    expect(more).toHaveAttribute('aria-expanded', 'false');
-    expect(within(banner).getByText('Winter tyres in stock')).not.toBeVisible();
-
-    await userEvent.click(more);
-    expect(within(banner).getByText('Winter tyres in stock')).toBeVisible();
-    expect(within(banner).getByRole('button', { name: 'Show less' })).toHaveAttribute(
-      'aria-expanded',
-      'true',
+  it('steps through several announcements with ‹ and ›', async () => {
+    server.use(
+      noSession,
+      branded({
+        announcements: [
+          { id: 'a1', text: 'Closed on 24 December', style: 'IMPORTANT' },
+          { id: 'a2', text: 'Winter tyres in stock', style: 'INFO' },
+          { id: 'a3', text: 'Open Saturdays', style: 'INFO' },
+        ],
+      }),
     );
+    renderApp('/login');
+    const banner = await screen.findByRole('complementary', { name: 'Workshop announcements' });
+    const shown = () => within(banner).getByTestId('announcement');
+    const previous = () => within(banner).queryByRole('button', { name: 'Previous announcement' });
+    const next = () => within(banner).queryByRole('button', { name: 'Next announcement' });
+
+    // The first: only ›.
+    expect(shown()).toHaveTextContent('Announcement 1 of 3: Closed on 24 December');
+    expect(previous()).not.toBeInTheDocument();
+
+    // In between: both.
+    await userEvent.click(next()!);
+    expect(shown()).toHaveTextContent('Winter tyres in stock');
+    expect(previous()).toBeInTheDocument();
+    expect(next()).toBeInTheDocument();
+
+    // The last: only ‹.
+    await userEvent.click(next()!);
+    expect(shown()).toHaveTextContent('Open Saturdays');
+    expect(next()).not.toBeInTheDocument();
+
+    await userEvent.click(previous()!);
+    expect(shown()).toHaveTextContent('Winter tyres in stock');
   });
 
   it('has no "more" with a single announcement', async () => {

@@ -15,7 +15,7 @@ export function Field({ label, error, hint, children }: FieldProps) {
   const id = useId();
   const messageId = `${id}-message`;
   return (
-    <div className="grid gap-1.5">
+    <div className="grid content-start gap-1.5">
       <Label htmlFor={id}>{label}</Label>
       {cloneElement(children, {
         id,
