@@ -195,9 +195,16 @@ public class JobCard {
 
     public RecommendedWorkItem addRecommendation(String description, BigDecimal estimatedPartsCost,
             BigDecimal estimatedLabourHours, Instant now) {
+        return addRecommendation(description, estimatedPartsCost, estimatedLabourHours, null, now);
+    }
+
+    /** cannedJobId: the canned job the advisor started from (null = typed in). */
+    public RecommendedWorkItem addRecommendation(String description, BigDecimal estimatedPartsCost,
+            BigDecimal estimatedLabourHours, UUID cannedJobId, Instant now) {
         require(JobCardAction.ADD_RECOMMENDATION);
         RecommendedWorkItem item = new RecommendedWorkItem(this, description, estimatedPartsCost,
                 estimatedLabourHours, now);
+        item.fromCannedJob(cannedJobId);
         recommendations.add(item);
         updatedAt = now;
         return item;

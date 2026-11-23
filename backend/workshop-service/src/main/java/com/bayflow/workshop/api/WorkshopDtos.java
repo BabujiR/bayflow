@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
@@ -66,7 +67,23 @@ public final class WorkshopDtos {
             @NotBlank @Size(max = 1000) String description,
             @NotNull @DecimalMin("0.00") @Digits(integer = 10, fraction = 2) BigDecimal estimatedPartsCost,
             @NotNull @DecimalMin("0.00") @DecimalMax("999.99") @Digits(integer = 3, fraction = 2)
-            BigDecimal estimatedLabourHours) {
+            BigDecimal estimatedLabourHours,
+            // The canned job the advisor started from (optional).
+            UUID cannedJobId) {
+    }
+
+    /** A part of {@link WorkRequest}. */
+    public record WorkPartRequest(
+            @NotBlank @Size(max = 50) String partNumber,
+            @NotBlank @Size(max = 200) String name,
+            @NotNull @Min(1) @Max(1000) Integer quantity,
+            @NotNull @DecimalMin("0.00") @Digits(integer = 10, fraction = 2) BigDecimal unitPrice) {
+    }
+
+    /** Parts and labour for one approved item at once; hours null = no labour (at the card's rate). */
+    public record WorkRequest(
+            @NotNull @Size(max = 50) java.util.List<@Valid WorkPartRequest> parts,
+            @DecimalMin("0.01") @DecimalMax("24.00") @Digits(integer = 2, fraction = 2) BigDecimal hours) {
     }
 
     public record WorkLogRequest(@NotNull UUID recommendationId, @NotBlank @Size(max = 1000) String description) {
@@ -127,12 +144,12 @@ public final class WorkshopDtos {
 
     public record RecommendationResponse(UUID id, String description, BigDecimal estimatedPartsCost,
             BigDecimal estimatedLabourHours, BigDecimal estimatedLabourCost, BigDecimal estimatedTotal,
-            ApprovalStatus approvalStatus, String decidedBy, Instant decidedAt) {
+            ApprovalStatus approvalStatus, String decidedBy, Instant decidedAt, UUID cannedJobId) {
 
         static RecommendationResponse from(RecommendedWorkItem i, BigDecimal rate) {
             return new RecommendationResponse(i.getId(), i.getDescription(), i.getEstimatedPartsCost(),
                     i.getEstimatedLabourHours(), i.estimatedLabourCost(rate), i.estimatedTotal(rate),
-                    i.getApprovalStatus(), i.getDecidedBy(), i.getDecidedAt());
+                    i.getApprovalStatus(), i.getDecidedBy(), i.getDecidedAt(), i.getCannedJobId());
         }
     }
 

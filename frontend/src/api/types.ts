@@ -230,6 +230,51 @@ export type WorkLogRequest = W['WorkLogRequest'];
 export type PartRequest = W['PartRequest'];
 export type LabourRequest = W['LabourRequest'];
 
+// ---- canned jobs (R3a) ---------------------------------------------------------------------
+// Written by hand until the schema is regenerated with `pnpm api:update`.
+
+export interface CannedJobPart {
+  id: string;
+  partNumber: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+/** A ready-made package of work; locationId null = every location. */
+export interface CannedJob {
+  id: string;
+  locationId: string | null;
+  name: string;
+  category: string | null;
+  description: string;
+  labourHours: number;
+  parts: CannedJobPart[];
+  /** What the usual parts come to: the parts estimate of a recommendation. */
+  partsTotal: number;
+  active: boolean;
+  updatedAt: string;
+  version: number;
+}
+
+export interface CannedJobRequest {
+  locationId: string | null;
+  name: string;
+  category: string | null;
+  description: string;
+  labourHours: number;
+  parts: { partNumber: string; name: string; quantity: number; unitPrice: number }[];
+  /** Required to update: the version read. */
+  version: number | null;
+}
+
+/** Several parts and the labour for one approved item at once; hours null = no labour. */
+export interface WorkRequest {
+  parts: { partNumber: string; name: string; quantity: number; unitPrice: number }[];
+  hours: number | null;
+}
+
 // ---- workshop settings (auth-service, SaaS phase 3) --------------------------------------
 // Written by hand until the schema is regenerated with `pnpm api:update`.
 

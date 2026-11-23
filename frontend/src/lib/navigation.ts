@@ -6,6 +6,7 @@ import {
   CalendarIcon,
   CarIcon,
   ChartIcon,
+  ClipboardIcon,
   DashboardIcon,
   IdCardIcon,
   JobCardIcon,
@@ -125,6 +126,14 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['ADMIN'],
     group: 'admin',
     icon: MapPinIcon,
+  },
+  {
+    to: '/canned-jobs',
+    label: 'Canned jobs',
+    description: 'Work you do often, with its labour hours and usual parts.',
+    roles: ['ADMIN', 'MANAGER'],
+    group: 'admin',
+    icon: ClipboardIcon,
   },
   {
     to: '/settings',

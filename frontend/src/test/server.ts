@@ -44,6 +44,8 @@ const defaults = [
   http.get('*/api/v1/job-cards/:id/invoice', () =>
     HttpResponse.json({ status: 404, title: 'Not Found', detail: 'Invoice was not found.' }, { status: 404 }),
   ),
+  // Canned jobs: none yet (advisors see the picker only when there are some).
+  http.get('*/api/v1/canned-jobs', () => HttpResponse.json([])),
   // QuickBooks: not set up on the server.
   http.get('*/api/v1/quickbooks', () =>
     HttpResponse.json({

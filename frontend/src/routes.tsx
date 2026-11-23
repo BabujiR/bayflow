@@ -8,6 +8,7 @@ import { BookAppointmentPage } from '@/features/appointments/BookAppointmentPage
 import { BoardPage } from '@/features/board/BoardPage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
+import { CannedJobsPage } from '@/features/cannedjobs/CannedJobsPage';
 import { DashboardPage } from '@/features/reports/DashboardPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { InvoicePage } from '@/features/invoices/InvoicePage';
@@ -125,6 +126,7 @@ export const routes: RouteObject[] = [
             children: [
               { path: '/dashboard', element: <DashboardPage /> },
               { path: '/reports', element: <ReportsPage /> },
+              { path: '/canned-jobs', element: <CannedJobsPage /> },
             ],
           },
           {

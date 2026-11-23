@@ -191,6 +191,13 @@ customer has an account); replies go to the location's address. Locally it lands
 (http://localhost:8025). Managers and admins can **Export** a period from the Invoices page: an
 invoices CSV in QuickBooks Online's import layout and a payments CSV.
 
+### Canned jobs
+
+Managers and admins keep the shop's everyday work under *Canned jobs* (e.g. "Synthetic oil
+change": description, labour hours and usual parts; for every location or one). On a job card
+the advisor picks **From canned job** to fill in a recommendation, and once it's approved the
+mechanic clicks **Add usual parts & labour** to record them in one go (labour at the card's rate).
+
 ### QuickBooks Online
 
 An admin connects the company under *Settings → QuickBooks Online* and chooses the QuickBooks
@@ -416,6 +423,7 @@ Caddy with a wildcard certificate, nightly backups). It applies everything below
 | Reports 1 | Owner dashboard, reports with CSV export, who sent each estimate | 🔍 in review |
 | Invoicing 1 | Invoices, tax and fees, payments, print; sales, payments, unpaid and tax reports | 🔍 in review |
 | Invoicing 2 | Email invoices, CSV export for QuickBooks, QuickBooks Online connection | 🔍 in review |
+| Faster counter 1 | Canned jobs | 🔍 in review |
 
 ## Assumptions
 

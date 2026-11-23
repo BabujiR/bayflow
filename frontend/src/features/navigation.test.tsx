@@ -36,7 +36,7 @@ describe('staff sidebar', () => {
       within(sections[2])
         .getAllByRole('link')
         .map((l) => l.textContent),
-    ).toEqual(['User accounts', 'Locations', 'Workshop settings']);
+    ).toEqual(['User accounts', 'Locations', 'Canned jobs', 'Workshop settings']);
   });
 
   it('collapses to icons, keeps the names for screen readers, and remembers it', async () => {
@@ -72,7 +72,11 @@ describe('staff sidebar', () => {
 
   it('gives each role only its own sections', () => {
     expect(navGroupsFor(['MECHANIC']).map((s) => s.group)).toEqual(['work']);
-    expect(navGroupsFor(['MANAGER', 'SERVICE_ADVISOR']).map((s) => s.group)).toEqual(['work', 'insights']);
+    expect(navGroupsFor(['MANAGER', 'SERVICE_ADVISOR']).map((s) => s.group)).toEqual([
+      'work',
+      'insights',
+      'admin',
+    ]);
   });
 });
 
