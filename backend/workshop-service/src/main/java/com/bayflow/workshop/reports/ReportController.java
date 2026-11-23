@@ -15,9 +15,12 @@ import com.bayflow.workshop.reports.ReportDtos.DailyResponse;
 import com.bayflow.workshop.reports.ReportDtos.DeclinedRow;
 import com.bayflow.workshop.reports.ReportDtos.LocationRow;
 import com.bayflow.workshop.reports.ReportDtos.PartRow;
+import com.bayflow.workshop.reports.ReportDtos.PaymentsResponse;
 import com.bayflow.workshop.reports.ReportDtos.RowsResponse;
 import com.bayflow.workshop.reports.ReportDtos.SummaryResponse;
+import com.bayflow.workshop.reports.ReportDtos.TaxResponse;
 import com.bayflow.workshop.reports.ReportDtos.TechnicianRow;
+import com.bayflow.workshop.reports.ReportDtos.UnpaidResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -88,6 +91,28 @@ public class ReportController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
         return reports.declined(ReportPeriod.of(from, to));
+    }
+
+    @GetMapping("/payments")
+    @Operation(summary = "Payments and refunds received in the period (up to 1000), with totals per method")
+    public PaymentsResponse payments(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+        return reports.payments(ReportPeriod.of(from, to));
+    }
+
+    @GetMapping("/unpaid")
+    @Operation(summary = "Issued invoices still owed, oldest first, with ageing (now, not for a period)")
+    public UnpaidResponse unpaid() {
+        return reports.unpaid();
+    }
+
+    @GetMapping("/tax")
+    @Operation(summary = "Tax on the invoices issued in the period, per category and rate")
+    public TaxResponse tax(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+        return reports.tax(ReportPeriod.of(from, to));
     }
 
     @GetMapping("/parts")

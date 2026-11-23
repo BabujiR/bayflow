@@ -121,6 +121,29 @@ function Dashboard({ zone, currency }: { zone?: string; currency: string }) {
                   hint="per hour billed"
                 />
               </section>
+              <section aria-label="Money" className="grid gap-3 sm:grid-cols-2">
+                <KpiTile
+                  label="Collected"
+                  value={formatMoney(current.collected, currency)}
+                  changeText={describeChange(current.collected, previous.collected)}
+                  hint="payments received in the period"
+                />
+                <KpiTile
+                  label="Unpaid invoices"
+                  value={formatMoney(open.unpaidBalance, currency)}
+                  hint={
+                    <Link
+                      to={`/reports?${new URLSearchParams({ ...periodParams(period), tab: 'unpaid' })}`}
+                      className="text-primary hover:underline"
+                    >
+                      {formatCount(open.unpaidInvoices)} {open.unpaidInvoices === 1 ? 'invoice' : 'invoices'}
+                      {open.overdueBalance > 0
+                        ? `, ${formatMoney(open.overdueBalance, currency)} overdue`
+                        : ''}
+                    </Link>
+                  }
+                />
+              </section>
               <section aria-label="In the shop now" className="grid gap-3 sm:grid-cols-3">
                 <KpiTile
                   label="Open job cards"

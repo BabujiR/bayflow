@@ -31,6 +31,7 @@ import type {
   PageResponse,
   PartRequest,
   PartUsageRow,
+  PaymentsReport,
   PublicWorkshop,
   ProfileRequest,
   RecommendationRequest,
@@ -41,10 +42,12 @@ import type {
   SignupRequest,
   SignupResponse,
   SlugAvailability,
+  TaxReport,
   TechnicianRow,
   TemporaryPassword,
   UpdateBrandingRequest,
   UpdateVehicleRequest,
+  UnpaidReport,
   UpdateWorkshopSettingsRequest,
   User,
   Vehicle,
@@ -234,6 +237,10 @@ export const reportsApi = {
   declined: (range: ReportRange) =>
     http.get<ReportRows<DeclinedRow>>('/api/v1/reports/declined', { ...range }),
   parts: (range: ReportRange) => http.get<ReportRows<PartUsageRow>>('/api/v1/reports/parts', { ...range }),
+  payments: (range: ReportRange) => http.get<PaymentsReport>('/api/v1/reports/payments', { ...range }),
+  /** Now, not for a period. */
+  unpaid: () => http.get<UnpaidReport>('/api/v1/reports/unpaid'),
+  tax: (range: ReportRange) => http.get<TaxReport>('/api/v1/reports/tax', { ...range }),
 };
 
 export interface InvoiceFilters extends Paging {

@@ -53,6 +53,20 @@ const defaults = [
   http.get('*/api/v1/reports/declined', () =>
     HttpResponse.json({ from: '', to: '', rows: [], truncated: false }),
   ),
+  http.get('*/api/v1/reports/payments', () =>
+    HttpResponse.json({ from: '', to: '', rows: [], truncated: false, byMethod: [], total: 0 }),
+  ),
+  http.get('*/api/v1/reports/unpaid', () =>
+    HttpResponse.json({
+      asOf: '',
+      rows: [],
+      truncated: false,
+      buckets: [],
+      totalBalance: 0,
+      overdueBalance: 0,
+    }),
+  ),
+  http.get('*/api/v1/reports/tax', () => HttpResponse.json({ from: '', to: '', rows: [], totalTax: 0 })),
   http.get('*/api/v1/reports/parts', () =>
     HttpResponse.json({ from: '', to: '', rows: [], truncated: false }),
   ),
@@ -276,6 +290,9 @@ export function periodMetrics(overrides: Partial<PeriodMetrics> = {}): PeriodMet
     hoursApproved: 0,
     hoursDeclined: 0,
     closeRatio: null,
+    feesSales: 0,
+    discounts: 0,
+    collected: 0,
     ...overrides,
   };
 }
@@ -292,6 +309,15 @@ export function reportSummary(
     previousFrom: '2026-10-11T04:00:00Z',
     previousTo: '2026-11-01T04:00:00Z',
     previous: periodMetrics(previous),
-    open: { openCards: 0, awaitingApproval: 0, inWork: 0, pendingValue: 0, ...open },
+    open: {
+      openCards: 0,
+      awaitingApproval: 0,
+      inWork: 0,
+      pendingValue: 0,
+      unpaidInvoices: 0,
+      unpaidBalance: 0,
+      overdueBalance: 0,
+      ...open,
+    },
   };
 }

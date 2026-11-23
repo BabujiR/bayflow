@@ -170,8 +170,11 @@ technicians and locations. It refreshes every minute. Managers see their own loc
 location switcher narrows to one.
 
 **Reports** has a tab per report, each for any period up to 366 days and exportable as CSV:
-Summary, Sales details, Service advisors, Technicians, Declined jobs (a follow-up list) and
-Parts usage. Periods follow the workshop's time zone.
+Summary, Sales details, Payments (per method, for the till), Unpaid invoices (by age), Tax (per
+category and rate), Service advisors, Technicians, Declined jobs (a follow-up list) and Parts
+usage. Periods follow the workshop's time zone. Sales are before tax: an issued invoice counts on
+its issue date, a completed job without one on its completion date. The dashboard also shows what
+was collected in the period and what customers still owe.
 
 ### Invoices
 
@@ -391,7 +394,7 @@ Caddy with a wildcard certificate, nightly backups). It applies everything below
 | Branding | Logo, colour, cover photo, announcement, "Powered by Ramplight" | ✅ done |
 | Notifications 1 | In-app notifications: bell, panel, Notifications page | 🔍 in review |
 | Reports 1 | Owner dashboard, reports with CSV export, who sent each estimate | 🔍 in review |
-| Invoicing 1 | Invoices with tax and fees, gap-free numbers, payments, refunds, void, print | 🚧 in progress |
+| Invoicing 1 | Invoices, tax and fees, payments, print; sales, payments, unpaid and tax reports | 🔍 in review |
 
 ## Assumptions
 
