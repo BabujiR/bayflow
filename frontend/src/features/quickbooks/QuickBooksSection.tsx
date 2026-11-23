@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 
 import { quickbooksApi } from '@/api/endpoints';
 import type { QuickBooksChoice, QuickBooksMapping, QuickBooksStatus } from '@/api/types';
@@ -76,8 +76,10 @@ export function QuickBooksSection() {
 
 function Connection({ status }: { status: QuickBooksStatus }) {
   const queryClient = useQueryClient();
+  const location = useLocation();
   const connect = useAction(
-    () => quickbooksApi.connect(`${window.location.origin}${window.location.pathname}`),
+    // The router's path (the app may run under a memory router in tests).
+    () => quickbooksApi.connect(`${window.location.origin}${location.pathname}`),
     {
       onSuccess: ({ authorizeUrl }) => window.location.assign(authorizeUrl),
     },
