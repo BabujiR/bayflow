@@ -4,6 +4,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 
 import { AuthProvider } from '@/auth/AuthProvider';
 import { BrandingEffect } from '@/features/branding/BrandingEffect';
+import { consoleRoutes } from '@/features/console/routes';
 import { ThemeProvider } from '@/lib/theme';
 import { publicRoutes, routes } from '@/routes';
 
@@ -32,6 +33,22 @@ export function renderSite(path = '/') {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ThemeProvider>,
+  );
+  return { ...view, router };
+}
+
+/** The Ramplight console (<base domain>/console), with its own session. */
+export function renderConsole(path = '/console') {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const router = createMemoryRouter(consoleRoutes, { initialEntries: [path] });
+  const view = render(
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>,
   );

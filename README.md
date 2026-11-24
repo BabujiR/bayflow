@@ -191,6 +191,26 @@ customer has an account); replies go to the location's address. Locally it lands
 (http://localhost:8025). Managers and admins can **Export** a period from the Invoices page: an
 invoices CSV in QuickBooks Online's import layout and a payments CSV.
 
+### Public site and demo requests
+
+getramplight.com (the base domain) shows the product, **Set up your workshop**, the sign-in
+shortcut to a workshop's address, and **Request a demo** (name, email, phone, shop or group name,
+shop type, number of locations). Requests are stored in `auth_demo_requests` and e-mailed to
+`BAYFLOW_DEMO_NOTIFY_EMAIL` when it is set (locally: Mailpit); nothing is sent to the address typed
+in, and each IP may send 5 an hour.
+
+### Ramplight console
+
+`<base domain>/console` (locally http://localhost:3000/console) is for Ramplight's own team. Its
+accounts have the `PLATFORM_ADMIN` role and live in a separate organization (`ramplight-console`)
+that no workshop address can reach; the browser asks for it with the `X-Bayflow-Client: console`
+header, so a workshop account cannot sign in there and a console account cannot sign in at a
+workshop. The first console account is created at start-up from `BAYFLOW_PLATFORM_ADMIN_USERNAME`
+/ `_EMAIL` / `_PASSWORD` when the password is set and no console account exists yet; change the
+password after the first sign-in. **Demo requests** lists what came in from the public site, with
+a status (New, Contacted, Demo scheduled, Demo done, Declined; Invited and Onboarded are set by
+setup invites) and private notes. APIs: `/api/v1/auth/platform/**`.
+
 ### Canned jobs
 
 Managers and admins keep the shop's everyday work under *Canned jobs* (e.g. "Synthetic oil

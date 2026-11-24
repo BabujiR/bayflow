@@ -8,7 +8,8 @@ import { ApiError } from '@/api/errors';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { AppToaster } from '@/components/layout/AppToaster';
 import { BrandingEffect } from '@/features/branding/BrandingEffect';
-import { currentSite } from '@/lib/site';
+import { consoleRoutes } from '@/features/console/routes';
+import { currentSite, isConsole } from '@/lib/site';
 import { ThemeProvider } from '@/lib/theme';
 import { publicRoutes, routes } from '@/routes';
 
@@ -32,7 +33,13 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        {site.kind === 'public' ? (
+        {isConsole() ? (
+          // <base domain>/console: Ramplight's team, with its own session (the console organization).
+          <AuthProvider>
+            <RouterProvider router={createBrowserRouter(consoleRoutes)} />
+            <AppToaster />
+          </AuthProvider>
+        ) : site.kind === 'public' ? (
           <>
             <RouterProvider router={createBrowserRouter(publicRoutes)} />
             <AppToaster />

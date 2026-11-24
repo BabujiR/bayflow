@@ -25,6 +25,9 @@ import type {
   InvoiceExport,
   CannedJob,
   CannedJobRequest,
+  DemoRequest,
+  ConsoleDemoRequest,
+  DemoStatus,
   DueService,
   DueVehicle,
   ReminderSettings,
@@ -237,11 +240,21 @@ export const announcementsApi = {
   remove: (id: string) => http.delete<void>(`/api/v1/auth/tenant/branding/announcements/${id}`),
 };
 
+/** The Ramplight console (PLATFORM_ADMIN at <base domain>/console). */
+export const consoleApi = {
+  demoRequests: (params: Paging & { status?: DemoStatus; q?: string }) =>
+    http.get<PageResponse<ConsoleDemoRequest>>('/api/v1/auth/platform/demo-requests', { ...params }),
+  updateDemoRequest: (id: string, body: { status: DemoStatus; notes: string | null; version: number }) =>
+    http.put<ConsoleDemoRequest>(`/api/v1/auth/platform/demo-requests/${id}`, body),
+};
+
 /** Public: sign up a workshop, check an address, name the workshop at this address. */
 export const tenantsApi = {
   current: () => http.get<PublicWorkshop>('/api/v1/tenants/current'),
   availability: (slug: string) => http.get<SlugAvailability>('/api/v1/tenants/slug-availability', { slug }),
   signup: (body: SignupRequest) => http.post<SignupResponse>('/api/v1/tenants/signup', body),
+  /** "Request a demo" on the public site (rate-limited per IP). */
+  requestDemo: (body: DemoRequest) => http.post<{ id: string }>('/api/v1/tenants/demo-requests', body),
 };
 
 /** The organization's locations (every signed-in user). Shown in the app from phase L3. */

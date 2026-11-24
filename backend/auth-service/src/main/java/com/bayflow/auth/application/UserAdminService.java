@@ -145,6 +145,16 @@ public class UserAdminService {
         return true;
     }
 
+    /** The first console user, when the console has no PLATFORM_ADMIN yet (run in the console's organization). */
+    @Transactional
+    public boolean bootstrapPlatformAdmin(String username, String email, String password) {
+        if (users.existsWithRole(Role.PLATFORM_ADMIN)) {
+            return false;
+        }
+        authService.createUser(username, email, password, Set.of(Role.PLATFORM_ADMIN));
+        return true;
+    }
+
     /** Creates the user unless the username already exists (development seed data). */
     @Transactional
     public void ensureUser(String username, String email, String password, Role role) {

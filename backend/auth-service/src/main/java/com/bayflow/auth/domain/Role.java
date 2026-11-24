@@ -8,11 +8,16 @@ public enum Role {
     /** A location's general manager: everything an advisor may do, at their locations. */
     MANAGER,
     /** Manages user accounts; the organization's owner, at every location. */
-    ADMIN;
+    ADMIN,
+    /**
+     * Ramplight's own team, in the console (demo requests, invitations). Only users of the console
+     * organization have it; it grants nothing inside a workshop.
+     */
+    PLATFORM_ADMIN;
 
     /** Staff accounts are created by an ADMIN, never by self-registration. */
     public boolean isStaff() {
-        return this != CUSTOMER;
+        return this != CUSTOMER && this != PLATFORM_ADMIN;
     }
 
     /** Staff who work at particular locations (ADMIN and CUSTOMER cover every location). */

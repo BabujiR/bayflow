@@ -79,7 +79,14 @@ services:
       BAYFLOW_MAIL_SMTP_AUTH: ${BAYFLOW_MAIL_SMTP_AUTH:-false}
       BAYFLOW_MAIL_STARTTLS: ${BAYFLOW_MAIL_STARTTLS:-false}
       BAYFLOW_MAIL_FROM: ${BAYFLOW_MAIL_FROM:-no-reply@bayflow.local}
+      # "Request a demo" on the public site is e-mailed here (empty = stored only).
+      BAYFLOW_DEMO_NOTIFY_EMAIL: ${BAYFLOW_DEMO_NOTIFY_EMAIL:-sales@bayflow.local}
       BAYFLOW_SITE_URL: ${BAYFLOW_SITE_URL:-http://localhost:3000}
+      # Ramplight console (<base domain>/console): the first PLATFORM_ADMIN, created once at
+      # start-up when a password is set (change it after the first sign-in).
+      BAYFLOW_PLATFORM_ADMIN_USERNAME: ${BAYFLOW_PLATFORM_ADMIN_USERNAME:-ramplight}
+      BAYFLOW_PLATFORM_ADMIN_EMAIL: ${BAYFLOW_PLATFORM_ADMIN_EMAIL:-team@bayflow.local}
+      BAYFLOW_PLATFORM_ADMIN_PASSWORD: ${BAYFLOW_PLATFORM_ADMIN_PASSWORD:-}
     volumes:
       - ./keys:/run/keys:ro
     ports:

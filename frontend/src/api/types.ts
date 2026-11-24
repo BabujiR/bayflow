@@ -28,7 +28,7 @@ export interface PageResponse<T> {
 // ---- auth --------------------------------------------------------------------------
 
 /** MANAGER (phase L2) is hand-written until `pnpm api:update`. */
-export type Role = A['CreateStaffRequest']['role'] | 'MANAGER';
+export type Role = A['CreateStaffRequest']['role'] | 'MANAGER' | 'PLATFORM_ADMIN';
 
 export type User = Present<
   Omit<A['UserResponse'], 'roles'>,
@@ -441,6 +441,51 @@ export interface AnnouncementRequest {
 }
 
 export type BrandingImageKind = 'logo' | 'logo-dark' | 'icon' | 'cover';
+
+/** A demo request as the Ramplight console sees it. */
+export type DemoStatus =
+  | 'NEW'
+  | 'CONTACTED'
+  | 'DEMO_SCHEDULED'
+  | 'DEMO_DONE'
+  | 'INVITED'
+  | 'ONBOARDED'
+  | 'DECLINED';
+
+export interface ConsoleDemoRequest {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  shopName: string;
+  shopType: ShopType;
+  locations: LocationCount;
+  city: string | null;
+  message: string | null;
+  status: DemoStatus;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  updatedBy: string | null;
+  version: number;
+}
+
+/** "Request a demo" on the public site. */
+export type ShopType = 'GENERAL_REPAIR' | 'TIRES' | 'QUICK_LUBE' | 'COLLISION' | 'DEALERSHIP' | 'FLEET' | 'OTHER';
+export type LocationCount = '1' | '2-3' | '4-10' | '11+';
+
+export interface DemoRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  shopName: string;
+  shopType: ShopType;
+  locations: LocationCount;
+  city: string | null;
+  message: string | null;
+}
 
 export interface SignupRequest {
   workshopName: string;

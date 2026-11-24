@@ -16,6 +16,7 @@ import com.bayflow.auth.application.ClientCredentialsService;
 import com.bayflow.auth.application.LocationService;
 import com.bayflow.auth.application.TenantSettingsService;
 import com.bayflow.auth.application.UserAdminService;
+import com.bayflow.auth.domain.Platform;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.Tenant;
 import com.bayflow.auth.infrastructure.TenantRepository;
@@ -48,6 +49,22 @@ public class StartupData {
             if (StringUtils.hasText(admin.getPassword())
                     && userAdmin.bootstrapAdmin(admin.getUsername(), admin.getEmail(), admin.getPassword())) {
                 log.info("Created bootstrap admin account '{}'. Change its password after first login.",
+                        admin.getUsername());
+            }
+        });
+    }
+
+    /**
+     * Creates the first Ramplight console user (PLATFORM_ADMIN) from bayflow.auth.platform-admin.*
+     * when the console has none yet.
+     */
+    @Bean
+    ApplicationRunner bootstrapPlatformAdmin(UserAdminService userAdmin, AuthProperties properties) {
+        return args -> TenantContext.run(Platform.TENANT_ID, () -> {
+            AuthProperties.BootstrapAdmin admin = properties.getPlatformAdmin();
+            if (StringUtils.hasText(admin.getPassword())
+                    && userAdmin.bootstrapPlatformAdmin(admin.getUsername(), admin.getEmail(), admin.getPassword())) {
+                log.info("Created Ramplight console account '{}'. Change its password after first login.",
                         admin.getUsername());
             }
         });

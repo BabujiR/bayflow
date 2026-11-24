@@ -26,9 +26,12 @@ public class AuthProperties {
     private final CookieSettings cookie = new CookieSettings();
     private final Login login = new Login();
     private final BootstrapAdmin bootstrapAdmin = new BootstrapAdmin();
+    /** The first Ramplight console user (PLATFORM_ADMIN); none while the password is empty. */
+    private final BootstrapAdmin platformAdmin = new BootstrapAdmin();
     private final TenantDefaults tenantDefaults = new TenantDefaults();
     private final Signup signup = new Signup();
     private final Mail mail = new Mail();
+    private final Demo demo = new Demo();
     /** appointment-service, asked before a location is archived whether it has upcoming bookings. */
     private String appointmentUrl = "http://localhost:8081";
     /**
@@ -55,9 +58,23 @@ public class AuthProperties {
     public CookieSettings getCookie() { return cookie; }
     public Login getLogin() { return login; }
     public BootstrapAdmin getBootstrapAdmin() { return bootstrapAdmin; }
+    public BootstrapAdmin getPlatformAdmin() { return platformAdmin; }
     public TenantDefaults getTenantDefaults() { return tenantDefaults; }
     public Signup getSignup() { return signup; }
     public Mail getMail() { return mail; }
+    public Demo getDemo() { return demo; }
+
+    /** "Request a demo" on the public site. */
+    public static class Demo {
+        /** Who hears about new requests (empty = stored only). */
+        private String notifyEmail = "";
+        private int maxPerHourPerIp = 5;
+
+        public String getNotifyEmail() { return notifyEmail; }
+        public void setNotifyEmail(String notifyEmail) { this.notifyEmail = notifyEmail == null ? "" : notifyEmail; }
+        public int getMaxPerHourPerIp() { return maxPerHourPerIp; }
+        public void setMaxPerHourPerIp(int maxPerHourPerIp) { this.maxPerHourPerIp = maxPerHourPerIp; }
+    }
     public String getAppointmentUrl() { return appointmentUrl; }
     public void setAppointmentUrl(String appointmentUrl) { this.appointmentUrl = appointmentUrl; }
     public String getFallbackWorkshop() { return fallbackWorkshop; }
