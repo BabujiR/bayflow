@@ -18,6 +18,7 @@ test.describe('Workshop branding', () => {
     const offerText = `Winter check-up: free battery test (${slug})`;
 
     // ---- A new workshop, signed up through the public API ---------------------------------
+    const { token } = await cast.invite(`owner@${slug}.example`, name);
     const site = await cast.anonymousApi(cast.siteURL);
     const signup = await site.post('/api/v1/tenants/signup', {
       headers: { 'X-Bayflow-Client': 'web' },
@@ -27,6 +28,7 @@ test.describe('Workshop branding', () => {
         adminUsername: 'owner',
         adminEmail: `owner@${slug}.example`,
         adminPassword: NEW_PASSWORD,
+        inviteToken: token,
       },
     });
     expect(signup.status(), 'workshop sign-up').toBe(201);

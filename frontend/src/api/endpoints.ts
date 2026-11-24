@@ -25,6 +25,13 @@ import type {
   InvoiceExport,
   CannedJob,
   CannedJobRequest,
+  DemoRequest,
+  ConsoleDemoRequest,
+  ConsoleInvitation,
+  DemoStatus,
+  InvitationState,
+  InviteDetails,
+  IssuedInvitation,
   DueService,
   DueVehicle,
   ReminderSettings,
@@ -237,11 +244,35 @@ export const announcementsApi = {
   remove: (id: string) => http.delete<void>(`/api/v1/auth/tenant/branding/announcements/${id}`),
 };
 
+/** The Ramplight console (PLATFORM_ADMIN at <base domain>/console). */
+export const consoleApi = {
+  demoRequests: (params: Paging & { status?: DemoStatus; q?: string }) =>
+    http.get<PageResponse<ConsoleDemoRequest>>('/api/v1/auth/platform/demo-requests', { ...params }),
+  updateDemoRequest: (id: string, body: { status: DemoStatus; notes: string | null; version: number }) =>
+    http.put<ConsoleDemoRequest>(`/api/v1/auth/platform/demo-requests/${id}`, body),
+  invitations: (params: Paging & { state?: InvitationState; q?: string }) =>
+    http.get<PageResponse<ConsoleInvitation>>('/api/v1/auth/platform/invitations', { ...params }),
+  createInvitation: (body: {
+    email: string;
+    contactName: string | null;
+    shopName: string | null;
+    demoRequestId: string | null;
+  }) => http.post<IssuedInvitation>('/api/v1/auth/platform/invitations', body),
+  resendInvitation: (id: string) =>
+    http.post<IssuedInvitation>(`/api/v1/auth/platform/invitations/${id}/resend`),
+  revokeInvitation: (id: string) =>
+    http.post<ConsoleInvitation>(`/api/v1/auth/platform/invitations/${id}/revoke`),
+};
+
 /** Public: sign up a workshop, check an address, name the workshop at this address. */
 export const tenantsApi = {
   current: () => http.get<PublicWorkshop>('/api/v1/tenants/current'),
   availability: (slug: string) => http.get<SlugAvailability>('/api/v1/tenants/slug-availability', { slug }),
   signup: (body: SignupRequest) => http.post<SignupResponse>('/api/v1/tenants/signup', body),
+  /** Whether a setup link works, and who it is for (400 invite-expired / invite-used / invite-invalid). */
+  checkInvite: (token: string) => http.post<InviteDetails>('/api/v1/tenants/invitations/check', { token }),
+  /** "Request a demo" on the public site (rate-limited per IP). */
+  requestDemo: (body: DemoRequest) => http.post<{ id: string }>('/api/v1/tenants/demo-requests', body),
 };
 
 /** The organization's locations (every signed-in user). Shown in the app from phase L3. */

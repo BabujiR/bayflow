@@ -82,6 +82,7 @@ services:
       BAYFLOW_FALLBACK_WORKSHOP: ""
       BAYFLOW_APPOINTMENT_URL: http://appointment-service:8081
       BAYFLOW_SIGNUP_MAX_PER_HOUR: ${BAYFLOW_SIGNUP_MAX_PER_HOUR:-10}
+      BAYFLOW_INVITE_TTL: ${BAYFLOW_INVITE_TTL:-P7D}
       BAYFLOW_LABOUR_RATE: ${BAYFLOW_LABOUR_RATE:-95.00}
       BAYFLOW_CURRENCY: ${BAYFLOW_CURRENCY:-USD}
       BAYFLOW_BOOTSTRAP_ADMIN_USERNAME: ${BAYFLOW_BOOTSTRAP_ADMIN_USERNAME:-admin}
@@ -98,7 +99,14 @@ services:
       BAYFLOW_MAIL_USERNAME: ${BAYFLOW_MAIL_USERNAME:-}
       BAYFLOW_MAIL_PASSWORD: ${BAYFLOW_MAIL_PASSWORD:-}
       BAYFLOW_MAIL_FROM: ${BAYFLOW_MAIL_FROM:-}
+      # "Request a demo" on getramplight.com is e-mailed here (empty = stored only).
+      BAYFLOW_DEMO_NOTIFY_EMAIL: ${BAYFLOW_DEMO_NOTIFY_EMAIL:-}
       BAYFLOW_SITE_URL: https://${BAYFLOW_BASE_DOMAIN}
+      # Ramplight console (<base domain>/console): the first PLATFORM_ADMIN, created once at
+      # start-up when a password is set (change it after the first sign-in).
+      BAYFLOW_PLATFORM_ADMIN_USERNAME: ${BAYFLOW_PLATFORM_ADMIN_USERNAME:-ramplight}
+      BAYFLOW_PLATFORM_ADMIN_EMAIL: ${BAYFLOW_PLATFORM_ADMIN_EMAIL:-team@${BAYFLOW_BASE_DOMAIN}}
+      BAYFLOW_PLATFORM_ADMIN_PASSWORD: ${BAYFLOW_PLATFORM_ADMIN_PASSWORD:-}
     volumes:
       - ./keys:/run/keys:ro
 

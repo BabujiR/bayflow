@@ -11,6 +11,7 @@ import org.springframework.util.StringUtils;
 
 import com.bayflow.auth.application.ApiException;
 import com.bayflow.auth.config.AuthProperties;
+import com.bayflow.auth.domain.Platform;
 import com.bayflow.auth.domain.Tenant;
 import com.bayflow.auth.infrastructure.TenantRepository;
 import com.bayflow.security.WorkshopHosts;
@@ -51,14 +52,24 @@ public class RequestTenants {
         return workshopOf(request).getId();
     }
 
-    /** The workshop of the request's address, whatever its status. */
+    /**
+     * The workshop of the request's address, whatever its status. The console (base domain, client
+     * header "console") gets the console organization, which no workshop address reaches.
+     */
     public Tenant workshopOf(HttpServletRequest request) {
         Optional<String> slug = hosts.slugOf(request);
+        if (slug.isEmpty() && Platform.CONSOLE_CLIENT.equals(request.getHeader(CookieRequestGuard.HEADER))) {
+            return tenants.findById(Platform.TENANT_ID).orElseThrow(RequestTenants::notFound);
+        }
         String wanted = slug.orElse(properties.getFallbackWorkshop());
         if (!StringUtils.hasText(wanted)) {
             throw notFound();
         }
-        return tenants.findBySlug(wanted.trim().toLowerCase()).orElseThrow(RequestTenants::notFound);
+        Tenant tenant = tenants.findBySlug(wanted.trim().toLowerCase()).orElseThrow(RequestTenants::notFound);
+        if (Platform.TENANT_ID.equals(tenant.getId())) {
+            throw notFound();
+        }
+        return tenant;
     }
 
     static ApiException notFound() {

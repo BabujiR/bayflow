@@ -10,6 +10,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.bayflow.auth.domain.Invitation;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.Tenant;
 import com.bayflow.auth.domain.User;
@@ -17,8 +18,8 @@ import com.bayflow.auth.infrastructure.TenantRepository;
 import com.bayflow.security.TenantContext;
 
 /**
- * Self-service sign-up: a new workshop, its settings, its first location and its owner (an ADMIN),
- * all or nothing.
+ * Workshop sign-up through a setup invite from Ramplight's team: a new workshop, its settings,
+ * its first location and its owner (an ADMIN), all or nothing; the invite is used up with it.
  * The workshop's address is {@code <slug>.<base domain>}; the slug never changes.
  */
 @Service
@@ -33,12 +34,12 @@ public class SignupService {
             "register", "account", "accounts", "billing", "status", "mail", "email", "smtp", "imap",
             "help", "support", "docs", "doc", "blog", "news", "static", "assets", "cdn", "media",
             "files", "dev", "test", "staging", "prod", "production", "demo-admin", "localhost",
-            "default", "root", "system", "bayflow", "ramplight", "security", "dashboard", "internal", "ns1", "ns2");
+            "default", "root", "system", "bayflow", "ramplight", "ramplight-console", "console", "security", "dashboard", "internal", "ns1", "ns2");
 
     public enum Availability { AVAILABLE, TAKEN, RESERVED, INVALID }
 
     public record Signup(String workshopName, String slug, BigDecimal labourRate, String currency,
-            String timeZone, String adminUsername, String adminEmail, String adminPassword) {
+            String timeZone, String adminUsername, String adminEmail, String adminPassword, String inviteToken) {
     }
 
     public record Created(Tenant tenant, User admin) {
@@ -48,10 +49,12 @@ public class SignupService {
     private final TenantSettingsService settings;
     private final LocationService locations;
     private final AuthService authService;
+    private final InvitationService invitations;
     private final Clock clock;
 
     public SignupService(TenantRepository tenants, TenantSettingsService settings, LocationService locations,
-            AuthService authService, Clock clock) {
+            AuthService authService, InvitationService invitations, Clock clock) {
+        this.invitations = invitations;
         this.tenants = tenants;
         this.settings = settings;
         this.locations = locations;
@@ -86,6 +89,8 @@ public class SignupService {
         if (!tenantId.equals(TenantContext.require())) {
             throw new IllegalStateException("Sign-up must run in the new workshop's context");
         }
+        // First: the setup link must still work (locked until this commits, so it's used once).
+        Invitation invite = invitations.lock(request.inviteToken());
         String slug = normalize(request.slug());
         switch (availability(slug)) {
             case INVALID -> throw ApiException.badRequest("invalid-slug", "Use 3-30 lower-case letters, digits"
@@ -109,6 +114,7 @@ public class SignupService {
         locations.ensureMain();
         User admin = authService.createUser(request.adminUsername(), request.adminEmail(), request.adminPassword(),
                 Set.of(Role.ADMIN));
+        invitations.accept(invite, tenantId, slug, admin.getUsername());
         return new Created(tenants.findById(tenantId).orElseThrow(), admin);
     }
 

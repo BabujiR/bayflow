@@ -1,4 +1,5 @@
 import { locationHeader } from '@/features/locations/selection';
+import { isConsole } from '@/lib/site';
 
 import { ApiError, toApiError } from './errors';
 
@@ -88,7 +89,8 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
   const headers: Record<string, string> = {
     ...options.headers,
     Accept: 'application/json',
-    'X-Bayflow-Client': 'web',
+    // "console": auth-service signs in to the Ramplight console's organization (base domain only).
+    'X-Bayflow-Client': isConsole() ? 'console' : 'web',
   };
   // FormData (file uploads) sets its own multipart Content-Type with the boundary.
   const isForm = options.body instanceof FormData;

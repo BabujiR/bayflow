@@ -54,8 +54,17 @@ class TenantSettingsIT extends IntegrationTestBase {
     }
 
     @Test
+    void platformAdminHasNoWorkshopSettings() throws Exception {
+        mvc.perform(get("/api/v1/auth/tenant").header("Authorization", "Bearer " + tokenFor(Role.PLATFORM_ADMIN)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void everyRoleReadsItsWorkshop() throws Exception {
         for (Role role : Role.values()) {
+            if (role == Role.PLATFORM_ADMIN) {
+                continue; // Ramplight's console team, not a workshop role (see the next test)
+            }
             mvc.perform(get("/api/v1/auth/tenant").header("Authorization", "Bearer " + tokenFor(role)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(Tenants.DEFAULT_TENANT_ID.toString()))

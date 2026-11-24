@@ -29,6 +29,13 @@ export function siteOf(hostname: string, baseDomain: string = BASE_DOMAIN): Site
 
 export const currentSite = (): Site => siteOf(window.location.hostname);
 
+/** The Ramplight console: <base domain>/console (Ramplight's own team). */
+export const CONSOLE_PATH = '/console';
+
+export const isConsole = (): boolean =>
+  currentSite().kind === 'public' &&
+  (window.location.pathname === CONSOLE_PATH || window.location.pathname.startsWith(`${CONSOLE_PATH}/`));
+
 /**
  * The address of a workshop, on the same scheme and port as this page. Only a valid workshop
  * address (slug) is accepted, so text typed by a user can never point the browser elsewhere.

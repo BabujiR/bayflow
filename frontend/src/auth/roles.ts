@@ -6,6 +6,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   MECHANIC: 'Mechanic',
   MANAGER: 'Manager',
   ADMIN: 'Admin',
+  PLATFORM_ADMIN: 'Ramplight team',
 };
 
 export const ALL_ROLES: Role[] = ['CUSTOMER', 'SERVICE_ADVISOR', 'MECHANIC', 'MANAGER', 'ADMIN'];

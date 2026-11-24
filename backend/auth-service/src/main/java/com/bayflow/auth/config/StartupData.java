@@ -16,6 +16,7 @@ import com.bayflow.auth.application.ClientCredentialsService;
 import com.bayflow.auth.application.LocationService;
 import com.bayflow.auth.application.TenantSettingsService;
 import com.bayflow.auth.application.UserAdminService;
+import com.bayflow.auth.domain.Platform;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.Tenant;
 import com.bayflow.auth.infrastructure.TenantRepository;
@@ -53,6 +54,22 @@ public class StartupData {
         });
     }
 
+    /**
+     * Creates the first Ramplight console user (PLATFORM_ADMIN) from bayflow.auth.platform-admin.*
+     * when the console has none yet.
+     */
+    @Bean
+    ApplicationRunner bootstrapPlatformAdmin(UserAdminService userAdmin, AuthProperties properties) {
+        return args -> TenantContext.run(Platform.TENANT_ID, () -> {
+            AuthProperties.BootstrapAdmin admin = properties.getPlatformAdmin();
+            if (StringUtils.hasText(admin.getPassword())
+                    && userAdmin.bootstrapPlatformAdmin(admin.getUsername(), admin.getEmail(), admin.getPassword())) {
+                log.info("Created Ramplight console account '{}'. Change its password after first login.",
+                        admin.getUsername());
+            }
+        });
+    }
+
     /** The second demo workshop (acme.localhost), dev profile only. Fixed id so it is stable. */
     public static final UUID ACME_TENANT_ID = UUID.fromString("0000000a-c3e0-4000-8000-000000000002");
 
@@ -83,6 +100,9 @@ public class StartupData {
                     userAdmin.ensureUser("admin1", "admin1@bayflow.local", DEV_PASSWORD, Role.ADMIN);
                 });
             }
+            // A Ramplight console account (<base domain>/console) for local work and the e2e tests.
+            TenantContext.run(Platform.TENANT_ID, () -> userAdmin.ensureUser("console1", "console1@bayflow.local",
+                    DEV_PASSWORD, Role.PLATFORM_ADMIN));
         };
     }
 }

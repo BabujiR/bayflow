@@ -84,6 +84,11 @@ bayflow:
       username: ${BAYFLOW_BOOTSTRAP_ADMIN_USERNAME:admin}
       email: ${BAYFLOW_BOOTSTRAP_ADMIN_EMAIL:admin@bayflow.local}
       password: ${BAYFLOW_BOOTSTRAP_ADMIN_PASSWORD:}
+    # The first Ramplight console user (<base domain>/console); not created while the password is empty.
+    platform-admin:
+      username: ${BAYFLOW_PLATFORM_ADMIN_USERNAME:ramplight}
+      email: ${BAYFLOW_PLATFORM_ADMIN_EMAIL:team@bayflow.local}
+      password: ${BAYFLOW_PLATFORM_ADMIN_PASSWORD:}
     clients:
       appointment-service:
         secret: ${BAYFLOW_SYSTEM_CLIENT_SECRET:dev-system-secret}
@@ -113,9 +118,14 @@ bayflow:
       from: ${BAYFLOW_MAIL_FROM:}
       # Reset links go to <slug>.<this host>.
       site-url: ${BAYFLOW_SITE_URL:http://localhost:3000}
-    # Self-service sign-up of new workshops (POST /api/v1/tenants/signup).
+    # "Request a demo" on the public site: who is e-mailed (empty = stored only), and the limit per IP.
+    demo:
+      notify-email: ${BAYFLOW_DEMO_NOTIFY_EMAIL:}
+      max-per-hour-per-ip: ${BAYFLOW_DEMO_MAX_PER_HOUR:5}
+    # Workshop sign-up (POST /api/v1/tenants/signup), by setup invite from the console only.
     signup:
       max-per-hour-per-ip: ${BAYFLOW_SIGNUP_MAX_PER_HOUR:10}
+      invite-ttl: ${BAYFLOW_INVITE_TTL:P7D}
     # Asked before a location is archived whether it still has upcoming appointments.
     appointment-url: ${BAYFLOW_APPOINTMENT_URL:http://localhost:8081}
     # Workshop for sign-in at an address without one (Swagger UI on :8083, scripts). Empty = none.

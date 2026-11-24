@@ -75,7 +75,8 @@ Chrome, Edge and Firefox resolve `*.localhost` to your own machine, so no hosts-
 |---|---|
 | **Workshop "demo"** (all data from before SaaS phase 4) | http://demo.localhost:3000 |
 | **Workshop "acme"** (second demo workshop) | http://acme.localhost:3000 |
-| **Public site** (landing page and workshop sign-up) | http://localhost:3000 |
+| **Public site** (landing page, demo requests, sign-up by setup link) | http://localhost:3000 |
+| **Ramplight console** (dev: `console1` / `Bayflow!2026`) | http://localhost:3000/console |
 | Auth API docs (Swagger UI; signs in to "demo") | http://localhost:8083/swagger-ui.html |
 | Appointment API docs (Swagger UI) | http://localhost:8081/swagger-ui.html |
 | Workshop API docs (Swagger UI) | http://localhost:8082/swagger-ui.html |
@@ -112,9 +113,16 @@ curl -i -X POST http://localhost:8083/api/v1/auth/login \
 
 ### Set up a new workshop
 
-1. Open http://localhost:3000 → *Set up your workshop*: name, address (checked live; taken
-   and reserved addresses are refused), currency, time zone and your admin account.
-2. You land on `http://<address>.localhost:3000/login`: sign in as that admin, check
+Workshops join by invitation only.
+
+1. In the console (http://localhost:3000/console, `console1` / `Bayflow!2026` in dev) open
+   *Invitations* → **New invite** (or **Send setup invite** on a demo request). The setup link is
+   e-mailed when e-mail is set up, and shown once to copy either way. It works once, for 7 days
+   (`BAYFLOW_INVITE_TTL`); **Resend** replaces it, **Revoke** stops it.
+2. Open the link (`http://localhost:3000/setup?invite=…`): name, address (checked live; taken
+   and reserved addresses are refused), currency, time zone and your admin account. Without a
+   working link the page explains how to get one.
+3. You land on `http://<address>.localhost:3000/login`: sign in as that admin, check
    *Workshop settings*, add staff under *User accounts*, and share the address with
    customers so they can register.
 
@@ -190,6 +198,29 @@ clean printable invoice.
 customer has an account); replies go to the location's address. Locally it lands in Mailpit
 (http://localhost:8025). Managers and admins can **Export** a period from the Invoices page: an
 invoices CSV in QuickBooks Online's import layout and a payments CSV.
+
+### Public site and demo requests
+
+getramplight.com (the base domain) shows the product, **Set up your workshop**, the sign-in
+shortcut to a workshop's address, and **Request a demo** (name, email, phone, shop or group name,
+shop type, number of locations). Requests are stored in `auth_demo_requests` and e-mailed to
+`BAYFLOW_DEMO_NOTIFY_EMAIL` when it is set (locally: Mailpit); nothing is sent to the address typed
+in, and each IP may send 5 an hour.
+
+### Ramplight console
+
+`<base domain>/console` (locally http://localhost:3000/console) is for Ramplight's own team. Its
+accounts have the `PLATFORM_ADMIN` role and live in a separate organization (`ramplight-console`)
+that no workshop address can reach; the browser asks for it with the `X-Bayflow-Client: console`
+header, so a workshop account cannot sign in there and a console account cannot sign in at a
+workshop. A console account is created at start-up from `BAYFLOW_PLATFORM_ADMIN_USERNAME`
+/ `_EMAIL` / `_PASSWORD` when the password is set and that username doesn't exist yet; change the
+password after the first sign-in (the dev profile also seeds `console1`). **Demo requests** lists
+what came in from the public site, with a status (New, Contacted, Demo scheduled, Demo done,
+Declined) and private notes; **Send setup invite** there marks it Invited, and it becomes
+Onboarded when the owner uses the link. **Invitations** lists every setup link (Pending, Expired,
+Set up, Revoked) with Resend and Revoke. Only a hash of each link is stored
+(`auth_invitations`). APIs: `/api/v1/auth/platform/**`.
 
 ### Canned jobs
 
