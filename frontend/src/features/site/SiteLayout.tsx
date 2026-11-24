@@ -19,7 +19,7 @@ export function SiteLayout() {
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
           <Button asChild size="sm">
-            <a href="/#demo">Request a demo</a>
+            <a href="/#demo">Book a demo</a>
           </Button>
         </div>
       </header>
