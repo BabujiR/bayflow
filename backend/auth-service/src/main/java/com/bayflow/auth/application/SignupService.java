@@ -86,11 +86,31 @@ public class SignupService {
      */
     @Transactional
     public Created signUp(UUID tenantId, Signup request) {
+        requireContext(tenantId);
+        // First: the setup link must still work (locked until this commits, so it's used once).
+        Invitation invite = invitations.lock(request.inviteToken());
+        Created created = create(tenantId, request, false);
+        invitations.accept(invite, tenantId, created.tenant().getSlug(), created.admin().getUsername());
+        return created;
+    }
+
+    /**
+     * A test workshop from the Ramplight console: no invite, labelled Test. Same rules and same
+     * context requirement as {@link #signUp}.
+     */
+    @Transactional
+    public Created createTest(UUID tenantId, Signup request) {
+        requireContext(tenantId);
+        return create(tenantId, request, true);
+    }
+
+    private static void requireContext(UUID tenantId) {
         if (!tenantId.equals(TenantContext.require())) {
             throw new IllegalStateException("Sign-up must run in the new workshop's context");
         }
-        // First: the setup link must still work (locked until this commits, so it's used once).
-        Invitation invite = invitations.lock(request.inviteToken());
+    }
+
+    private Created create(UUID tenantId, Signup request, boolean test) {
         String slug = normalize(request.slug());
         switch (availability(slug)) {
             case INVALID -> throw ApiException.badRequest("invalid-slug", "Use 3-30 lower-case letters, digits"
@@ -104,7 +124,8 @@ public class SignupService {
         }
         String name = request.workshopName().trim();
         try {
-            tenants.saveAndFlush(Tenant.create(tenantId, slug, name, clock.instant()));
+            tenants.saveAndFlush(test ? Tenant.createTest(tenantId, slug, name, clock.instant())
+                    : Tenant.create(tenantId, slug, name, clock.instant()));
         } catch (DataIntegrityViolationException e) {
             // Someone took the slug between the check and the insert.
             throw taken(slug);
@@ -114,7 +135,6 @@ public class SignupService {
         locations.ensureMain();
         User admin = authService.createUser(request.adminUsername(), request.adminEmail(), request.adminPassword(),
                 Set.of(Role.ADMIN));
-        invitations.accept(invite, tenantId, slug, admin.getUsername());
         return new Created(tenants.findById(tenantId).orElseThrow(), admin);
     }
 

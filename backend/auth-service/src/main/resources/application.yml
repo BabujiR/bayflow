@@ -126,6 +126,8 @@ bayflow:
     signup:
       max-per-hour-per-ip: ${BAYFLOW_SIGNUP_MAX_PER_HOUR:10}
       invite-ttl: ${BAYFLOW_INVITE_TTL:P7D}
+      # One reminder e-mail when an unused invite is this close to expiring (checked hourly).
+      invite-reminder-before: ${BAYFLOW_INVITE_REMINDER_BEFORE:P2D}
     # Asked before a location is archived whether it still has upcoming appointments.
     appointment-url: ${BAYFLOW_APPOINTMENT_URL:http://localhost:8081}
     # Workshop for sign-in at an address without one (Swagger UI on :8083, scripts). Empty = none.

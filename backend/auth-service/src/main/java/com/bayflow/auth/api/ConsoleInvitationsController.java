@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.bayflow.auth.api.AuthDtos.PageResponse;
 import com.bayflow.auth.application.InvitationService;
+import com.bayflow.auth.config.AuthProperties;
 import com.bayflow.auth.application.InvitationService.Issued;
 import com.bayflow.auth.domain.Invitation;
 import com.bayflow.security.CurrentUser;
@@ -46,13 +47,16 @@ public class ConsoleInvitationsController {
     public record InvitationResponse(UUID id, String email, String contactName, String shopName,
             UUID demoRequestId, Invitation.State state, Instant expiresAt, int sentCount, Instant lastSentAt,
             Instant createdAt, String createdBy, Instant acceptedAt, String workshopSlug, Instant revokedAt,
-            String revokedBy) {
+            String revokedBy, boolean expiringSoon, Instant remindedAt) {
 
-        static InvitationResponse from(Invitation i, Instant now) {
+        /** {@code soon}: from when a pending invite counts as expiring soon (when reminders go out). */
+        static InvitationResponse from(Invitation i, Instant now, Instant soon) {
+            Invitation.State state = i.state(now);
             return new InvitationResponse(i.getId(), i.getEmail(), i.getContactName(), i.getShopName(),
-                    i.getDemoRequestId(), i.state(now), i.getExpiresAt(), i.getSentCount(), i.getLastSentAt(),
+                    i.getDemoRequestId(), state, i.getExpiresAt(), i.getSentCount(), i.getLastSentAt(),
                     i.getCreatedAt(), i.getCreatedBy(), i.getAcceptedAt(), i.getWorkshopSlug(), i.getRevokedAt(),
-                    i.getRevokedBy());
+                    i.getRevokedBy(), state == Invitation.State.PENDING && !i.getExpiresAt().isAfter(soon),
+                    i.getRemindedAt());
         }
     }
 
@@ -68,11 +72,17 @@ public class ConsoleInvitationsController {
     }
 
     private final InvitationService invitations;
+    private final AuthProperties properties;
     private final Clock clock;
 
-    public ConsoleInvitationsController(InvitationService invitations, Clock clock) {
+    public ConsoleInvitationsController(InvitationService invitations, AuthProperties properties, Clock clock) {
         this.invitations = invitations;
+        this.properties = properties;
         this.clock = clock;
+    }
+
+    private Instant soon(Instant now) {
+        return now.plus(properties.getSignup().getInviteReminderBefore());
     }
 
     @GetMapping
@@ -85,7 +95,8 @@ public class ConsoleInvitationsController {
         Instant now = clock.instant();
         Page<Invitation> found = invitations.search(state, q, Math.max(page, 0),
                 Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
-        return new PageResponse<>(found.getContent().stream().map(i -> InvitationResponse.from(i, now)).toList(),
+        Instant soon = soon(now);
+        return new PageResponse<>(found.getContent().stream().map(i -> InvitationResponse.from(i, now, soon)).toList(),
                 found.getNumber(), found.getSize(), found.getTotalElements(), found.getTotalPages());
     }
 
@@ -113,11 +124,13 @@ public class ConsoleInvitationsController {
     @Operation(summary = "Stop an unused setup link from working")
     public InvitationResponse revoke(@PathVariable UUID id, Authentication auth) {
         requireConsole();
-        return InvitationResponse.from(invitations.revoke(CurrentUser.from(auth).username(), id), clock.instant());
+        return InvitationResponse.from(invitations.revoke(CurrentUser.from(auth).username(), id), clock.instant(),
+                soon(clock.instant()));
     }
 
     private IssuedResponse issued(Issued issued) {
-        return new IssuedResponse(InvitationResponse.from(issued.invitation(), clock.instant()), issued.setupUrl(),
+        Instant now = clock.instant();
+        return new IssuedResponse(InvitationResponse.from(issued.invitation(), now, soon(now)), issued.setupUrl(),
                 issued.emailed());
     }
 }

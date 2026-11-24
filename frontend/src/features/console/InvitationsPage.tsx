@@ -166,9 +166,12 @@ function InvitationRow({
         )}
       </TableCell>
       <TableCell>
-        <Badge variant={VARIANT[i.state]}>{INVITATION_STATE_LABELS[i.state]}</Badge>
+        <div className="flex flex-wrap gap-1">
+          <Badge variant={VARIANT[i.state]}>{INVITATION_STATE_LABELS[i.state]}</Badge>
+          {i.expiringSoon && <Badge variant="warning">Expiring soon</Badge>}
+        </div>
         <div className="mt-1 text-xs text-muted-foreground">
-          {i.state === 'PENDING' && `Until ${formatDate(i.expiresAt)}`}
+          {i.state === 'PENDING' && `Until ${formatDate(i.expiresAt)}${i.remindedAt ? ' · reminded' : ''}`}
           {i.state === 'EXPIRED' && `Since ${formatDate(i.expiresAt)}`}
           {i.state === 'ACCEPTED' && formatDate(i.acceptedAt)}
           {i.state === 'REVOKED' && `By ${i.revokedBy ?? '—'}`}

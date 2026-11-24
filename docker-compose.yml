@@ -62,6 +62,7 @@ services:
       BAYFLOW_APPOINTMENT_URL: http://appointment-service:8081
       BAYFLOW_SIGNUP_MAX_PER_HOUR: ${BAYFLOW_SIGNUP_MAX_PER_HOUR:-30}
       BAYFLOW_INVITE_TTL: ${BAYFLOW_INVITE_TTL:-P7D}
+      BAYFLOW_INVITE_REMINDER_BEFORE: ${BAYFLOW_INVITE_REMINDER_BEFORE:-P2D}
       # Starting settings for a workshop that has none yet; each ADMIN then sets their own.
       BAYFLOW_LABOUR_RATE: ${BAYFLOW_LABOUR_RATE:-95.00}
       BAYFLOW_CURRENCY: ${BAYFLOW_CURRENCY:-USD}

@@ -28,10 +28,12 @@ import type {
   DemoRequest,
   ConsoleDemoRequest,
   ConsoleInvitation,
+  ConsoleWorkshop,
   DemoStatus,
   InvitationState,
   InviteDetails,
   IssuedInvitation,
+  TestWorkshopRequest,
   DueService,
   DueVehicle,
   ReminderSettings,
@@ -262,6 +264,13 @@ export const consoleApi = {
     http.post<IssuedInvitation>(`/api/v1/auth/platform/invitations/${id}/resend`),
   revokeInvitation: (id: string) =>
     http.post<ConsoleInvitation>(`/api/v1/auth/platform/invitations/${id}/revoke`),
+  workshops: (params: Paging & { status?: ConsoleWorkshop['status']; test?: boolean; q?: string }) =>
+    http.get<PageResponse<ConsoleWorkshop>>('/api/v1/auth/platform/workshops', { ...params }),
+  /** A test workshop: no invite, labelled Test. */
+  createTestWorkshop: (body: TestWorkshopRequest) =>
+    http.post<ConsoleWorkshop>('/api/v1/auth/platform/workshops', body),
+  suspendWorkshop: (id: string) => http.post<void>(`/api/v1/auth/platform/workshops/${id}/suspend`),
+  reactivateWorkshop: (id: string) => http.post<void>(`/api/v1/auth/platform/workshops/${id}/reactivate`),
 };
 
 /** Public: sign up a workshop, check an address, name the workshop at this address. */

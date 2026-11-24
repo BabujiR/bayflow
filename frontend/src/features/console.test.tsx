@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ConsoleDemoRequest, ConsoleInvitation } from '@/api/types';
+import type { ConsoleDemoRequest, ConsoleInvitation, ConsoleWorkshop } from '@/api/types';
 import { renderConsole } from '@/test/render';
 import { noSession, pageOf, server, sessionFor, user } from '@/test/server';
 
@@ -43,6 +43,8 @@ const invitation = (overrides: Partial<ConsoleInvitation> = {}): ConsoleInvitati
   workshopSlug: null,
   revokedAt: null,
   revokedBy: null,
+  expiringSoon: false,
+  remindedAt: null,
   ...overrides,
 });
 
@@ -131,7 +133,7 @@ describe('Ramplight console', () => {
       http.get('*/api/v1/auth/platform/invitations', () =>
         HttpResponse.json(
           pageOf([
-            invitation(),
+            invitation({ expiringSoon: true }),
             invitation({ id: 'i2', email: 'bo@example.com', state: 'ACCEPTED', workshopSlug: 'bo-motors' }),
           ]),
         ),
@@ -153,6 +155,7 @@ describe('Ramplight console', () => {
 
     const pending = (await screen.findByText('ana@example.com')).closest('tr') as HTMLElement;
     expect(within(pending).getByText('Pending')).toBeInTheDocument();
+    expect(within(pending).getByText('Expiring soon')).toBeInTheDocument();
     const used = screen.getByText('bo@example.com').closest('tr') as HTMLElement;
     expect(within(used).getByRole('link', { name: 'bo-motors' })).toBeInTheDocument();
     expect(within(used).queryByRole('button', { name: /Resend/ })).not.toBeInTheDocument();
@@ -166,5 +169,96 @@ describe('Ramplight console', () => {
 
     await userEvent.click(within(pending).getByRole('button', { name: 'Revoke invite to ana@example.com' }));
     await vi.waitFor(() => expect(calls).toEqual(['resend', 'revoke']));
+  });
+
+  it('lists workshops, suspends one after confirming, and reactivates another', async () => {
+    const calls: string[] = [];
+    const workshop = (overrides: Partial<ConsoleWorkshop>): ConsoleWorkshop => ({
+      id: 'w1',
+      slug: 'lotus-auto',
+      name: 'Lotus Auto',
+      status: 'ACTIVE',
+      test: false,
+      createdAt: '2026-11-20T15:00:00Z',
+      staff: 4,
+      customers: 120,
+      locations: 2,
+      ownerUsername: 'owner',
+      ownerEmail: 'ana@example.com',
+      invitedEmail: 'ana@example.com',
+      version: 0,
+      ...overrides,
+    });
+    server.use(
+      sessionFor(user('PLATFORM_ADMIN', 'team')),
+      http.get('*/api/v1/auth/platform/workshops', () =>
+        HttpResponse.json(
+          pageOf([
+            workshop({}),
+            workshop({ id: 'w2', slug: 'qa-1', name: 'QA Garage', test: true, status: 'SUSPENDED' }),
+          ]),
+        ),
+      ),
+      http.post('*/api/v1/auth/platform/workshops/w1/suspend', () => {
+        calls.push('suspend w1');
+        return new HttpResponse(null, { status: 200 });
+      }),
+      http.post('*/api/v1/auth/platform/workshops/w2/reactivate', () => {
+        calls.push('reactivate w2');
+        return new HttpResponse(null, { status: 200 });
+      }),
+    );
+    renderConsole('/console/workshops');
+
+    const lotus = (await screen.findByText('Lotus Auto')).closest('tr') as HTMLElement;
+    expect(within(lotus).getByText('120')).toBeInTheDocument();
+    expect(within(lotus).getByText('Active')).toBeInTheDocument();
+    const qa = screen.getByText('QA Garage').closest('tr') as HTMLElement;
+    expect(within(qa).getByText('Test')).toBeInTheDocument();
+    expect(within(qa).getByText('Suspended')).toBeInTheDocument();
+
+    await userEvent.click(within(lotus).getByRole('button', { name: 'Suspend Lotus Auto' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Suspend Lotus Auto?' });
+    expect(calls).toEqual([]);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Suspend workshop' }));
+    await vi.waitFor(() => expect(calls).toEqual(['suspend w1']));
+
+    await userEvent.click(within(qa).getByRole('button', { name: 'Reactivate QA Garage' }));
+    await vi.waitFor(() => expect(calls).toEqual(['suspend w1', 'reactivate w2']));
+  });
+
+  it('creates a test workshop', async () => {
+    let sent: unknown;
+    server.use(
+      sessionFor(user('PLATFORM_ADMIN', 'team')),
+      http.get('*/api/v1/auth/platform/workshops', () => HttpResponse.json(pageOf([]))),
+      http.get('*/api/v1/tenants/slug-availability', ({ request: req }) =>
+        HttpResponse.json({ slug: new URL(req.url).searchParams.get('slug'), available: true }),
+      ),
+      http.post('*/api/v1/auth/platform/workshops', async ({ request: req }) => {
+        sent = await req.json();
+        return HttpResponse.json({ slug: 'qa-garage' }, { status: 201 });
+      }),
+    );
+    renderConsole('/console/workshops');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Create test workshop' }));
+    const form = await screen.findByRole('form', { name: 'Create test workshop' });
+    await userEvent.type(within(form).getByLabelText('Workshop name'), 'QA Garage');
+    expect(within(form).getByLabelText('Workshop address')).toHaveValue('qa-garage');
+    await userEvent.type(within(form).getByLabelText('Admin username'), 'qa-owner');
+    await userEvent.type(within(form).getByLabelText('Admin email'), 'qa@example.com');
+    await userEvent.type(within(form).getByLabelText('Admin password'), 'Correct-Horse-1');
+    await userEvent.click(within(form).getByRole('button', { name: 'Create test workshop' }));
+
+    await vi.waitFor(() =>
+      expect(sent).toMatchObject({
+        workshopName: 'QA Garage',
+        slug: 'qa-garage',
+        adminUsername: 'qa-owner',
+        adminEmail: 'qa@example.com',
+        currency: 'USD',
+      }),
+    );
   });
 });

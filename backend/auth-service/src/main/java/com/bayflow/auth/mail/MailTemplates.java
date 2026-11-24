@@ -91,6 +91,40 @@ public final class MailTemplates {
         return new OutgoingMail(to, "Ramplight", null, subject, text, html);
     }
 
+    /**
+     * The setup link is about to expire, unused. The link itself can't be repeated (only a hash
+     * is kept): it points to the first e-mail, and a reply reaches Ramplight's team.
+     */
+    public static OutgoingMail inviteReminder(String to, String contactName, String shopName,
+            java.time.Instant sentAt, java.time.Instant expiresAt, String replyTo) {
+        java.time.format.DateTimeFormatter day = java.time.format.DateTimeFormatter
+                .ofPattern("MMMM d, yyyy", java.util.Locale.US).withZone(java.time.ZoneOffset.UTC);
+        String greeting = contactName == null ? "Hello," : "Hello " + contactName + ",";
+        String shop = shopName == null ? "your workshop" : shopName;
+        String firstSubject = "Set up " + shop + " on Ramplight";
+        String subject = "Your Ramplight setup link expires " + day.format(expiresAt);
+        String text = """
+                %s
+
+                On %s we sent you a link to set up %s on Ramplight. It hasn't been used yet and
+                stops working on %s.
+
+                Look for the e-mail "%s". Can't find it, or need more time? Reply to this e-mail
+                and we'll send you a new link.
+
+                Ramplight
+                """.formatted(greeting, day.format(sentAt), shop, day.format(expiresAt), firstSubject);
+        String html = page("Ramplight", """
+                <p>%s</p>
+                <p>On %s we sent you a link to set up <strong>%s</strong> on Ramplight. It hasn't been used yet
+                and stops working on <strong>%s</strong>.</p>
+                <p>Look for the e-mail &ldquo;%s&rdquo;. Can't find it, or need more time? Reply to this e-mail
+                and we'll send you a new link.</p>
+                """.formatted(htmlEscape(greeting), day.format(sentAt), htmlEscape(shop), day.format(expiresAt),
+                htmlEscape(firstSubject)), "Sent by Ramplight.");
+        return new OutgoingMail(to, "Ramplight", replyTo, subject, text, html);
+    }
+
     private static String page(String workshop, String body) {
         return page(workshop, body, "Sent by Ramplight for " + htmlEscape(workshop) + ".");
     }

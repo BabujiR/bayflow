@@ -55,6 +55,7 @@ export function ConsoleLayout() {
             Demo requests
           </ConsoleLink>
           <ConsoleLink to="/console/invitations">Invitations</ConsoleLink>
+          <ConsoleLink to="/console/workshops">Workshops</ConsoleLink>
         </nav>
       }
       account={

@@ -142,7 +142,7 @@ describe('the public site (base domain)', () => {
       }),
       http.post('*/api/v1/tenants/signup', () => problem(409, 'slug-taken', "'race' is already taken.")),
     );
-    renderSite('/signup?invite=tok-1');
+    renderSite('/setup?invite=tok-1');
     const form = await screen.findByRole('form', { name: 'Set up your workshop' });
     await fillSignup(form, 'Some Garage');
     const address = within(form).getByLabelText('Workshop address');

@@ -1,6 +1,8 @@
 package com.bayflow.auth.infrastructure;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,6 +20,16 @@ import com.bayflow.auth.domain.Invitation;
 public interface InvitationRepository extends JpaRepository<Invitation, UUID> {
 
     Optional<Invitation> findByTokenHash(String tokenHash);
+
+    List<Invitation> findByWorkshopIdIn(Collection<UUID> workshopIds);
+
+    /** Unused invites expiring within (now, until] that have had no reminder yet. */
+    @Query("""
+            select i from Invitation i
+            where i.status = com.bayflow.auth.domain.Invitation.Status.PENDING
+              and i.remindedAt is null and i.expiresAt > :now and i.expiresAt <= :until
+            order by i.expiresAt""")
+    List<Invitation> dueReminders(@Param("now") Instant now, @Param("until") Instant until);
 
     /** The invite behind a setup link, locked until the sign-up commits (one workshop per link). */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
