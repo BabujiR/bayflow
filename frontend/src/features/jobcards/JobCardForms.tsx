@@ -3,12 +3,12 @@ import { type ComponentProps, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import type { CannedJob, Recommendation, Severity } from '@/api/types';
+import type { CannedJob, DueService, Recommendation, Severity } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { currencySymbol, formatMoney, SEVERITY_LABELS } from '@/lib/format';
+import { currencySymbol, formatDate, formatMileage, formatMoney, SEVERITY_LABELS } from '@/lib/format';
 
 const SEVERITIES = Object.keys(SEVERITY_LABELS) as [Severity, ...Severity[]];
 const money = z.coerce.number<string>().min(0, 'Cannot be negative').multipleOf(0.01, 'Use whole cents');
@@ -70,6 +70,7 @@ export function RecommendationForm({
   labourRate,
   currency,
   cannedJobs = [],
+  dueServices = [],
   onSubmit,
 }: {
   labourRate: number;
@@ -77,6 +78,8 @@ export function RecommendationForm({
   currency: string;
   /** Canned jobs usable at the card's location, offered to start from. */
   cannedJobs?: CannedJob[];
+  /** The vehicle's services due now (maintenance intervals), offered as one-click recommendations. */
+  dueServices?: DueService[];
   onSubmit: Submit<z.output<typeof recommendationSchema> & { cannedJobId?: string }>;
 }) {
   const [cannedJobId, setCannedJobId] = useState('');
@@ -112,6 +115,38 @@ export function RecommendationForm({
           .catch(() => undefined);
       })}
     >
+      {dueServices.length > 0 && (
+        <div className="grid gap-2 rounded-md border border-dashed p-3 sm:col-span-4" aria-label="Also due">
+          <p className="text-sm font-medium">Also due on this vehicle</p>
+          <div className="flex flex-wrap gap-2">
+            {dueServices.map((service) => (
+              <Button
+                key={service.intervalId}
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const job = service.cannedJobId
+                    ? cannedJobs.find((j) => j.id === service.cannedJobId)
+                    : undefined;
+                  if (job) {
+                    pick(job.id);
+                  } else {
+                    setCannedJobId('');
+                    setValue('description', service.name, { shouldValidate: true, shouldDirty: true });
+                  }
+                }}
+              >
+                {service.name}
+                <span className="ml-1 text-xs text-muted-foreground">
+                  {service.overdue ? 'overdue' : `due ${formatDate(service.dueAt)}`}
+                  {service.dueMileage !== null ? ` · ${formatMileage(service.dueMileage)}` : ''}
+                </span>
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
       {cannedJobs.length > 0 && (
         <div className="sm:col-span-4">
           <Field

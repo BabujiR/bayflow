@@ -44,6 +44,13 @@ const defaults = [
   http.get('*/api/v1/job-cards/:id/invoice', () =>
     HttpResponse.json({ status: 404, title: 'Not Found', detail: 'Invoice was not found.' }, { status: 404 }),
   ),
+  // Maintenance reminders: nothing due, no intervals.
+  http.get('*/api/v1/service-due/vehicles/:vehicleId', () => HttpResponse.json([])),
+  http.get('*/api/v1/service-due', () => HttpResponse.json([])),
+  http.get('*/api/v1/service-intervals', () => HttpResponse.json([])),
+  http.get('*/api/v1/service-reminders/settings', () =>
+    HttpResponse.json({ enabled: true, remindDaysBefore: 14, milesPerDay: 30, version: 0 }),
+  ),
   // Canned jobs: none yet (advisors see the picker only when there are some).
   http.get('*/api/v1/canned-jobs', () => HttpResponse.json([])),
   // QuickBooks: not set up on the server.

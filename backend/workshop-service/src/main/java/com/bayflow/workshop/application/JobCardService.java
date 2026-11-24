@@ -18,6 +18,7 @@ import com.bayflow.security.CurrentUser;
 import com.bayflow.security.LocationContext;
 import com.bayflow.security.TenantContext;
 import com.bayflow.workshop.cannedjobs.CannedJobService;
+import com.bayflow.workshop.reminders.ServiceDueService;
 import com.bayflow.workshop.domain.JobCard;
 import com.bayflow.workshop.domain.JobCardStatus;
 import com.bayflow.workshop.domain.Severity;
@@ -51,11 +52,14 @@ public class JobCardService {
     private final WorkshopSettingsClient settings;
     private final OutboxService outbox;
     private final CannedJobService cannedJobs;
+    private final ServiceDueService serviceDue;
     private final Clock clock;
 
     public JobCardService(JobCardRepository jobCards, ServiceHistoryService history,
-            WorkshopSettingsClient settings, OutboxService outbox, CannedJobService cannedJobs, Clock clock) {
+            WorkshopSettingsClient settings, OutboxService outbox, CannedJobService cannedJobs,
+            ServiceDueService serviceDue, Clock clock) {
         this.cannedJobs = cannedJobs;
+        this.serviceDue = serviceDue;
         this.jobCards = jobCards;
         this.history = history;
         this.settings = settings;
@@ -249,6 +253,7 @@ public class JobCardService {
         JobCard card = find(id);
         card.complete(clock.instant());
         history.record(card);
+        serviceDue.recordCompleted(card);
         outbox.enqueue(card, OutboxService.WORK_COMPLETED);
         return loaded(card);
     }

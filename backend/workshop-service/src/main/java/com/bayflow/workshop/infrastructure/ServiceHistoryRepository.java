@@ -20,6 +20,9 @@ public interface ServiceHistoryRepository extends JpaRepository<ServiceHistoryEn
 
     Page<ServiceHistoryEntry> findByVehicleId(UUID vehicleId, Pageable pageable);
 
+    /** The vehicle's first visit here: with today's mileage, how much it is driven. */
+    java.util.Optional<ServiceHistoryEntry> findFirstByVehicleIdOrderByServiceDateAsc(UUID vehicleId);
+
     Page<ServiceHistoryEntry> findByVehicleIdAndCustomerUserId(UUID vehicleId, UUID customerUserId,
             Pageable pageable);
 }

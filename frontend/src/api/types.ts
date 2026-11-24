@@ -269,6 +269,61 @@ export interface CannedJobRequest {
   version: number | null;
 }
 
+// ---- maintenance reminders (R3b) -----------------------------------------------------------
+
+/** The shop's rule: every miles or months, whichever first; matched by canned job or keyword. */
+export interface ServiceInterval {
+  id: string;
+  name: string;
+  miles: number | null;
+  months: number | null;
+  keywords: string[];
+  cannedJobIds: string[];
+  active: boolean;
+  version: number;
+}
+
+export interface ServiceIntervalRequest {
+  name: string;
+  miles: number | null;
+  months: number | null;
+  keywords: string[];
+  cannedJobIds: string[];
+  active: boolean;
+  version: number | null;
+}
+
+export interface ReminderSettings {
+  enabled: boolean;
+  remindDaysBefore: number;
+  milesPerDay: number;
+  version: number;
+}
+
+/** One service of a vehicle and when it is next due. */
+export interface DueService {
+  intervalId: string;
+  name: string;
+  lastDoneAt: string;
+  lastMileage: number;
+  dueMileage: number | null;
+  dueAt: string;
+  overdue: boolean;
+  /** A canned job that counts as this service, to recommend it with. */
+  cannedJobId: string | null;
+}
+
+export interface DueVehicle {
+  vehicleId: string;
+  registration: string;
+  customerName: string;
+  customerUserId: string | null;
+  locationId: string;
+  dueAt: string;
+  remindedAt: string | null;
+  services: DueService[];
+}
+
 /** Several parts and the labour for one approved item at once; hours null = no labour. */
 export interface WorkRequest {
   parts: { partNumber: string; name: string; quantity: number; unitPrice: number }[];

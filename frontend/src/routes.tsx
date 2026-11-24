@@ -9,6 +9,7 @@ import { BoardPage } from '@/features/board/BoardPage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { CannedJobsPage } from '@/features/cannedjobs/CannedJobsPage';
+import { DueSoonPage } from '@/features/reminders/DueSoonPage';
 import { DashboardPage } from '@/features/reports/DashboardPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { InvoicePage } from '@/features/invoices/InvoicePage';
@@ -94,6 +95,10 @@ export const routes: RouteObject[] = [
           {
             element: <RequireRole roles={['CUSTOMER', 'SERVICE_ADVISOR']} />,
             children: [{ path: '/appointments/new', element: <BookAppointmentPage /> }],
+          },
+          {
+            element: <RequireRole roles={['SERVICE_ADVISOR', 'MANAGER', 'ADMIN']} />,
+            children: [{ path: '/due-soon', element: <DueSoonPage /> }],
           },
           {
             element: <RequireRole roles={['CUSTOMER']} />,
