@@ -36,6 +36,7 @@ import com.bayflow.auth.application.ApiException;
 import com.bayflow.auth.application.AnnouncementService;
 import com.bayflow.auth.application.BrandingService;
 import com.bayflow.auth.application.BrandingService.BrandingView;
+import com.bayflow.auth.application.InvitationService;
 import com.bayflow.auth.application.PasswordResetService;
 import com.bayflow.auth.application.SignupRateLimiter;
 import com.bayflow.auth.application.SignupService;
@@ -43,6 +44,7 @@ import com.bayflow.auth.application.SignupService.Availability;
 import com.bayflow.auth.application.SignupService.Created;
 import com.bayflow.auth.application.TenantSettingsService;
 import com.bayflow.auth.domain.Announcement;
+import com.bayflow.auth.domain.Invitation;
 import com.bayflow.auth.domain.Tenant;
 import com.bayflow.auth.domain.TenantAsset;
 import com.bayflow.auth.domain.TenantBranding;
@@ -51,7 +53,10 @@ import com.bayflow.security.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-/** Public workshop endpoints: sign up a new workshop, check an address, and name the current one. */
+/**
+ * Public workshop endpoints: sign up a new workshop (with a setup invite), check a setup link or
+ * an address, and name the current one.
+ */
 @RestController
 @RequestMapping("/api/v1/tenants")
 @Tag(name = "Workshops")
@@ -66,7 +71,15 @@ public class WorkshopSignupController {
             @NotBlank @Size(min = 3, max = 50) @Pattern(regexp = USERNAME_PATTERN, message = USERNAME_MESSAGE)
             String adminUsername,
             @NotBlank @Email @Size(max = 254) String adminEmail,
-            @NotBlank @Size(min = 8, max = 100) String adminPassword) {
+            @NotBlank @Size(min = 8, max = 100) String adminPassword,
+            @NotBlank @Size(max = 100) String inviteToken) {
+    }
+
+    public record InviteCheck(@NotBlank @Size(max = 100) String token) {
+    }
+
+    /** Who a setup link is for, to fill in the sign-up form. */
+    public record InviteDetails(String email, String contactName, String shopName, java.time.Instant expiresAt) {
     }
 
     public record SignupResponse(UUID id, String slug, String name, String adminUsername) {
@@ -101,10 +114,13 @@ public class WorkshopSignupController {
     private final BrandingService branding;
     private final AnnouncementService announcements;
     private final PasswordResetService passwordResets;
+    private final InvitationService invitations;
 
     public WorkshopSignupController(SignupService signups, SignupRateLimiter rateLimiter,
             RequestTenants requestTenants, TenantSettingsService settings, BrandingService branding,
-            AnnouncementService announcements, PasswordResetService passwordResets) {
+            AnnouncementService announcements, PasswordResetService passwordResets,
+            InvitationService invitations) {
+        this.invitations = invitations;
         this.passwordResets = passwordResets;
         this.signups = signups;
         this.rateLimiter = rateLimiter;
@@ -116,18 +132,29 @@ public class WorkshopSignupController {
 
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Sign up a new workshop with its first ADMIN (public, rate-limited per IP)",
+    @Operation(summary = "Sign up a new workshop with its first ADMIN, with a setup invite's token "
+            + "(public, rate-limited per IP)",
             description = "Send the X-Bayflow-Client header like the web app. The workshop is then at "
-                    + "<slug>.<base domain>; sign in there.")
+                    + "<slug>.<base domain>; sign in there. 400 invite-invalid / invite-expired / invite-used "
+                    + "when the link doesn't work.")
     public SignupResponse signup(@Valid @RequestBody SignupRequest request, HttpServletRequest httpRequest) {
         CookieRequestGuard.check(httpRequest);
         rateLimiter.check(httpRequest.getRemoteAddr());
         UUID id = UUID.randomUUID();
         Created created = TenantContext.call(id, () -> signups.signUp(id, new SignupService.Signup(
                 request.workshopName(), request.slug(), request.labourRate(), request.currency(), request.timeZone(),
-                request.adminUsername(), request.adminEmail(), request.adminPassword())));
+                request.adminUsername(), request.adminEmail(), request.adminPassword(), request.inviteToken())));
         return new SignupResponse(created.tenant().getId(), created.tenant().getSlug(), created.tenant().getName(),
                 created.admin().getUsername());
+    }
+
+    @PostMapping("/invitations/check")
+    @Operation(summary = "Whether a setup link works, and who it is for (400 invite-* when not)")
+    public InviteDetails checkInvite(@Valid @RequestBody InviteCheck request, HttpServletRequest httpRequest) {
+        CookieRequestGuard.check(httpRequest);
+        Invitation invite = invitations.check(request.token());
+        return new InviteDetails(invite.getEmail(), invite.getContactName(), invite.getShopName(),
+                invite.getExpiresAt());
     }
 
     @GetMapping("/slug-availability")

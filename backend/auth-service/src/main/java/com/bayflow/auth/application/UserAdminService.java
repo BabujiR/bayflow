@@ -145,10 +145,13 @@ public class UserAdminService {
         return true;
     }
 
-    /** The first console user, when the console has no PLATFORM_ADMIN yet (run in the console's organization). */
+    /**
+     * The configured console user, unless that username exists already (run in the console's
+     * organization). By username, not "no PLATFORM_ADMIN yet": the dev profile seeds console1 too.
+     */
     @Transactional
     public boolean bootstrapPlatformAdmin(String username, String email, String password) {
-        if (users.existsWithRole(Role.PLATFORM_ADMIN)) {
+        if (users.existsByUsername(User.normalizeUsername(username))) {
             return false;
         }
         authService.createUser(username, email, password, Set.of(Role.PLATFORM_ADMIN));

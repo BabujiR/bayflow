@@ -37,7 +37,8 @@ public class SecurityConfig {
             "/api/v1/auth/password/forgot",
             "/api/v1/auth/password/reset",
             "/api/v1/tenants/signup",
-            "/api/v1/tenants/demo-requests");
+            "/api/v1/tenants/demo-requests",
+            "/api/v1/tenants/invitations/check");
 
     /** Public workshop lookups (sign-in page name, sign-up address check). */
     static final String[] PUBLIC_WORKSHOP_GETS = { "/api/v1/tenants/current", "/api/v1/tenants/slug-availability",

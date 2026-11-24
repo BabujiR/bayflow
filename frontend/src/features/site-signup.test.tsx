@@ -20,10 +20,25 @@ function availability(map: Record<string, { available: boolean; reason?: string 
   });
 }
 
+/** A working setup link (<site>/setup?invite=tok-1) for owner@example.com. */
+function validInvite(shopName: string | null = null) {
+  return http.post('*/api/v1/tenants/invitations/check', async ({ request }) => {
+    const { token } = (await request.json()) as { token: string };
+    return token === 'tok-1'
+      ? HttpResponse.json({
+          email: 'owner@example.com',
+          contactName: 'Ana Silva',
+          shopName,
+          expiresAt: '2026-12-01T15:00:00Z',
+        })
+      : problem(400, 'invite-invalid', "This setup link isn't valid. Ask Ramplight to send you a new one.");
+  });
+}
+
 async function fillSignup(form: HTMLElement, name: string) {
   await userEvent.type(within(form).getByLabelText('Workshop name'), name);
   await userEvent.type(within(form).getByLabelText('Username'), 'owner');
-  await userEvent.type(within(form).getByLabelText('Email'), 'owner@example.com');
+  expect(within(form).getByLabelText('Email')).toHaveValue('owner@example.com');
   await userEvent.type(within(form).getByLabelText('Password'), 'Correct-Horse-1');
   await userEvent.type(within(form).getByLabelText('Confirm password'), 'Correct-Horse-1');
 }
@@ -34,11 +49,57 @@ describe('the public site (base domain)', () => {
     expect(suggestSlug('  Garage Müller & Söhne ')).toBe('garage-muller-sohne');
   });
 
+  it('only sets up workshops with a setup link', async () => {
+    renderSite('/setup');
+    expect(await screen.findByRole('heading', { name: 'Ramplight is invite-only' })).toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Set up your workshop' })).not.toBeInTheDocument();
+  });
+
+  it('explains a link that no longer works', async () => {
+    server.use(
+      http.post('*/api/v1/tenants/invitations/check', () =>
+        problem(400, 'invite-expired', 'This setup link has expired. Ask Ramplight to send you a new one.'),
+      ),
+    );
+    renderSite('/setup?invite=old');
+    expect(await screen.findByRole('heading', { name: "This setup link doesn't work" })).toBeInTheDocument();
+    expect(
+      screen.getByText('This setup link has expired. Ask Ramplight to send you a new one.'),
+    ).toBeInTheDocument();
+  });
+
+  it('fills in the invite and says so when the link is used up meanwhile', async () => {
+    server.use(
+      availability({}),
+      validInvite('Lotus Auto'),
+      http.post('*/api/v1/tenants/signup', () =>
+        problem(400, 'invite-used', "This setup link was already used. Sign in at your workshop's address."),
+      ),
+    );
+    renderSite('/setup?invite=tok-1');
+
+    const form = await screen.findByRole('form', { name: 'Set up your workshop' });
+    expect(screen.getByTestId('invite-for')).toHaveTextContent('Invited as owner@example.com');
+    expect(within(form).getByLabelText('Workshop name')).toHaveValue('Lotus Auto');
+    expect(within(form).getByLabelText('Workshop address')).toHaveValue('lotus-auto');
+    await userEvent.type(within(form).getByLabelText('Username'), 'owner');
+    await userEvent.type(within(form).getByLabelText('Password'), 'Correct-Horse-1');
+    await userEvent.type(within(form).getByLabelText('Confirm password'), 'Correct-Horse-1');
+    await within(form).findByText('lotus-auto.localhost is available');
+    await userEvent.click(within(form).getByRole('button', { name: 'Create workshop' }));
+
+    expect(
+      await screen.findByText("This setup link was already used. Sign in at your workshop's address."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Set up your workshop' })).not.toBeInTheDocument();
+  });
+
   it('signs up a workshop and goes to its address to sign in', async () => {
     let sent: Record<string, unknown> | undefined;
     const go = vi.fn();
     browser.go = go;
     server.use(
+      validInvite(),
       availability({}),
       http.post('*/api/v1/tenants/signup', async ({ request }) => {
         sent = (await request.json()) as Record<string, unknown>;
@@ -48,7 +109,7 @@ describe('the public site (base domain)', () => {
         );
       }),
     );
-    renderSite('/signup');
+    renderSite('/setup?invite=tok-1');
 
     const form = await screen.findByRole('form', { name: 'Set up your workshop' });
     await fillSignup(form, 'Kiwi Motors');
@@ -65,6 +126,7 @@ describe('the public site (base domain)', () => {
         adminUsername: 'owner',
         adminEmail: 'owner@example.com',
         adminPassword: 'Correct-Horse-1',
+        inviteToken: 'tok-1',
       }),
     );
     expect(go).toHaveBeenCalledWith('http://kiwi-motors.localhost:3000/login?welcome=1');
@@ -73,13 +135,14 @@ describe('the public site (base domain)', () => {
   it('shows taken and reserved addresses and the server’s answer on the field', async () => {
     browser.go = vi.fn();
     server.use(
+      validInvite(),
       availability({
         taken: { available: false, reason: 'taken' },
         admin: { available: false, reason: 'reserved' },
       }),
       http.post('*/api/v1/tenants/signup', () => problem(409, 'slug-taken', "'race' is already taken.")),
     );
-    renderSite('/signup');
+    renderSite('/signup?invite=tok-1');
     const form = await screen.findByRole('form', { name: 'Set up your workshop' });
     await fillSignup(form, 'Some Garage');
     const address = within(form).getByLabelText('Workshop address');
@@ -146,9 +209,9 @@ describe("a workshop's sign-in page", () => {
 
     expect(await screen.findByRole('heading', { name: 'Workshop not found' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Username')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Set up a workshop' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Request a demo' })).toHaveAttribute(
       'href',
-      'http://localhost:3000/signup',
+      'http://localhost:3000/#demo',
     );
   });
 

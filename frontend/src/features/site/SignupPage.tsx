@@ -2,11 +2,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { z } from 'zod';
 
 import { tenantsApi } from '@/api/endpoints';
 import { ApiError, errorMessage } from '@/api/errors';
+import type { InviteDetails } from '@/api/types';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { PRODUCT_NAME } from '@/lib/brand';
-import { timeZones } from '@/lib/format';
+import { formatDate, timeZones } from '@/lib/format';
 import { BASE_DOMAIN, browser, workshopUrl } from '@/lib/site';
 import { SLUG_PATTERN, suggestSlug } from '@/lib/slug';
 
@@ -62,8 +63,80 @@ const FIELDS = [
   'timeZone',
 ] as const;
 
-/** Self-service sign-up: a new workshop and its first admin, then on to the workshop's address. */
+/** Problems with the setup link itself (the server's codes), shown instead of the form. */
+const INVITE_PROBLEMS = ['invite-invalid', 'invite-expired', 'invite-used'];
+
+/**
+ * Workshop sign-up, by invite only: Ramplight's team sends a setup link
+ * (<site>/setup?invite=…). It creates the workshop and its first admin, then goes on to the
+ * workshop's address. Without a working link it explains how to get one.
+ */
 export function SignupPage() {
+  const [params] = useSearchParams();
+  const token = params.get('invite')?.trim() ?? '';
+  const [linkProblem, setLinkProblem] = useState<string | null>(null);
+  const invite = useQuery({
+    queryKey: ['invite', token],
+    queryFn: () => tenantsApi.checkInvite(token),
+    enabled: token !== '',
+    retry: false,
+    staleTime: Infinity,
+  });
+
+  if (!token) {
+    return (
+      <InviteNeeded
+        title="Ramplight is invite-only"
+        message="Workshops join with a setup link from our team. Request a demo and we'll take it from there."
+      />
+    );
+  }
+  if (invite.isPending) {
+    return (
+      <div className="mt-16 flex justify-center" role="status" aria-label="Checking your setup link">
+        <Spinner />
+      </div>
+    );
+  }
+  if (linkProblem || invite.isError) {
+    return (
+      <InviteNeeded
+        title="This setup link doesn't work"
+        message={linkProblem ?? errorMessage(invite.error)}
+      />
+    );
+  }
+  return <SignupForm token={token} invite={invite.data} onLinkProblem={setLinkProblem} />;
+}
+
+function InviteNeeded({ title, message }: { title: string; message: string }) {
+  return (
+    <Card className="mx-auto mt-6 w-full max-w-xl">
+      <CardHeader>
+        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+        <CardDescription>{message}</CardDescription>
+      </CardHeader>
+      <CardFooter className="flex flex-wrap gap-3">
+        <Button asChild>
+          <a href="/#demo">Request a demo</a>
+        </Button>
+        <Button asChild variant="outline">
+          <Link to="/">Go to your workshop</Link>
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+function SignupForm({
+  token,
+  invite,
+  onLinkProblem,
+}: {
+  token: string;
+  invite: InviteDetails;
+  onLinkProblem: (message: string) => void;
+}) {
   const zones = useMemo(() => timeZones(), []);
   const browserZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [formError, setFormError] = useState<string | null>(null);
@@ -78,12 +151,12 @@ export function SignupPage() {
   } = useForm<SignupValues, unknown, SignupOutput>({
     resolver: zodResolver(schema),
     defaultValues: {
-      workshopName: '',
+      workshopName: invite.shopName ?? '',
       slug: '',
       currency: 'USD',
       timeZone: zones.includes(browserZone) ? browserZone : 'UTC',
       adminUsername: '',
-      adminEmail: '',
+      adminEmail: invite.email,
       adminPassword: '',
       confirmPassword: '',
     },
@@ -127,10 +200,15 @@ export function SignupPage() {
         adminUsername: values.adminUsername,
         adminEmail: values.adminEmail,
         adminPassword: values.adminPassword,
+        inviteToken: token,
       });
       browser.go(workshopUrl(created.slug, '/login?welcome=1'));
     } catch (error) {
       if (error instanceof ApiError) {
+        if (INVITE_PROBLEMS.includes(error.code)) {
+          onLinkProblem(error.message);
+          return;
+        }
         if (['slug-taken', 'slug-reserved', 'invalid-slug'].includes(error.code)) {
           setError('slug', { message: error.message });
           return;
@@ -167,6 +245,10 @@ export function SignupPage() {
           Your workshop gets its own {PRODUCT_NAME} address. You'll be its admin and can invite your team
           afterwards.
         </CardDescription>
+        <p className="text-sm text-muted-foreground" data-testid="invite-for">
+          Invited as <strong className="text-foreground">{invite.email}</strong> · this link works until{' '}
+          {formatDate(invite.expiresAt)}.
+        </p>
       </CardHeader>
       <form noValidate aria-label="Set up your workshop" onSubmit={onSubmit}>
         <CardContent className="grid gap-6">

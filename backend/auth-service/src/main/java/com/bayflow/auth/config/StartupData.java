@@ -100,6 +100,9 @@ public class StartupData {
                     userAdmin.ensureUser("admin1", "admin1@bayflow.local", DEV_PASSWORD, Role.ADMIN);
                 });
             }
+            // A Ramplight console account (<base domain>/console) for local work and the e2e tests.
+            TenantContext.run(Platform.TENANT_ID, () -> userAdmin.ensureUser("console1", "console1@bayflow.local",
+                    DEV_PASSWORD, Role.PLATFORM_ADMIN));
         };
     }
 }

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { consoleApi } from '@/api/endpoints';
-import type { ConsoleDemoRequest, DemoStatus } from '@/api/types';
+import type { ConsoleDemoRequest, DemoStatus, IssuedInvitation } from '@/api/types';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Pager } from '@/components/common/Pager';
 import { QueryState } from '@/components/common/QueryState';
@@ -18,6 +18,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { LOCATION_COUNTS, SHOP_TYPES } from '@/features/site/DemoRequestForm';
 import { formatDateTime } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
+
+import { InviteDialog, IssuedDialog } from './InviteDialogs';
 
 export const DEMO_STATUS_LABELS: Record<DemoStatus, string> = {
   NEW: 'New',
@@ -53,6 +55,8 @@ export function DemoRequestsPage() {
   const [q, setQ] = useState('');
   const [page, setPage] = useState(0);
   const [open, setOpen] = useState<ConsoleDemoRequest | null>(null);
+  const [inviting, setInviting] = useState<ConsoleDemoRequest | null>(null);
+  const [issued, setIssued] = useState<IssuedInvitation | null>(null);
   const list = useQuery({
     queryKey: [...KEY, status, q.trim(), page],
     queryFn: () =>
@@ -162,12 +166,46 @@ export function DemoRequestsPage() {
           )
         }
       </QueryState>
-      {open && <RequestDialog key={open.id} request={open} onClose={() => setOpen(null)} />}
+      {open && (
+        <RequestDialog
+          key={open.id}
+          request={open}
+          onClose={() => setOpen(null)}
+          onInvite={() => {
+            setInviting(open);
+            setOpen(null);
+          }}
+        />
+      )}
+      {inviting && (
+        <InviteDialog
+          draft={{
+            email: inviting.email,
+            contactName: `${inviting.firstName} ${inviting.lastName}`,
+            shopName: inviting.shopName,
+            demoRequestId: inviting.id,
+          }}
+          onClose={() => setInviting(null)}
+          onIssued={(result) => {
+            setInviting(null);
+            setIssued(result);
+          }}
+        />
+      )}
+      {issued && <IssuedDialog issued={issued} onClose={() => setIssued(null)} />}
     </div>
   );
 }
 
-function RequestDialog({ request, onClose }: { request: ConsoleDemoRequest; onClose: () => void }) {
+function RequestDialog({
+  request,
+  onClose,
+  onInvite,
+}: {
+  request: ConsoleDemoRequest;
+  onClose: () => void;
+  onInvite: () => void;
+}) {
   const [status, setStatus] = useState<DemoStatus>(request.status);
   const [notes, setNotes] = useState(request.notes ?? '');
   const choices = MANUAL.includes(request.status) ? MANUAL : [request.status, ...MANUAL];
@@ -229,7 +267,7 @@ function RequestDialog({ request, onClose }: { request: ConsoleDemoRequest; onCl
             save.mutate(undefined);
           }}
         >
-          <Field label="Status" hint="Invited and Onboarded are set by sending a setup invite (next step).">
+          <Field label="Status" hint="Invited and Onboarded follow from the setup invite.">
             <Select value={status} onChange={(e) => setStatus(e.target.value as DemoStatus)}>
               {choices.map((s) => (
                 <option key={s} value={s}>
@@ -241,9 +279,16 @@ function RequestDialog({ request, onClose }: { request: ConsoleDemoRequest; onCl
           <Field label="Notes" hint="Only Ramplight's team sees these.">
             <Textarea rows={3} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
-          <Button type="submit" className="justify-self-start" disabled={save.isPending}>
-            {save.isPending ? 'Saving…' : 'Save'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" disabled={save.isPending}>
+              {save.isPending ? 'Saving…' : 'Save'}
+            </Button>
+            {request.status !== 'ONBOARDED' && (
+              <Button type="button" variant="outline" onClick={onInvite}>
+                {request.status === 'INVITED' ? 'Send another invite' : 'Send setup invite'}
+              </Button>
+            )}
+          </div>
         </form>
       </DialogContent>
     </Dialog>

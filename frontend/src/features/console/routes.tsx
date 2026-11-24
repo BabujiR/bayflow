@@ -4,6 +4,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage';
 
 import { ConsoleLayout } from './ConsoleLayout';
 import { DemoRequestsPage } from './DemoRequestsPage';
+import { InvitationsPage } from './InvitationsPage';
 
 /** <base domain>/console: the Ramplight console (Ramplight's own team). */
 export const consoleRoutes: RouteObject[] = [
@@ -12,6 +13,7 @@ export const consoleRoutes: RouteObject[] = [
     element: <ConsoleLayout />,
     children: [
       { index: true, element: <DemoRequestsPage /> },
+      { path: 'invitations', element: <InvitationsPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

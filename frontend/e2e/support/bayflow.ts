@@ -380,6 +380,32 @@ export class Cast {
     return new Api(http, username, accessToken);
   }
 
+  /**
+   * A setup invite from the Ramplight console (the dev profile's console1), as Ramplight's team
+   * sends it: the link a workshop owner opens to sign up. Returns the link and its token.
+   */
+  async invite(email: string, shopName?: string): Promise<{ setupUrl: string; token: string }> {
+    await throttleLogin(`${this.siteURL}|console1`);
+    const http = await playwrightRequest.newContext({
+      baseURL: this.siteURL,
+      extraHTTPHeaders: { 'X-Bayflow-Client': 'console' },
+    });
+    this.apis.push(http);
+    const login = await http.post('/api/v1/auth/login', {
+      data: { username: 'console1', password: DEMO_PASSWORD },
+    });
+    expect(login.ok(), 'console sign-in (console1)').toBeTruthy();
+    const { accessToken } = (await login.json()) as { accessToken: string };
+    const response = await http.post('/api/v1/auth/platform/invitations', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: { email, shopName: shopName ?? null },
+    });
+    expect(response.status(), `setup invite for ${email}`).toBe(201);
+    const { setupUrl } = (await response.json()) as { setupUrl: string };
+    const token = new URL(setupUrl).searchParams.get('invite') ?? '';
+    return { setupUrl: `${this.siteURL}/setup?invite=${token}`, token };
+  }
+
   /** An unauthenticated API client. */
   async anonymousApi(at: string = this.baseURL): Promise<APIRequestContext> {
     const http = await playwrightRequest.newContext({ baseURL: at });

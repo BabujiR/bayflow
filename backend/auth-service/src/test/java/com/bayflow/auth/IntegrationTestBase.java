@@ -78,6 +78,17 @@ public abstract class IntegrationTestBase {
     @Autowired
     private com.bayflow.auth.application.UserLocationService testUserLocations;
 
+    @Autowired
+    private com.bayflow.auth.application.InvitationService testInvitations;
+
+    /** A fresh setup invite's token, as the console would send it (sign-up needs one). */
+    protected String inviteToken() {
+        String email = "invitee-" + java.util.UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        var issued = com.bayflow.security.TenantContext.call(com.bayflow.auth.domain.Platform.TENANT_ID,
+                () -> testInvitations.create("test", email, null, null, null));
+        return issued.setupUrl().substring(issued.setupUrl().indexOf("invite=") + "invite=".length());
+    }
+
     /**
      * Creates an account in {@code tenant} like an admin would: staff who work at particular
      * locations (MANAGER, SERVICE_ADVISOR, MECHANIC) are assigned to the organization's first

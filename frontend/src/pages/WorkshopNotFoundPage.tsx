@@ -11,7 +11,7 @@ export function WorkshopNotFoundPage() {
         <CardTitle>Workshop not found</CardTitle>
         <CardDescription>
           There is no {PRODUCT_NAME} workshop at <strong>{window.location.host}</strong>. Check the address
-          with your workshop, or set up a new one.
+          with your workshop. New to {PRODUCT_NAME}? Request a demo and we'll set you up.
         </CardDescription>
       </CardHeader>
       <CardContent className="text-sm text-muted-foreground">
@@ -19,7 +19,7 @@ export function WorkshopNotFoundPage() {
       </CardContent>
       <CardFooter>
         <Button asChild className="w-full">
-          <a href={publicSiteUrl('/signup')}>Set up a workshop</a>
+          <a href={publicSiteUrl('/#demo')}>Request a demo</a>
         </Button>
       </CardFooter>
     </Card>

@@ -22,7 +22,8 @@ import com.jayway.jsonpath.JsonPath;
 import com.nimbusds.jwt.SignedJWT;
 
 /**
- * SaaS phase 4: workshops at their own addresses (<slug>.localhost) and self-service sign-up.
+ * SaaS phase 4: workshops at their own addresses (<slug>.localhost) and sign-up (each with its
+ * own setup invite here; InvitationsIT covers the invites themselves).
  * Requests carry X-Forwarded-Host like the web app's nginx sends it.
  */
 class WorkshopSignupIT extends IntegrationTestBase {
@@ -243,11 +244,12 @@ class WorkshopSignupIT extends IntegrationTestBase {
         return builder.header(CookieRequestGuard.HEADER, "web");
     }
 
-    private static String signupJson(String slug, String username, String email, String currency) {
+    private String signupJson(String slug, String username, String email, String currency) {
         return """
                 {"workshopName":"Workshop %s","slug":"%s","labourRate":110,"currency":"%s",
-                 "timeZone":"Europe/Berlin","adminUsername":"%s","adminEmail":"%s","adminPassword":"%s"}
-                """.formatted(slug.toLowerCase(), slug, currency, username, email, PASSWORD);
+                 "timeZone":"Europe/Berlin","adminUsername":"%s","adminEmail":"%s","adminPassword":"%s",
+                 "inviteToken":"%s"}
+                """.formatted(slug.toLowerCase(), slug, currency, username, email, PASSWORD, inviteToken());
     }
 
     private ResultActions login(String slug, String username, String password) throws Exception {

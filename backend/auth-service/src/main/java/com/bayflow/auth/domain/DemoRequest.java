@@ -105,6 +105,22 @@ public class DemoRequest {
         this.updatedAt = now;
     }
 
+    /** A setup invite was sent for this request (an onboarded one stays onboarded). */
+    public void invited(String by, Instant now) {
+        if (status != Status.ONBOARDED) {
+            this.status = Status.INVITED;
+            this.updatedBy = by;
+            this.updatedAt = now;
+        }
+    }
+
+    /** The invite was used: the workshop exists ({@code by}: its new admin). */
+    public void onboarded(String by, Instant now) {
+        this.status = Status.ONBOARDED;
+        this.updatedBy = by;
+        this.updatedAt = now;
+    }
+
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.strip();
     }

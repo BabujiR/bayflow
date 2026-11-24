@@ -159,8 +159,9 @@ class LocationsIT extends IntegrationTestBase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"workshopName":"Loc Test","slug":"%s","currency":"NZD","timeZone":"Pacific/Auckland",
-                                 "adminUsername":"owner","adminEmail":"owner@example.com","adminPassword":"%s"}
-                                """.formatted(slug, PASSWORD)))
+                                 "adminUsername":"owner","adminEmail":"owner@example.com","adminPassword":"%s",
+                                 "inviteToken":"%s"}
+                                """.formatted(slug, PASSWORD, inviteToken())))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         UUID tenant = UUID.fromString(JsonPath.read(body, "$.id"));

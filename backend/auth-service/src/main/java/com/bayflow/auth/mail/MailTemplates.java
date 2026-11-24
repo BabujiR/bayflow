@@ -60,7 +60,42 @@ public final class MailTemplates {
         return new OutgoingMail(to, workshop, replyTo, subject, text, html);
     }
 
+    /** A setup invite from Ramplight's team: the link creates the workshop and its admin. */
+    public static OutgoingMail invitation(String to, String contactName, String shopName, String link, long days) {
+        String greeting = contactName == null ? "Hello," : "Hello " + contactName + ",";
+        String shop = shopName == null ? "your workshop" : shopName;
+        String subject = "Set up " + shop + " on Ramplight";
+        String text = """
+                %s
+
+                Your Ramplight account is ready to set up. Open this link to create %s, choose its
+                address and set your admin password (the link works for %d days and only once):
+
+                %s
+
+                Questions? Just reply to this e-mail.
+
+                Ramplight
+                """.formatted(greeting, shop, days, link);
+        String html = page("Ramplight", """
+                <p>%s</p>
+                <p>Your Ramplight account is ready to set up. Open the link to create <strong>%s</strong>, choose
+                its address and set your admin password.</p>
+                <p style="margin:28px 0"><a href="%s" style="background:#2b3bd1;color:#ffffff;padding:12px 22px;\
+                border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Set up your workshop</a></p>
+                <p style="color:#475569;font-size:14px">The link works for %d days and only once. If the button
+                doesn't work, copy this address into your browser:<br><span style="word-break:break-all">%s</span></p>
+                <p style="color:#475569;font-size:14px">Questions? Just reply to this e-mail.</p>
+                """.formatted(htmlEscape(greeting), htmlEscape(shop), htmlEscape(link), days, htmlEscape(link)),
+                "Sent by Ramplight.");
+        return new OutgoingMail(to, "Ramplight", null, subject, text, html);
+    }
+
     private static String page(String workshop, String body) {
+        return page(workshop, body, "Sent by Ramplight for " + htmlEscape(workshop) + ".");
+    }
+
+    private static String page(String workshop, String body, String footer) {
         return """
                 <!doctype html>
                 <html><body style="margin:0;background:#f8fafc;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;\
@@ -70,9 +105,9 @@ public final class MailTemplates {
                 <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;line-height:1.55">
                 %s
                 </div>
-                <p style="color:#94a3b8;font-size:12px;margin-top:20px">Sent by Ramplight for %s.</p>
+                <p style="color:#94a3b8;font-size:12px;margin-top:20px">%s</p>
                 </div>
                 </body></html>
-                """.formatted(htmlEscape(workshop), body, htmlEscape(workshop));
+                """.formatted(htmlEscape(workshop), body, footer);
     }
 }

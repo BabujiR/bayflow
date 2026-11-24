@@ -84,9 +84,13 @@ public class AuthProperties {
     public static class Signup {
         /** Sign-ups allowed per client IP per hour. */
         private int maxPerHourPerIp = 10;
+        /** How long a setup invite's link works. */
+        private Duration inviteTtl = Duration.ofDays(7);
 
         public int getMaxPerHourPerIp() { return maxPerHourPerIp; }
         public void setMaxPerHourPerIp(int maxPerHourPerIp) { this.maxPerHourPerIp = maxPerHourPerIp; }
+        public Duration getInviteTtl() { return inviteTtl; }
+        public void setInviteTtl(Duration inviteTtl) { this.inviteTtl = inviteTtl; }
     }
 
     /** Starting settings of a new workshop; each workshop then changes its own. */

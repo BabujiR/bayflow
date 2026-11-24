@@ -465,6 +465,34 @@ export interface ConsoleDemoRequest {
   version: number;
 }
 
+/** A setup invite as the console shows it (Pending turns Expired after 7 days). */
+export type InvitationState = 'PENDING' | 'EXPIRED' | 'ACCEPTED' | 'REVOKED';
+
+export interface ConsoleInvitation {
+  id: string;
+  email: string;
+  contactName: string | null;
+  shopName: string | null;
+  demoRequestId: string | null;
+  state: InvitationState;
+  expiresAt: string;
+  sentCount: number;
+  lastSentAt: string;
+  createdAt: string;
+  createdBy: string;
+  acceptedAt: string | null;
+  workshopSlug: string | null;
+  revokedAt: string | null;
+  revokedBy: string | null;
+}
+
+/** A new or resent invite: the setup link is shown this once (copy it when not e-mailed). */
+export interface IssuedInvitation {
+  invitation: ConsoleInvitation;
+  setupUrl: string;
+  emailed: boolean;
+}
+
 /** "Request a demo" on the public site. */
 export type ShopType =
   'GENERAL_REPAIR' | 'TIRES' | 'QUICK_LUBE' | 'COLLISION' | 'DEALERSHIP' | 'FLEET' | 'OTHER';
@@ -491,6 +519,16 @@ export interface SignupRequest {
   adminUsername: string;
   adminEmail: string;
   adminPassword: string;
+  /** From the setup link (<site>/setup?invite=…); sign-up is by invite only. */
+  inviteToken: string;
+}
+
+/** Who a setup link is for (POST /api/v1/tenants/invitations/check). */
+export interface InviteDetails {
+  email: string;
+  contactName: string | null;
+  shopName: string | null;
+  expiresAt: string;
 }
 
 export interface SignupResponse {

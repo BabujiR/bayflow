@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ConsoleDemoRequest } from '@/api/types';
+import type { ConsoleDemoRequest, ConsoleInvitation } from '@/api/types';
 import { renderConsole } from '@/test/render';
 import { noSession, pageOf, server, sessionFor, user } from '@/test/server';
 
@@ -24,6 +24,25 @@ const request = (overrides: Partial<ConsoleDemoRequest> = {}): ConsoleDemoReques
   updatedAt: null,
   updatedBy: null,
   version: 0,
+  ...overrides,
+});
+
+const invitation = (overrides: Partial<ConsoleInvitation> = {}): ConsoleInvitation => ({
+  id: 'i1',
+  email: 'ana@example.com',
+  contactName: 'Ana Silva',
+  shopName: 'Lotus Auto Group',
+  demoRequestId: 'd1',
+  state: 'PENDING',
+  expiresAt: '2026-12-01T15:00:00Z',
+  sentCount: 1,
+  lastSentAt: '2026-11-24T15:00:00Z',
+  createdAt: '2026-11-24T15:00:00Z',
+  createdBy: 'team',
+  acceptedAt: null,
+  workshopSlug: null,
+  revokedAt: null,
+  revokedBy: null,
   ...overrides,
 });
 
@@ -69,5 +88,83 @@ describe('Ramplight console', () => {
     await vi.waitFor(() =>
       expect(saved).toEqual({ status: 'CONTACTED', notes: 'Demo Thursday 10am', version: 0 }),
     );
+  });
+
+  it('sends a setup invite from a demo request and shows the link once', async () => {
+    let sent: unknown;
+    server.use(
+      sessionFor(user('PLATFORM_ADMIN', 'team')),
+      http.get('*/api/v1/auth/platform/demo-requests', () => HttpResponse.json(pageOf([request()]))),
+      http.post('*/api/v1/auth/platform/invitations', async ({ request: req }) => {
+        sent = await req.json();
+        return HttpResponse.json(
+          { invitation: invitation(), setupUrl: 'http://localhost:3000/setup?invite=tok-1', emailed: false },
+          { status: 201 },
+        );
+      }),
+    );
+    renderConsole();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Open Lotus Auto Group' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Send setup invite' }));
+    const form = await screen.findByRole('form', { name: 'Send setup invite' });
+    expect(within(form).getByLabelText("Owner's email")).toHaveValue('ana@example.com');
+    expect(within(form).getByLabelText('Shop name')).toHaveValue('Lotus Auto Group');
+    await userEvent.click(within(form).getByRole('button', { name: 'Send invite' }));
+
+    expect(await screen.findByLabelText('Setup link')).toHaveValue(
+      'http://localhost:3000/setup?invite=tok-1',
+    );
+    expect(screen.getByText(/E-mail isn't set up here, so nothing was sent/)).toBeInTheDocument();
+    expect(sent).toEqual({
+      email: 'ana@example.com',
+      contactName: 'Ana Silva',
+      shopName: 'Lotus Auto Group',
+      demoRequestId: 'd1',
+    });
+  });
+
+  it('lists invitations and resends or revokes them', async () => {
+    const calls: string[] = [];
+    server.use(
+      sessionFor(user('PLATFORM_ADMIN', 'team')),
+      http.get('*/api/v1/auth/platform/invitations', () =>
+        HttpResponse.json(
+          pageOf([
+            invitation(),
+            invitation({ id: 'i2', email: 'bo@example.com', state: 'ACCEPTED', workshopSlug: 'bo-motors' }),
+          ]),
+        ),
+      ),
+      http.post('*/api/v1/auth/platform/invitations/i1/resend', () => {
+        calls.push('resend');
+        return HttpResponse.json({
+          invitation: invitation({ sentCount: 2 }),
+          setupUrl: 'http://localhost:3000/setup?invite=tok-2',
+          emailed: true,
+        });
+      }),
+      http.post('*/api/v1/auth/platform/invitations/i1/revoke', () => {
+        calls.push('revoke');
+        return HttpResponse.json(invitation({ state: 'REVOKED' }));
+      }),
+    );
+    renderConsole('/console/invitations');
+
+    const pending = (await screen.findByText('ana@example.com')).closest('tr') as HTMLElement;
+    expect(within(pending).getByText('Pending')).toBeInTheDocument();
+    const used = screen.getByText('bo@example.com').closest('tr') as HTMLElement;
+    expect(within(used).getByRole('link', { name: 'bo-motors' })).toBeInTheDocument();
+    expect(within(used).queryByRole('button', { name: /Resend/ })).not.toBeInTheDocument();
+
+    await userEvent.click(within(pending).getByRole('button', { name: 'Resend invite to ana@example.com' }));
+    expect(await screen.findByLabelText('Setup link')).toHaveValue(
+      'http://localhost:3000/setup?invite=tok-2',
+    );
+    expect(screen.getByText(/E-mailed to ana@example.com/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+    await userEvent.click(within(pending).getByRole('button', { name: 'Revoke invite to ana@example.com' }));
+    await vi.waitFor(() => expect(calls).toEqual(['resend', 'revoke']));
   });
 });

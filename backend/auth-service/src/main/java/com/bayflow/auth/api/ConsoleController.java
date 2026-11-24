@@ -97,7 +97,7 @@ public class ConsoleController {
     }
 
     /** The role alone is not enough: the token must also be the console organization's. */
-    private static void requireConsole() {
+    static void requireConsole() {
         if (!Platform.TENANT_ID.equals(TenantContext.current().orElse(null))) {
             throw new ApiException(org.springframework.http.HttpStatus.FORBIDDEN, "console-only", "Forbidden",
                     "This is for the Ramplight console only.");
