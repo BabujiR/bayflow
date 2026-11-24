@@ -90,8 +90,9 @@ describe('maintenance reminders (R3b)', () => {
     server.use(
       sessionFor(user('CUSTOMER', 'customer1')),
       http.put('*/api/v1/service-reminders/me', async ({ request }) => {
-        sent = await request.json();
-        return HttpResponse.json(sent);
+        const body = (await request.json()) as { enabled: boolean };
+        sent = body;
+        return HttpResponse.json(body);
       }),
     );
     renderApp('/notifications');
