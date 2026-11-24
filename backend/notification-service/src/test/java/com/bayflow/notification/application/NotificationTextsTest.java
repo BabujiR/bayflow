@@ -44,10 +44,15 @@ class NotificationTextsTest {
         assertThat(NotificationTexts.of(event(EventType.INVOICE_ISSUED, "AB12 CDE"), Audience.CUSTOMER, NEW_YORK))
                 .isEqualTo(new Text("Your invoice is ready",
                         "The invoice for the work on AB12 CDE is ready to view.", "/invoices"));
+        assertThat(NotificationTexts.of(event(EventType.SERVICE_DUE, "AB12 CDE"), Audience.CUSTOMER, NEW_YORK))
+                .isEqualTo(new Text("Service due: AB12 CDE",
+                        "AB12 CDE is due for Oil change, Tire rotation. Book a visit when it suits you.",
+                        "/appointments/new"));
     }
 
     private static NotificationEvent event(EventType type, String registration) {
         return new NotificationEvent(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), type, null, false,
-                UUID.randomUUID(), CARD, registration, Instant.parse("2026-11-24T15:00:00Z"), null, 1, 0);
+                UUID.randomUUID(), CARD, registration, Instant.parse("2026-11-24T15:00:00Z"), null, 1, 0,
+                type == EventType.SERVICE_DUE ? "Oil change, Tire rotation" : null);
     }
 }

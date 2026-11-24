@@ -8,12 +8,14 @@ import { useAuth } from '@/auth/auth-context';
 import { PageHeader } from '@/components/common/PageHeader';
 import { QueryState } from '@/components/common/QueryState';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useLocationLookup } from '@/features/locations/use-locations';
 import { formatDate, formatMileage } from '@/lib/format';
+import { useAction } from '@/lib/use-action';
 
 const WINDOWS = [7, 30, 60, 90];
 
@@ -63,6 +65,10 @@ function DueTable({ vehicles }: { vehicles: DueVehicle[] }) {
   const locations = useLocationLookup();
   const { hasRole } = useAuth();
   const canBook = hasRole('SERVICE_ADVISOR');
+  const remind = useAction((vehicleId: string) => remindersApi.remind(vehicleId), {
+    success: 'Reminder sent to the customer',
+    invalidate: [['service-due', 'list']],
+  });
   return (
     <Card>
       <CardContent className="overflow-x-auto pt-6">
@@ -73,6 +79,7 @@ function DueTable({ vehicles }: { vehicles: DueVehicle[] }) {
               <TableHead>Customer</TableHead>
               {locations.hasSeveral && <TableHead>Location</TableHead>}
               <TableHead>Due</TableHead>
+              <TableHead>Reminder</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -101,7 +108,21 @@ function DueTable({ vehicles }: { vehicles: DueVehicle[] }) {
                     ))}
                   </ul>
                 </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {v.remindedAt ? `Reminded ${formatDate(v.remindedAt)}` : '—'}
+                </TableCell>
                 <TableCell className="whitespace-nowrap text-right">
+                  {v.customerUserId && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={remind.isPending}
+                      onClick={() => remind.mutate(v.vehicleId)}
+                      aria-label={`Send reminder for ${v.registration}`}
+                    >
+                      Send reminder
+                    </Button>
+                  )}{' '}
                   {canBook && (
                     <Link
                       className="text-sm text-primary underline"

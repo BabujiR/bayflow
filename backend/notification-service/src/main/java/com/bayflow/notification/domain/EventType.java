@@ -10,5 +10,7 @@ public enum EventType {
     ESTIMATE_READY,
     ESTIMATE_DECIDED,
     WORK_COMPLETED,
+    /** A vehicle is due for maintenance (workshop-service's daily reminders). */
+    SERVICE_DUE,
     INVOICE_ISSUED
 }

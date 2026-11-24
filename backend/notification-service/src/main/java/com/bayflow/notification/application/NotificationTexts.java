@@ -58,6 +58,11 @@ final class NotificationTexts {
                     "The work on " + car + " is complete. You can collect it.", jobCard);
             case INVOICE_ISSUED -> new Text("Your invoice is ready",
                     "The invoice for the work on " + car + " is ready to view.", "/invoices");
+            case SERVICE_DUE -> new Text("Service due: " + reg,
+                    capitalize(car) + " is due for "
+                            + (event.detail() == null || event.detail().isBlank() ? "a service" : event.detail())
+                            + ". Book a visit when it suits you.",
+                    "/appointments/new");
         };
     }
 

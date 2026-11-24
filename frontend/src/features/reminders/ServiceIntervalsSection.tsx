@@ -227,12 +227,13 @@ function SettingsCard({ settings }: { settings: ReminderSettings }) {
   const queryClient = useQueryClient();
   const [milesPerDay, setMilesPerDay] = useState(String(settings.milesPerDay));
   const [days, setDays] = useState(String(settings.remindDaysBefore));
+  const [enabled, setEnabled] = useState(settings.enabled);
   const valid =
     whole(milesPerDay, 1, 500) && milesPerDay.trim() !== '' && whole(days, 0, 90) && days.trim() !== '';
   const save = useAction(
     () =>
       remindersApi.updateSettings({
-        enabled: settings.enabled,
+        enabled,
         remindDaysBefore: Number(days),
         milesPerDay: Number(milesPerDay),
         version: settings.version,
@@ -248,13 +249,14 @@ function SettingsCard({ settings }: { settings: ReminderSettings }) {
         <CardTitle>How due dates are worked out</CardTitle>
         <CardDescription>
           A vehicle's miles a day come from its visits here; for one seen only once, Ramplight assumes the
-          number below.
+          number below. Customers with an account get an in-app reminder the given number of days before a
+          service is due (once a day, mid-morning); they can turn it off.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form
           noValidate
-          className="grid gap-4 sm:grid-cols-[12rem_12rem_auto] sm:items-end"
+          className="grid gap-4 sm:grid-cols-[12rem_12rem_auto] sm:items-end sm:justify-start"
           onSubmit={(e) => {
             e.preventDefault();
             if (valid) {
@@ -265,12 +267,21 @@ function SettingsCard({ settings }: { settings: ReminderSettings }) {
           <Field label="Miles a day (assumed)">
             <Input inputMode="numeric" value={milesPerDay} onChange={(e) => setMilesPerDay(e.target.value)} />
           </Field>
-          <Field label="Remind days before" hint="For the customer reminders (next step)">
+          <Field label="Remind days before">
             <Input inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value)} />
           </Field>
           <Button type="submit" variant="outline" disabled={!valid || save.isPending}>
             Save
           </Button>
+          <label className="flex items-center gap-2 text-sm sm:col-span-3">
+            <input
+              type="checkbox"
+              className="size-4"
+              checked={enabled}
+              onChange={(e) => setEnabled(e.target.checked)}
+            />
+            Send reminders to customers
+          </label>
         </form>
       </CardContent>
     </Card>

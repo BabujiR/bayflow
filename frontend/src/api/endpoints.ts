@@ -164,6 +164,11 @@ export const remindersApi = {
   /** Vehicles with a service due within `days` (or overdue), at the caller's locations. */
   dueSoon: (days: number, locationId?: string) =>
     http.get<DueVehicle[]>('/api/v1/service-due', { days, locationId }),
+  /** Sends the customer a reminder now (409 when they have no account or turned reminders off). */
+  remind: (vehicleId: string) => http.post<void>(`/api/v1/service-due/vehicles/${vehicleId}/remind`),
+  /** The signed-in customer's own switch. */
+  mine: () => http.get<{ enabled: boolean }>('/api/v1/service-reminders/me'),
+  setMine: (enabled: boolean) => http.put<{ enabled: boolean }>('/api/v1/service-reminders/me', { enabled }),
   /** At check-in: the vehicle's services due within 30 days or 500 miles of `mileage`. */
   forVehicle: (vehicleId: string, mileage?: number) =>
     http.get<DueService[]>(`/api/v1/service-due/vehicles/${vehicleId}`, { mileage }),

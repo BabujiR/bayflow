@@ -34,6 +34,7 @@ public class OutboxService {
     public static final String ESTIMATE_DECIDED = "ESTIMATE_DECIDED";
     public static final String WORK_COMPLETED = "WORK_COMPLETED";
     public static final String INVOICE_ISSUED = "INVOICE_ISSUED";
+    public static final String SERVICE_DUE = "SERVICE_DUE";
 
     /** An event was queued; sent right after the transaction commits (see the dispatcher). */
     public record NotificationQueued(UUID tenantId, UUID jobCardId) {
@@ -74,6 +75,25 @@ public class OutboxService {
         outbox.save(OutboxMessage.create(card.getId(), OutboxMessage.NOTIFY, json.writeValueAsString(payload),
                 clock.instant()));
         events.publishEvent(new NotificationQueued(tenant, card.getId()));
+    }
+
+    /**
+     * A maintenance reminder for the customer: the vehicle's services due (names, joined), about
+     * the job card where they were last done. Sent by the system (no actor).
+     */
+    @Transactional
+    public void enqueueServiceDue(UUID locationId, UUID customerUserId, UUID jobCardId, String registration,
+            String services) {
+        if (!properties.getNotifications().isEnabled()) {
+            return;
+        }
+        UUID tenant = TenantContext.require();
+        String detail = services.length() > 300 ? services.substring(0, 297) + "..." : services;
+        NotificationPayload payload = new NotificationPayload(null, tenant, locationId, SERVICE_DUE, null, false,
+                customerUserId, jobCardId, registration, 0, 0, detail);
+        outbox.save(OutboxMessage.create(jobCardId, OutboxMessage.NOTIFY, json.writeValueAsString(payload),
+                clock.instant()));
+        events.publishEvent(new NotificationQueued(tenant, jobCardId));
     }
 
     @Transactional(readOnly = true)

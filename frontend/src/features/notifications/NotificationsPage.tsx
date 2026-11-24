@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
+import { useAuth } from '@/auth/auth-context';
 import { EmptyState } from '@/components/common/EmptyState';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Pager } from '@/components/common/Pager';
 import { QueryState } from '@/components/common/QueryState';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+
+import { MyRemindersCard } from '@/features/reminders/MyRemindersCard';
 
 import { NotificationItem, safeLink } from './NotificationItem';
 import { useMarkRead, useNotifications, useUnreadCount } from './use-notifications';
@@ -21,6 +24,8 @@ export function NotificationsPage() {
   const unread = useUnreadCount();
   const { one, all } = useMarkRead();
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const customer = hasRole('CUSTOMER') && !hasRole('SERVICE_ADVISOR', 'MECHANIC', 'ADMIN');
 
   return (
     <>
@@ -69,6 +74,7 @@ export function NotificationsPage() {
           )
         }
       </QueryState>
+      {customer && <MyRemindersCard />}
     </>
   );
 }

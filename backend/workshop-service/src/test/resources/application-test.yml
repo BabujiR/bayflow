@@ -6,6 +6,9 @@ bayflow:
   workshop:
     # Never called: IntegrationTestBase mocks WorkshopSettingsClient.
     auth-url: http://localhost:1
+    reminders:
+      # RemindersIT runs the daily pass itself.
+      scheduler-enabled: false
     notifications:
       # Most tests don't look at notification events; NotificationEventsIT turns them on.
       enabled: false

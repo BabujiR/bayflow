@@ -207,6 +207,11 @@ the vehicle is due again after the miles or the months, whichever comes first, u
 a day when it has visited before. Advisors see **Due soon**, and at check-in the job card offers
 **Also due on this vehicle** as one-click recommendations.
 
+Once a day (14:00 UTC) customers with an account get an in-app reminder ("BFL 1234 is due for Oil
+change, Tire rotation", linking to *Book a service*) the shop's *Remind days before* ahead of each
+due date, once per due date. Advisors can **Send reminder** from *Due soon*; customers turn reminders
+off on their *Notifications* page; admins switch them off under *Service intervals*.
+
 ### QuickBooks Online
 
 An admin connects the company under *Settings → QuickBooks Online* and chooses the QuickBooks
@@ -433,7 +438,7 @@ Caddy with a wildcard certificate, nightly backups). It applies everything below
 | Invoicing 1 | Invoices, tax and fees, payments, print; sales, payments, unpaid and tax reports | 🔍 in review |
 | Invoicing 2 | Email invoices, CSV export for QuickBooks, QuickBooks Online connection | 🔍 in review |
 | Faster counter 1 | Canned jobs | 🔍 in review |
-| Faster counter 2 | Service intervals, Due soon, "Also due" at check-in | 🔍 in review |
+| Faster counter 2 | Service intervals, Due soon, "Also due" at check-in, customer reminders | 🔍 in review |
 
 ## Assumptions
 

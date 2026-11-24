@@ -24,6 +24,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.security.core.Authentication;
+
+import com.bayflow.security.CurrentUser;
 import com.bayflow.workshop.application.ApiException;
 import com.bayflow.workshop.reminders.ServiceDueService.DueService;
 import com.bayflow.workshop.reminders.ServiceDueService.DueVehicle;
@@ -82,12 +85,18 @@ public class ReminderController {
         }
     }
 
+    /** Whether the signed-in customer gets service reminders. */
+    public record MyReminders(@NotNull Boolean enabled) {
+    }
+
     private final ServiceIntervalService intervals;
     private final ServiceDueService due;
+    private final ReminderService reminders;
 
-    public ReminderController(ServiceIntervalService intervals, ServiceDueService due) {
+    public ReminderController(ServiceIntervalService intervals, ServiceDueService due, ReminderService reminders) {
         this.intervals = intervals;
         this.due = due;
+        this.reminders = reminders;
     }
 
     @GetMapping("/service-intervals")
@@ -145,6 +154,38 @@ public class ReminderController {
     public List<DueVehicle> dueSoon(@RequestParam(defaultValue = "30") int days,
             @RequestParam(required = false) UUID locationId) {
         return due.dueSoon(Math.min(Math.max(days, 0), 365), locationId);
+    }
+
+    @PostMapping("/service-due/vehicles/{vehicleId}/remind")
+    @PreAuthorize("hasAnyRole('SERVICE_ADVISOR', 'MANAGER', 'ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Send the customer a reminder now for the vehicle's services due within 60 days",
+            description = "409 when the customer has no account or turned reminders off.")
+    public void remind(@PathVariable UUID vehicleId) {
+        reminders.remindNow(vehicleId);
+    }
+
+    @GetMapping("/service-reminders/me")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(summary = "Whether the signed-in customer gets service reminders")
+    public MyReminders mine(Authentication auth) {
+        return new MyReminders(reminders.isEnabledFor(customer(auth)));
+    }
+
+    @PutMapping("/service-reminders/me")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(summary = "Turn service reminders on or off for the signed-in customer")
+    public MyReminders setMine(@Valid @RequestBody MyReminders request, Authentication auth) {
+        reminders.setEnabledFor(customer(auth), request.enabled());
+        return new MyReminders(request.enabled());
+    }
+
+    private static UUID customer(Authentication auth) {
+        try {
+            return UUID.fromString(CurrentUser.from(auth).subject());
+        } catch (IllegalArgumentException e) {
+            throw ApiException.notFound("Customer");
+        }
     }
 
     @GetMapping("/service-due/vehicles/{vehicleId}")
