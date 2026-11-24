@@ -93,6 +93,7 @@ const STEPS = [
 
 const ROLES = [
   { who: 'Owners', text: 'See the money and the workload at a glance, across every location.' },
+  { who: 'Location managers', text: 'Run their own shop in a group: its board, its team and its numbers.' },
   { who: 'Service advisors', text: 'Book, check in, estimate and invoice without paper or retyping.' },
   { who: 'Mechanics', text: 'Their jobs, the approved work, and parts and labour recorded as they go.' },
   { who: 'Customers', text: 'Book, approve work, follow their car and see invoices online.' },
@@ -220,7 +221,7 @@ export function LandingPage() {
         <h2 id="roles-heading" className="text-center text-3xl font-bold tracking-tight">
           Made for the whole shop
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {ROLES.map((r) => (
             <div key={r.who} className="rounded-xl border bg-card p-5">
               <h3 className="font-semibold">{r.who}</h3>
