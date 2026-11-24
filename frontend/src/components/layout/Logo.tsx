@@ -18,13 +18,31 @@ export function Logo({
 }) {
   return (
     <span className={cn('flex items-center gap-2.5', className)}>
-      <svg aria-hidden viewBox="0 0 32 32" className="size-8 shrink-0">
-        <rect width="32" height="32" rx="8" className="fill-primary" />
-        <path d="M7 22V12l9-5 9 5v10" fill="none" stroke="white" strokeWidth="2.4" strokeLinejoin="round" />
-        <path d="M10 22c3-4 9-4 12 0" fill="none" stroke="#5eead4" strokeWidth="2.4" strokeLinecap="round" />
+      {/* The R with a light: the same mark as public/favicon.svg. */}
+      <svg aria-hidden viewBox="0 0 64 64" className="size-8 shrink-0">
+        <rect width="64" height="64" rx="16" fill="#2b3bd1" />
+        <path
+          d="M20 50V14h14a10 10 0 0 1 0 20H20"
+          fill="none"
+          stroke="white"
+          strokeWidth="6"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        <path d="M30 34 L46 50" stroke="white" strokeWidth="6" strokeLinecap="round" />
+        <circle cx="47" cy="17" r="7.5" fill="#5eead4" opacity="0.25" />
+        <circle cx="47" cy="17" r="4.5" fill="#5eead4" />
       </svg>
       <span className={cn('flex flex-col leading-tight', compact && 'sr-only')}>
-        <span className="text-lg font-bold tracking-tight">{PRODUCT_NAME}</span>
+        <span className="text-lg font-bold tracking-tight">
+          {PRODUCT_NAME.startsWith('Ramp') ? (
+            <>
+              Ramp<span className="text-primary dark:text-[#5eead4]">{PRODUCT_NAME.slice(4)}</span>
+            </>
+          ) : (
+            PRODUCT_NAME
+          )}
+        </span>
         {withTagline && <span className="hidden text-xs text-muted-foreground lg:block">{TAGLINE}</span>}
       </span>
     </span>
