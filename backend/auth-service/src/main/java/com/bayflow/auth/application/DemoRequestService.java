@@ -71,12 +71,11 @@ public class DemoRequestService {
                 Email: %s
                 Phone: %s
                 Shop: %s
-                Type: %s
                 Locations: %s
                 City: %s
 
                 %s
-                """.formatted(name, r.getEmail(), r.getPhone(), r.getShopName(), r.getShopType(), r.getLocations(),
+                """.formatted(name, r.getEmail(), r.getPhone(), r.getShopName(), r.getLocations(),
                 orDash(r.getCity()), orDash(r.getMessage()));
         String html = """
                 <!doctype html><html><body style="font-family:system-ui,sans-serif;color:#0f172a">
@@ -86,14 +85,13 @@ public class DemoRequestService {
                 <tr><td style="color:#475569">Email</td><td><a href="mailto:%s">%s</a></td></tr>
                 <tr><td style="color:#475569">Phone</td><td>%s</td></tr>
                 <tr><td style="color:#475569">Shop</td><td>%s</td></tr>
-                <tr><td style="color:#475569">Type</td><td>%s</td></tr>
                 <tr><td style="color:#475569">Locations</td><td>%s</td></tr>
                 <tr><td style="color:#475569">City</td><td>%s</td></tr>
                 </table>
                 <p style="white-space:pre-line">%s</p>
                 </body></html>
                 """.formatted(htmlEscape(name), htmlEscape(r.getEmail()), htmlEscape(r.getEmail()),
-                htmlEscape(r.getPhone()), htmlEscape(r.getShopName()), htmlEscape(r.getShopType()),
+                htmlEscape(r.getPhone()), htmlEscape(r.getShopName()),
                 htmlEscape(r.getLocations()), htmlEscape(orDash(r.getCity())), htmlEscape(orDash(r.getMessage())));
         return new OutgoingMail(to, "Ramplight", r.getEmail(), subject, text, html);
     }

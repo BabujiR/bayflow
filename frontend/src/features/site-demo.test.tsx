@@ -28,7 +28,7 @@ describe('request a demo (public site)', () => {
     await userEvent.type(within(form).getByLabelText('Email'), 'ana@example.com');
     await userEvent.type(within(form).getByLabelText('Phone'), '+1 555 010 0199');
     await userEvent.type(within(form).getByLabelText('Shop or group name'), 'Lotus Auto Group');
-    await userEvent.selectOptions(within(form).getByLabelText('Shop type'), 'GENERAL_REPAIR');
+    expect(within(form).queryByLabelText('Shop type')).not.toBeInTheDocument();
     await userEvent.selectOptions(within(form).getByLabelText('How many locations?'), '4-10');
     await userEvent.click(within(form).getByRole('button', { name: 'Request a demo' }));
 
@@ -39,7 +39,6 @@ describe('request a demo (public site)', () => {
       email: 'ana@example.com',
       phone: '+1 555 010 0199',
       shopName: 'Lotus Auto Group',
-      shopType: 'GENERAL_REPAIR',
       locations: '4-10',
       city: null,
       message: null,
@@ -58,7 +57,6 @@ describe('request a demo (public site)', () => {
     await userEvent.type(within(form).getByLabelText('Email'), 'ana@example.com');
     await userEvent.type(within(form).getByLabelText('Phone'), '5550100199');
     await userEvent.type(within(form).getByLabelText('Shop or group name'), 'Lotus');
-    await userEvent.selectOptions(within(form).getByLabelText('Shop type'), 'TIRES');
     await userEvent.selectOptions(within(form).getByLabelText('How many locations?'), '1');
     await userEvent.click(within(form).getByRole('button', { name: 'Request a demo' }));
 

@@ -1,9 +1,7 @@
-import { useState, type ComponentType, type SVGProps } from 'react';
-import { Link } from 'react-router';
+import type { ComponentType, SVGProps } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Field } from '@/components/ui/field';
 import {
   BellIcon,
   BoardIcon,
@@ -14,10 +12,8 @@ import {
   ReceiptIcon,
   WrenchIcon,
 } from '@/components/ui/icons';
-import { Input } from '@/components/ui/input';
 import { PRODUCT_NAME } from '@/lib/brand';
-import { BASE_DOMAIN, browser, workshopUrl } from '@/lib/site';
-import { SLUG_PATTERN } from '@/lib/slug';
+import { BASE_DOMAIN } from '@/lib/site';
 
 import { DemoRequestForm } from './DemoRequestForm';
 
@@ -82,16 +78,16 @@ const GROUP_POINTS = [
 
 const STEPS = [
   {
-    title: 'Set up your workshop',
-    text: `Choose your address (your-workshop.${BASE_DOMAIN}), currency and time zone. It takes two minutes.`,
+    title: 'Request a demo',
+    text: 'Tell us about your shop or group, and we walk you through Ramplight on your kind of work.',
   },
   {
-    title: 'Add your team and branding',
-    text: 'Invite advisors and mechanics, upload your logo and colours.',
+    title: 'Get your setup link',
+    text: `We send you a link to create your workshop at your-workshop.${BASE_DOMAIN}, with your currency and time zone.`,
   },
   {
-    title: 'Open the doors',
-    text: 'Customers book online or at the counter, and every job flows from check-in to invoice.',
+    title: 'Add your team and open the doors',
+    text: 'Invite advisors and mechanics, add your logo, and every job flows from check-in to invoice.',
   },
 ];
 
@@ -116,8 +112,8 @@ export function LandingPage() {
   return (
     <div className="grid gap-20 pt-8 sm:pt-14">
       {/* ---- hero ---- */}
-      <section className="grid items-center gap-10 lg:grid-cols-[1.15fr_1fr]">
-        <div className="grid gap-6">
+      <section className="grid items-start gap-10 lg:grid-cols-[1.15fr_1fr]">
+        <div className="grid gap-6 lg:pt-8">
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-primary">
             For independent shops and multi-location groups
           </p>
@@ -141,19 +137,15 @@ export function LandingPage() {
               </li>
             ))}
           </ul>
-          <div className="flex flex-wrap gap-3">
+          {/* Small screens: the form comes after all this, so point to it. */}
+          <div className="lg:hidden">
             <Button asChild size="lg">
-              <Link to="/signup">Set up your workshop</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
               <a href="#demo">Request a demo</a>
             </Button>
           </div>
         </div>
         <DemoRequestForm />
       </section>
-
-      <WorkshopStrip />
 
       {/* ---- features ---- */}
       <section id="features" aria-labelledby="features-heading" className="grid scroll-mt-8 gap-8">
@@ -208,7 +200,7 @@ export function LandingPage() {
       {/* ---- how it works ---- */}
       <section aria-labelledby="how-heading" className="grid gap-8">
         <h2 id="how-heading" className="text-center text-3xl font-bold tracking-tight">
-          Up and running today
+          From demo to your first job
         </h2>
         <ol className="grid gap-6 sm:grid-cols-3">
           {STEPS.map((step, index) => (
@@ -242,56 +234,14 @@ export function LandingPage() {
       <section className="grid gap-4 rounded-2xl bg-primary px-6 py-12 text-center text-primary-foreground">
         <h2 className="text-3xl font-bold tracking-tight">Ready to run a smoother shop?</h2>
         <p className="mx-auto max-w-xl opacity-90">
-          Set up your workshop in two minutes. Your address, your branding, your team.
+          See it with your own shop&apos;s work: book a 30-minute demo and we&apos;ll set you up.
         </p>
         <div className="flex justify-center">
           <Button asChild size="lg" variant="secondary">
-            <Link to="/signup">Get started</Link>
+            <a href="#demo">Request a demo</a>
           </Button>
         </div>
       </section>
     </div>
-  );
-}
-
-/** Below the hero: go to an existing workshop to sign in. */
-function WorkshopStrip() {
-  const [slug, setSlug] = useState('');
-  const go = slug.trim().toLowerCase();
-  const validGo = SLUG_PATTERN.test(go);
-  return (
-    <section
-      aria-label="Already on Ramplight"
-      className="-mt-8 grid items-end gap-4 rounded-xl border bg-card p-5 sm:grid-cols-[1fr_auto]"
-    >
-      <div className="sm:pb-6">
-        <h2 className="font-semibold">Already on {PRODUCT_NAME}?</h2>
-        <p className="text-sm text-muted-foreground">Go to your workshop&apos;s address to sign in.</p>
-      </div>
-      <form
-        aria-label="Go to your workshop"
-        className="flex items-end gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          // Only a valid workshop address is ever turned into a URL.
-          if (SLUG_PATTERN.test(go)) {
-            browser.go(workshopUrl(go, '/login'));
-          }
-        }}
-      >
-        <div className="w-full sm:w-72">
-          <Field
-            label="Workshop address"
-            hint={`${validGo ? go : 'your-workshop'}.${BASE_DOMAIN}`}
-            error={go && !validGo ? 'Letters, numbers and hyphens only, e.g. acme-auto' : undefined}
-          >
-            <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="your-workshop" />
-          </Field>
-        </div>
-        <Button type="submit" variant="outline" className="mb-6" disabled={!validGo}>
-          Go
-        </Button>
-      </form>
-    </section>
   );
 }

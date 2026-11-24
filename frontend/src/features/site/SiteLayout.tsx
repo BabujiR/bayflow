@@ -5,7 +5,10 @@ import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { PRODUCT_NAME } from '@/lib/brand';
 
-/** The public site at the base domain: landing page and workshop sign-up. No sign-in here. */
+/**
+ * The public site at the base domain: landing page with Request a demo, and the setup page that
+ * invited owners reach by link. No sign-in here.
+ */
 export function SiteLayout() {
   return (
     <div className="flex min-h-svh flex-col bg-gradient-to-b from-primary/5 to-background">
@@ -15,11 +18,8 @@ export function SiteLayout() {
         </Link>
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
-          <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex">
-            <a href="/#demo">Request a demo</a>
-          </Button>
           <Button asChild size="sm">
-            <Link to="/signup">Set up your workshop</Link>
+            <a href="/#demo">Request a demo</a>
           </Button>
         </div>
       </header>

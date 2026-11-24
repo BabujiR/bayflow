@@ -34,7 +34,8 @@ public class DemoRequest {
     @Column(name = "shop_name", nullable = false, length = 120)
     private String shopName;
 
-    @Column(name = "shop_type", nullable = false, length = 30)
+    /** Older requests only (null since the form stopped asking). */
+    @Column(name = "shop_type", length = 30)
     private String shopType;
 
     @Column(nullable = false, length = 10)
@@ -88,7 +89,7 @@ public class DemoRequest {
         r.email = d.email().strip().toLowerCase();
         r.phone = d.phone().strip();
         r.shopName = d.shopName().strip();
-        r.shopType = d.shopType();
+        r.shopType = blankToNull(d.shopType());
         r.locations = d.locations();
         r.city = blankToNull(d.city());
         r.message = blankToNull(d.message());

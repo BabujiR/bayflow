@@ -453,7 +453,8 @@ export interface ConsoleDemoRequest {
   email: string;
   phone: string;
   shopName: string;
-  shopType: ShopType;
+  /** Older requests only: the form no longer asks. */
+  shopType: ShopType | null;
   locations: LocationCount;
   city: string | null;
   message: string | null;
@@ -504,7 +505,6 @@ export interface DemoRequest {
   email: string;
   phone: string;
   shopName: string;
-  shopType: ShopType;
   locations: LocationCount;
   city: string | null;
   message: string | null;

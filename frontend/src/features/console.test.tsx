@@ -14,7 +14,7 @@ const request = (overrides: Partial<ConsoleDemoRequest> = {}): ConsoleDemoReques
   email: 'ana@example.com',
   phone: '555 010 0199',
   shopName: 'Lotus Auto Group',
-  shopType: 'GENERAL_REPAIR',
+  shopType: null,
   locations: '4-10',
   city: 'Detroit, MI',
   message: 'Two shops today, opening a third.',

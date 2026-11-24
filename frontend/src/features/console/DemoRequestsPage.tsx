@@ -129,8 +129,9 @@ export function DemoRequestsPage() {
                           <TableCell>
                             <div className="font-medium">{r.shopName}</div>
                             <div className="text-xs text-muted-foreground">
-                              {SHOP_TYPES[r.shopType] ?? r.shopType}
-                              {r.city ? ` · ${r.city}` : ''}
+                              {[r.shopType && (SHOP_TYPES[r.shopType] ?? r.shopType), r.city]
+                                .filter(Boolean)
+                                .join(' · ')}
                             </div>
                           </TableCell>
                           <TableCell className="text-sm">
@@ -242,8 +243,12 @@ function RequestDialog({
               {request.phone}
             </a>
           </dd>
-          <dt className="text-muted-foreground">Shop type</dt>
-          <dd>{SHOP_TYPES[request.shopType] ?? request.shopType}</dd>
+          {request.shopType && (
+            <>
+              <dt className="text-muted-foreground">Shop type</dt>
+              <dd>{SHOP_TYPES[request.shopType] ?? request.shopType}</dd>
+            </>
+          )}
           <dt className="text-muted-foreground">Locations</dt>
           <dd>{LOCATION_COUNTS[request.locations] ?? request.locations}</dd>
           <dt className="text-muted-foreground">City</dt>

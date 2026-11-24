@@ -34,8 +34,8 @@ public class DemoRequestController {
             @NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Pattern(regexp = "^[0-9+()\\-. ]{7,30}$", message = "Enter a phone number.") String phone,
             @NotBlank @Size(max = 120) String shopName,
-            @NotBlank @Pattern(regexp = "GENERAL_REPAIR|TIRES|QUICK_LUBE|COLLISION|DEALERSHIP|FLEET|OTHER")
-            String shopType,
+            // No longer asked by the form; still accepted from older clients.
+            @Pattern(regexp = "GENERAL_REPAIR|TIRES|QUICK_LUBE|COLLISION|DEALERSHIP|FLEET|OTHER") String shopType,
             @NotBlank @Pattern(regexp = "1|2-3|4-10|11\\+", message = "Choose how many locations.") String locations,
             @Size(max = 120) String city,
             @Size(max = 1000) String message) {

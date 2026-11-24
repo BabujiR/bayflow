@@ -14,6 +14,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { PRODUCT_NAME } from '@/lib/brand';
 
+/** Shop types of older requests (the form no longer asks). */
 export const SHOP_TYPES: Record<ShopType, string> = {
   GENERAL_REPAIR: 'General repair',
   TIRES: 'Tires & wheels',
@@ -42,7 +43,6 @@ const schema = z.object({
     .trim()
     .regex(/^[0-9+()\-. ]{7,30}$/, 'Enter a phone number'),
   shopName: required('Enter the shop name').max(120),
-  shopType: z.string().min(1, 'Choose the shop type'),
   locations: z.string().min(1, 'Choose how many locations'),
   city: z.string().trim().max(120),
   message: z.string().trim().max(1000),
@@ -62,7 +62,6 @@ export function DemoRequestForm() {
       email: '',
       phone: '',
       shopName: '',
-      shopType: '',
       locations: '',
       city: '',
       message: '',
@@ -99,7 +98,6 @@ export function DemoRequestForm() {
             try {
               await tenantsApi.requestDemo({
                 ...values,
-                shopType: values.shopType as ShopType,
                 locations: values.locations as LocationCount,
                 city: values.city || null,
                 message: values.message || null,
@@ -132,16 +130,6 @@ export function DemoRequestForm() {
             <Input autoComplete="organization" {...register('shopName')} />
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Shop type" error={errors.shopType?.message}>
-              <Select {...register('shopType')}>
-                <option value="">Choose…</option>
-                {Object.entries(SHOP_TYPES).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
             <Field label="How many locations?" error={errors.locations?.message}>
               <Select {...register('locations')}>
                 <option value="">Choose…</option>
@@ -152,10 +140,10 @@ export function DemoRequestForm() {
                 ))}
               </Select>
             </Field>
+            <Field label="City and state" hint="Optional">
+              <Input autoComplete="address-level2" {...register('city')} />
+            </Field>
           </div>
-          <Field label="City and state" hint="Optional">
-            <Input autoComplete="address-level2" {...register('city')} />
-          </Field>
           <Field label="Anything we should know?" hint="Optional: what you use today, what you need">
             <Textarea rows={2} {...register('message')} />
           </Field>

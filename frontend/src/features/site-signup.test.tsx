@@ -165,72 +165,11 @@ describe('the public site (base domain)', () => {
     expect(await within(form).findByText("'race' is already taken.")).toBeInTheDocument();
   });
 
-  it('sends people to an existing workshop from the landing page', async () => {
-    const go = vi.fn();
-    browser.go = go;
+  it('offers a demo on the landing page, not self sign-up', async () => {
     renderSite('/');
 
-    await userEvent.type(await screen.findByLabelText('Workshop address'), 'Acme');
-    await userEvent.click(screen.getByRole('button', { name: 'Go' }));
-    expect(go).toHaveBeenCalledWith('http://acme.localhost:3000/login');
-  });
-
-  it('never sends people anywhere else from the landing page', async () => {
-    const go = vi.fn();
-    browser.go = go;
-    renderSite('/');
-
-    const address = await screen.findByLabelText('Workshop address');
-    await userEvent.type(address, 'evil.example/x?');
-    expect(screen.getByText('Letters, numbers and hyphens only, e.g. acme-auto')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Go' })).toBeDisabled();
-    await userEvent.type(address, '{Enter}');
-    expect(go).not.toHaveBeenCalled();
-  });
-});
-
-describe("a workshop's sign-in page", () => {
-  it("shows the workshop's name and the welcome after sign-up", async () => {
-    server.use(noSession);
-    renderApp('/login?welcome=1');
-
-    expect(await screen.findByTestId('workshop-name')).toHaveTextContent('Bayflow Downtown');
-    expect(screen.getByText(/Your workshop is ready/)).toBeInTheDocument();
-  });
-
-  it('says so when no workshop has this address', async () => {
-    server.use(
-      noSession,
-      http.get('*/api/v1/tenants/current', () =>
-        problem(404, 'workshop-not-found', 'There is no workshop here.'),
-      ),
-    );
-    renderApp('/login');
-
-    expect(await screen.findByRole('heading', { name: 'Workshop not found' })).toBeInTheDocument();
-    expect(screen.queryByLabelText('Username')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Request a demo' })).toHaveAttribute(
-      'href',
-      'http://localhost:3000/#demo',
-    );
-  });
-
-  it('explains a suspended workshop', async () => {
-    server.use(
-      noSession,
-      http.get('*/api/v1/tenants/current', () =>
-        HttpResponse.json({ slug: 'demo', name: 'Demo', displayName: 'Demo', active: false }),
-      ),
-      http.post('*/api/v1/auth/login', () => problem(403, 'workshop-suspended', 'Suspended.')),
-    );
-    renderApp('/login');
-
-    expect(await screen.findByText(/account is suspended, so nobody can sign in/)).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText('Username or email'), 'admin1');
-    await userEvent.type(screen.getByLabelText('Password'), 'Bayflow!2026');
-    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
-    expect(
-      await screen.findByText("This workshop's account is suspended. Please contact the workshop."),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('form', { name: /demo/i })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Set up your workshop|Get started/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Already on/)).not.toBeInTheDocument();
   });
 });

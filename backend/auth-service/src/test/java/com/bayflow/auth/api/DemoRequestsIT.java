@@ -48,11 +48,16 @@ class DemoRequestsIT extends IntegrationTestBase {
         assertThat(ownerJdbc().queryForObject(
                 "select locations from bayflow.auth_demo_requests where shop_name = ?", String.class, shop))
                 .isEqualTo("4-10");
+        // The form no longer asks for the shop type.
+        assertThat(ownerJdbc().queryForObject(
+                "select shop_type from bayflow.auth_demo_requests where shop_name = ?", String.class, shop))
+                .isNull();
         dispatcher.dispatchDue();
         assertThat(mail.to("sales@example.test")).anySatisfy(sent -> {
             assertThat(sent.subject()).isEqualTo("Demo request: " + shop + " (4-10 locations)");
             assertThat(sent.replyTo()).isEqualTo("ana@example.com");
-            assertThat(sent.text()).contains("Ana Silva").contains("+1 (555) 010-0199").contains("GENERAL_REPAIR");
+            assertThat(sent.text()).contains("Ana Silva").contains("+1 (555) 010-0199")
+                    .doesNotContain("Type:");
         });
         // Nothing goes to the address typed in.
         assertThat(mail.to("ana@example.com")).isEmpty();
@@ -83,7 +88,7 @@ class DemoRequestsIT extends IntegrationTestBase {
     private static String body(String shop, String locations) {
         return """
                 {"firstName":"Ana","lastName":"Silva","email":"ana@example.com","phone":"+1 (555) 010-0199",
-                 "shopName":"%s","shopType":"GENERAL_REPAIR","locations":"%s","city":"Detroit, MI",
+                 "shopName":"%s","locations":"%s","city":"Detroit, MI",
                  "message":"Two bays, looking to switch."}""".formatted(shop, locations);
     }
 }
