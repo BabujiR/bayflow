@@ -34,6 +34,10 @@ public class Tenant {
     @Column(nullable = false, length = 20)
     private Status status;
 
+    /** Made from the console for internal testing, not a customer. */
+    @Column(name = "is_test", nullable = false)
+    private boolean test;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -59,7 +63,27 @@ public class Tenant {
         return tenant;
     }
 
+    /** A test workshop from the console (labelled as such everywhere Ramplight's team sees it). */
+    public static Tenant createTest(UUID id, String slug, String name, Instant now) {
+        Tenant tenant = create(id, slug, name, now);
+        tenant.test = true;
+        return tenant;
+    }
+
+    /** Nobody can sign in while it is suspended; its data is kept. */
+    public void suspend(Instant now) {
+        this.status = Status.SUSPENDED;
+        this.updatedAt = now;
+    }
+
+    public void reactivate(Instant now) {
+        this.status = Status.ACTIVE;
+        this.updatedAt = now;
+    }
+
     public UUID getId() { return id; }
+    public boolean isTest() { return test; }
+    public Long getVersion() { return version; }
     public String getSlug() { return slug; }
     public String getName() { return name; }
     public Status getStatus() { return status; }

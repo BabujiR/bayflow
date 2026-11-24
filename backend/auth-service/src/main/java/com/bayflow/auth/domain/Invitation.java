@@ -72,6 +72,9 @@ public class Invitation {
     @Column(name = "workshop_slug", length = 30)
     private String workshopSlug;
 
+    @Column(name = "reminded_at")
+    private Instant remindedAt;
+
     @Column(name = "revoked_at")
     private Instant revokedAt;
 
@@ -111,6 +114,12 @@ public class Invitation {
         this.expiresAt = newExpiresAt;
         this.sentCount++;
         this.lastSentAt = now;
+        this.remindedAt = null;
+    }
+
+    /** The owner was reminded that the link is about to expire. */
+    public void reminded(Instant now) {
+        this.remindedAt = now;
     }
 
     public void revoke(String by, Instant now) {
@@ -160,6 +169,7 @@ public class Invitation {
     public UUID getWorkshopId() { return workshopId; }
     public String getWorkshopSlug() { return workshopSlug; }
     public Instant getRevokedAt() { return revokedAt; }
+    public Instant getRemindedAt() { return remindedAt; }
     public String getRevokedBy() { return revokedBy; }
     public Long getVersion() { return version; }
 }

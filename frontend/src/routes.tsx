@@ -155,9 +155,8 @@ export const publicRoutes: RouteObject[] = [
     element: <SiteLayout />,
     children: [
       { index: true, element: <LandingPage /> },
-      // The setup link from a console invite (/setup?invite=…); /signup is the old address.
+      // The setup link from a console invite (/setup?invite=…).
       { path: '/setup', element: <SignupPage /> },
-      { path: '/signup', element: <SignupPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

@@ -485,6 +485,38 @@ export interface ConsoleInvitation {
   workshopSlug: string | null;
   revokedAt: string | null;
   revokedBy: string | null;
+  /** Pending and within 2 days of expiring (the owner gets one reminder then). */
+  expiringSoon: boolean;
+  remindedAt: string | null;
+}
+
+/** A workshop as the console lists it. */
+export interface ConsoleWorkshop {
+  id: string;
+  slug: string;
+  name: string;
+  status: 'ACTIVE' | 'SUSPENDED';
+  /** Made from the console for internal testing. */
+  test: boolean;
+  createdAt: string;
+  staff: number;
+  customers: number;
+  locations: number;
+  ownerUsername: string | null;
+  ownerEmail: string | null;
+  /** The setup invite it came from (null for test and older workshops). */
+  invitedEmail: string | null;
+  version: number;
+}
+
+export interface TestWorkshopRequest {
+  workshopName: string;
+  slug: string;
+  currency: string;
+  timeZone: string;
+  adminUsername: string;
+  adminEmail: string;
+  adminPassword: string;
 }
 
 /** A new or resent invite: the setup link is shown this once (copy it when not e-mailed). */

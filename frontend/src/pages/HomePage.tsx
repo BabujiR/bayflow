@@ -5,6 +5,7 @@ import { ROLE_LABELS } from '@/auth/roles';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRightIcon } from '@/components/ui/icons';
+import { WelcomeChecklist } from '@/features/onboarding/WelcomeChecklist';
 import { DashboardPage } from '@/features/reports/DashboardPage';
 import { navItemsFor } from '@/lib/navigation';
 
@@ -13,8 +14,16 @@ export function HomePage() {
   if (!user) {
     return null;
   }
-  // Owners and managers start on their numbers.
-  if (user.roles.includes('ADMIN') || user.roles.includes('MANAGER')) {
+  // Owners and managers start on their numbers; a new owner also sees what to set up first.
+  if (user.roles.includes('ADMIN')) {
+    return (
+      <div className="grid gap-6">
+        <WelcomeChecklist />
+        <DashboardPage />
+      </div>
+    );
+  }
+  if (user.roles.includes('MANAGER')) {
     return <DashboardPage />;
   }
   const items = navItemsFor(user.roles);

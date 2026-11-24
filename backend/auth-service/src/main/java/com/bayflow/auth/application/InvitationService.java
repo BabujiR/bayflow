@@ -2,6 +2,7 @@ package com.bayflow.auth.application;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -174,6 +175,49 @@ public class InvitationService {
             case REVOKED -> throw ApiException.badRequest("invite-invalid",
                     "This setup link isn't valid. Ask Ramplight to send you a new one.");
         };
+    }
+
+    /**
+     * One reminder to each owner whose link is still unused and expires within
+     * {@code bayflow.auth.signup.invite-reminder-before} (2 days). Only a hash of the link is kept,
+     * so the reminder points to the first e-mail (and Ramplight's team, who can resend). Each
+     * invite is marked first, in its own transaction, so it is never reminded twice.
+     */
+    public int sendReminders() {
+        if (!gateway.isAvailable()) {
+            return 0;
+        }
+        Instant now = clock.instant();
+        List<Invitation> due = tx.execute(status ->
+                invitations.dueReminders(now, now.plus(properties.getSignup().getInviteReminderBefore())));
+        int sent = 0;
+        for (Invitation candidate : due == null ? List.<Invitation>of() : due) {
+            try {
+                Invitation marked = tx.execute(status -> {
+                    Invitation fresh = invitations.findById(candidate.getId()).orElse(null);
+                    if (fresh == null || fresh.getRemindedAt() != null
+                            || fresh.state(now) != Invitation.State.PENDING) {
+                        return null;
+                    }
+                    fresh.reminded(now);
+                    return invitations.saveAndFlush(fresh);
+                });
+                if (marked != null) {
+                    String replyTo = properties.getDemo().getNotifyEmail();
+                    TenantContext.run(Tenants.DEFAULT_TENANT_ID, () -> mail.enqueue(MailTemplates.inviteReminder(
+                            marked.getEmail(), marked.getContactName(), marked.getShopName(), marked.getLastSentAt(),
+                            marked.getExpiresAt(), replyTo.isBlank() ? null : replyTo.strip())));
+                    sent++;
+                }
+            } catch (RuntimeException e) {
+                // Another instance got there first, or the outbox refused: the next run tries again.
+                log.warn("Setup invite reminder for {} not sent: {}", candidate.getId(), e.getMessage());
+            }
+        }
+        if (sent > 0) {
+            log.info("Sent {} setup invite reminder(s)", sent);
+        }
+        return sent;
     }
 
     private Issued issue(Invitation invitation, String token) {

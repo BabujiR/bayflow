@@ -9,6 +9,8 @@ bayflow:
     signup:
       # WorkshopSignupIT resets the limiter before each test and checks this limit.
       max-per-hour-per-ip: 5
+      # InvitationsIT sends reminders by hand.
+      invite-reminders-enabled: false
     mail:
       # No SMTP in tests: PasswordResetByEmailIT supplies a mail gateway and sends by hand.
       send-immediately: false

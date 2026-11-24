@@ -86,11 +86,15 @@ public class AuthProperties {
         private int maxPerHourPerIp = 10;
         /** How long a setup invite's link works. */
         private Duration inviteTtl = Duration.ofDays(7);
+        /** An unused invite gets one reminder this long before it expires. */
+        private Duration inviteReminderBefore = Duration.ofDays(2);
 
         public int getMaxPerHourPerIp() { return maxPerHourPerIp; }
         public void setMaxPerHourPerIp(int maxPerHourPerIp) { this.maxPerHourPerIp = maxPerHourPerIp; }
         public Duration getInviteTtl() { return inviteTtl; }
         public void setInviteTtl(Duration inviteTtl) { this.inviteTtl = inviteTtl; }
+        public Duration getInviteReminderBefore() { return inviteReminderBefore; }
+        public void setInviteReminderBefore(Duration before) { this.inviteReminderBefore = before; }
     }
 
     /** Starting settings of a new workshop; each workshop then changes its own. */

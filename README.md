@@ -122,9 +122,11 @@ Workshops join by invitation only.
 2. Open the link (`http://localhost:3000/setup?invite=…`): name, address (checked live; taken
    and reserved addresses are refused), currency, time zone and your admin account. Without a
    working link the page explains how to get one.
-3. You land on `http://<address>.localhost:3000/login`: sign in as that admin, check
-   *Workshop settings*, add staff under *User accounts*, and share the address with
-   customers so they can register.
+   For internal testing, the console's *Workshops* → **Create test workshop** skips the invite.
+3. You land on `http://<address>.localhost:3000/login`: sign in as that admin. The home page
+   shows **Get your workshop ready** (logo, team, canned jobs, service intervals, other
+   locations), ticked off as you go; it disappears once done or dismissed. Share the address
+   with customers so they can register.
 
 Nobody touches the database: the new workshop has its own users, settings and data, and a
 session from one workshop is refused at any other workshop's address.
@@ -219,8 +221,12 @@ password after the first sign-in (the dev profile also seeds `console1`). **Demo
 what came in from the public site, with a status (New, Contacted, Demo scheduled, Demo done,
 Declined) and private notes; **Send setup invite** there marks it Invited, and it becomes
 Onboarded when the owner uses the link. **Invitations** lists every setup link (Pending, Expired,
-Set up, Revoked) with Resend and Revoke. Only a hash of each link is stored
-(`auth_invitations`). APIs: `/api/v1/auth/platform/**`.
+Set up, Revoked) with Resend and Revoke; an unused link gets one reminder e-mail 2 days before it
+expires (`BAYFLOW_INVITE_REMINDER_BEFORE`) and shows **Expiring soon**. Only a hash of each link is
+stored (`auth_invitations`). **Workshops** lists every workshop with its owner, staff, customers
+and locations: **Suspend** stops every sign-in there (data kept) until **Reactivate**, and
+**Create test workshop** makes one for internal testing without an invite, labelled **Test**.
+APIs: `/api/v1/auth/platform/**`.
 
 ### Canned jobs
 
