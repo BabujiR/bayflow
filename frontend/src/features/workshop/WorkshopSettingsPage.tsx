@@ -17,6 +17,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { BrandingSection } from '@/features/branding/BrandingSection';
 import { QuickBooksSection } from '@/features/quickbooks/QuickBooksSection';
+import { ServiceIntervalsSection } from '@/features/reminders/ServiceIntervalsSection';
 import { formatMoney, setWorkshopZone, timeZones } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
@@ -58,6 +59,9 @@ export function WorkshopSettingsPage() {
       <QueryState query={workshop}>{(w) => <SettingsForm key={w.version} workshop={w} />}</QueryState>
       <div className="mt-12">
         <BrandingSection />
+      </div>
+      <div className="mt-12">
+        <ServiceIntervalsSection />
       </div>
       <div className="mt-12">
         <QuickBooksSection />

@@ -26,7 +26,7 @@ describe('staff sidebar', () => {
       within(sections[0])
         .getAllByRole('link')
         .map((l) => l.textContent),
-    ).toEqual(['Dashboard', 'Appointments', 'Job cards', 'Invoices', 'Customers']);
+    ).toEqual(['Dashboard', 'Appointments', 'Job cards', 'Invoices', 'Customers', 'Due soon']);
     expect(within(sections[0]).getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
       'aria-current',
       'page',

@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 
-import { jobCardsApi } from '@/api/endpoints';
+import { jobCardsApi, remindersApi } from '@/api/endpoints';
 import type { JobCard, Recommendation } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -101,6 +101,12 @@ function JobCardView({ card }: { card: JobCard }) {
   const canComplete = (advisor || mechanic) && (status === 'IN_PROGRESS' || status === 'DECLINED');
   // Canned jobs to start a recommendation from, while the advisor can still recommend.
   const cannedJobs = useCannedJobs(card.locationId, advisor && inspecting);
+  // Maintenance due on this vehicle (by date, or by the odometer at check-in).
+  const dueServices = useQuery({
+    queryKey: ['service-due', 'vehicle', card.vehicleId, card.mileage],
+    queryFn: () => remindersApi.forVehicle(card.vehicleId, card.mileage),
+    enabled: advisor && inspecting && Boolean(card.vehicleId),
+  });
   const queryClient = useQueryClient();
   const [cannedWorkFor, setCannedWorkFor] = useState<Recommendation | null>(null);
 
@@ -215,6 +221,9 @@ function JobCardView({ card }: { card: JobCard }) {
               labourRate={card.labourRate}
               currency={card.currency}
               cannedJobs={cannedJobs.data ?? []}
+              dueServices={(dueServices.data ?? []).filter(
+                (service) => !card.recommendations.some((r) => r.description === service.name),
+              )}
               onSubmit={(v) => addRecommendation.mutateAsync(v)}
             />
           )}

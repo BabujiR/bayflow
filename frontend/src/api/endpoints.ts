@@ -25,6 +25,11 @@ import type {
   InvoiceExport,
   CannedJob,
   CannedJobRequest,
+  DueService,
+  DueVehicle,
+  ReminderSettings,
+  ServiceInterval,
+  ServiceIntervalRequest,
   WorkRequest,
   QuickBooksChoice,
   QuickBooksMapping,
@@ -144,6 +149,24 @@ export const jobCardsApi = {
   /** A canned job's usual parts and labour for one approved item, all at once (mechanics). */
   addWork: (id: string, itemId: string, body: WorkRequest) =>
     http.post<JobCard>(`/api/v1/job-cards/${id}/recommendations/${itemId}/work`, body),
+};
+
+export const remindersApi = {
+  intervals: () => http.get<ServiceInterval[]>('/api/v1/service-intervals'),
+  createInterval: (body: ServiceIntervalRequest) =>
+    http.post<ServiceInterval>('/api/v1/service-intervals', body),
+  updateInterval: (id: string, body: ServiceIntervalRequest) =>
+    http.put<ServiceInterval>(`/api/v1/service-intervals/${id}`, body),
+  deleteInterval: (id: string) => http.delete<void>(`/api/v1/service-intervals/${id}`),
+  settings: () => http.get<ReminderSettings>('/api/v1/service-reminders/settings'),
+  updateSettings: (body: Omit<ReminderSettings, 'version'> & { version: number }) =>
+    http.put<ReminderSettings>('/api/v1/service-reminders/settings', body),
+  /** Vehicles with a service due within `days` (or overdue), at the caller's locations. */
+  dueSoon: (days: number, locationId?: string) =>
+    http.get<DueVehicle[]>('/api/v1/service-due', { days, locationId }),
+  /** At check-in: the vehicle's services due within 30 days or 500 miles of `mileage`. */
+  forVehicle: (vehicleId: string, mileage?: number) =>
+    http.get<DueService[]>(`/api/v1/service-due/vehicles/${vehicleId}`, { mileage }),
 };
 
 export const cannedJobsApi = {

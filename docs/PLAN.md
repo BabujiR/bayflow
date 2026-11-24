@@ -786,7 +786,16 @@ in the page `<meta name="description">`.
     canned job it was made from (`cannedJobId`, checked against the card's location), and a
     mechanic records its usual parts and labour at once with
     `POST /job-cards/{id}/recommendations/{itemId}/work` (all or nothing, labour at the card's
-    rate). Next: R3b, maintenance reminders from the shop's own intervals.
+    rate).
+37. **Maintenance due (R3b step 1).** `ws_service_intervals` (miles and/or months, keywords, linked
+    canned jobs; a starter list added once per organization), `ws_reminder_settings` and
+    `ws_vehicle_services` (V14; organization-wide so a vehicle can move between locations, the
+    Due soon list filters by the caller's locations). Completing a card records every interval its
+    approved work matches; due = earliest of months and miles at the vehicle's miles a day (first
+    visit to now, at least 30 days apart) or the shop's assumed miles a day. APIs:
+    `/api/v1/service-intervals`, `/service-reminders/settings`, `/service-due`,
+    `/service-due/vehicles/{id}?mileage=`. Next (step 2): daily reminders to customers through the
+    outbox, the customer opt-out and a Send reminder button.
 
 ---
 

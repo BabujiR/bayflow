@@ -198,6 +198,15 @@ change": description, labour hours and usual parts; for every location or one). 
 the advisor picks **From canned job** to fill in a recommendation, and once it's approved the
 mechanic clicks **Add usual parts & labour** to record them in one go (labour at the card's rate).
 
+### Maintenance due (service intervals)
+
+Each workshop starts with common intervals (oil change every 5,000 mi or 6 months, tire rotation,
+brake inspection, cabin filter, coolant) that admins change under *Workshop settings → Service
+intervals*. A completed job whose approved work matches one (by canned job or keyword) records it;
+the vehicle is due again after the miles or the months, whichever comes first, using its own miles
+a day when it has visited before. Advisors see **Due soon**, and at check-in the job card offers
+**Also due on this vehicle** as one-click recommendations.
+
 ### QuickBooks Online
 
 An admin connects the company under *Settings → QuickBooks Online* and chooses the QuickBooks
@@ -424,6 +433,7 @@ Caddy with a wildcard certificate, nightly backups). It applies everything below
 | Invoicing 1 | Invoices, tax and fees, payments, print; sales, payments, unpaid and tax reports | 🔍 in review |
 | Invoicing 2 | Email invoices, CSV export for QuickBooks, QuickBooks Online connection | 🔍 in review |
 | Faster counter 1 | Canned jobs | 🔍 in review |
+| Faster counter 2 | Service intervals, Due soon, "Also due" at check-in | 🔍 in review |
 
 ## Assumptions
 

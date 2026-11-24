@@ -2,6 +2,7 @@ import type { ComponentType, SVGProps } from 'react';
 
 import type { Role } from '@/api/types';
 import {
+  BellIcon,
   BoardIcon,
   CalendarIcon,
   CarIcon,
@@ -102,6 +103,14 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['SERVICE_ADVISOR', 'ADMIN'],
     group: 'work',
     icon: UsersIcon,
+  },
+  {
+    to: '/due-soon',
+    label: 'Due soon',
+    description: 'Vehicles due for a service by your intervals.',
+    roles: ['SERVICE_ADVISOR', 'MANAGER', 'ADMIN'],
+    group: 'work',
+    icon: BellIcon,
   },
   {
     to: '/reports',
