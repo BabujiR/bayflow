@@ -75,8 +75,8 @@ class RowLevelSecurityIT {
         // ws_invoice_lines, ws_payments and ws_invoice_counters; 31 with QuickBooks
         // (ws_qbo_connections, ws_qbo_oauth_states); 33 with canned jobs (ws_canned_jobs,
         // ws_canned_job_parts); 36 with reminders (ws_service_intervals, ws_reminder_settings,
-        // ws_vehicle_services).
-        assertThat(tables).hasSize(36);
+        // ws_vehicle_services); 37 with ws_reminder_opt_outs.
+        assertThat(tables).hasSize(37);
         try (Connection owner = owner(); Statement statement = owner.createStatement()) {
             for (String table : tables) {
                 try (ResultSet rs = statement.executeQuery("select c.relrowsecurity, (select count(*) from pg_policies p"

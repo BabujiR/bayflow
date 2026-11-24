@@ -48,6 +48,7 @@ const defaults = [
   http.get('*/api/v1/service-due/vehicles/:vehicleId', () => HttpResponse.json([])),
   http.get('*/api/v1/service-due', () => HttpResponse.json([])),
   http.get('*/api/v1/service-intervals', () => HttpResponse.json([])),
+  http.get('*/api/v1/service-reminders/me', () => HttpResponse.json({ enabled: true })),
   http.get('*/api/v1/service-reminders/settings', () =>
     HttpResponse.json({ enabled: true, remindDaysBefore: 14, milesPerDay: 30, version: 0 }),
   ),

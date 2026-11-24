@@ -56,6 +56,53 @@ describe('maintenance reminders (R3b)', () => {
     expect(asked).toBe('30');
   });
 
+  it('sends a reminder from the Due soon list', async () => {
+    let reminded = '';
+    server.use(
+      sessionFor(user('SERVICE_ADVISOR', 'advisor1')),
+      http.get('*/api/v1/service-due', () =>
+        HttpResponse.json([
+          {
+            vehicleId: 'v1',
+            registration: 'DUE 1',
+            customerName: 'Ana Silva',
+            customerUserId: 'u1',
+            locationId: '00000000-0000-0000-0000-000000000001',
+            dueAt: '2026-12-01T15:00:00Z',
+            remindedAt: null,
+            services: [oil()],
+          },
+        ]),
+      ),
+      http.post('*/api/v1/service-due/vehicles/:vehicleId/remind', ({ params }) => {
+        reminded = String(params.vehicleId);
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    renderApp('/due-soon');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Send reminder for DUE 1' }));
+    await vi.waitFor(() => expect(reminded).toBe('v1'));
+  });
+
+  it('lets a customer turn service reminders off', async () => {
+    let sent: unknown;
+    server.use(
+      sessionFor(user('CUSTOMER', 'customer1')),
+      http.put('*/api/v1/service-reminders/me', async ({ request }) => {
+        sent = await request.json();
+        return HttpResponse.json(sent);
+      }),
+    );
+    renderApp('/notifications');
+
+    const box = await screen.findByRole('checkbox', { name: /Service reminders/ });
+    expect(box).toBeChecked();
+    await userEvent.click(box);
+    await vi.waitFor(() => expect(sent).toEqual({ enabled: false }));
+    expect(await screen.findByRole('checkbox', { name: /Service reminders/ })).not.toBeChecked();
+  });
+
   it('offers what is due on the vehicle as a one-click recommendation', async () => {
     let vehicleAsked: URL | undefined;
     server.use(

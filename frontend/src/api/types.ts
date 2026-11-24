@@ -529,7 +529,8 @@ export type NotificationType =
   | 'ESTIMATE_READY'
   | 'ESTIMATE_DECIDED'
   | 'WORK_COMPLETED'
-  | 'INVOICE_ISSUED';
+  | 'INVOICE_ISSUED'
+  | 'SERVICE_DUE';
 
 /** One unread message to the signed-in user (reading it deletes it). Title and body are plain text. */
 export interface AppNotification {

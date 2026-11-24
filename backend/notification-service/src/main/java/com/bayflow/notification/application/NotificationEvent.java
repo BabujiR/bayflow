@@ -34,7 +34,9 @@ public record NotificationEvent(
         Instant scheduledAt,
         Instant previousScheduledAt,
         @Min(0) Integer approvedCount,
-        @Min(0) Integer declinedCount) {
+        @Min(0) Integer declinedCount,
+        // A short fact for the text, e.g. the services due (SERVICE_DUE).
+        @Size(max = 300) String detail) {
 
     /** True when the customer caused it (else staff or the system). */
     public boolean byCustomer() {

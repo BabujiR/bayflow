@@ -227,12 +227,13 @@ function SettingsCard({ settings }: { settings: ReminderSettings }) {
   const queryClient = useQueryClient();
   const [milesPerDay, setMilesPerDay] = useState(String(settings.milesPerDay));
   const [days, setDays] = useState(String(settings.remindDaysBefore));
+  const [enabled, setEnabled] = useState(settings.enabled);
   const valid =
     whole(milesPerDay, 1, 500) && milesPerDay.trim() !== '' && whole(days, 0, 90) && days.trim() !== '';
   const save = useAction(
     () =>
       remindersApi.updateSettings({
-        enabled: settings.enabled,
+        enabled,
         remindDaysBefore: Number(days),
         milesPerDay: Number(milesPerDay),
         version: settings.version,
@@ -248,7 +249,8 @@ function SettingsCard({ settings }: { settings: ReminderSettings }) {
         <CardTitle>How due dates are worked out</CardTitle>
         <CardDescription>
           A vehicle's miles a day come from its visits here; for one seen only once, Ramplight assumes the
-          number below. Customers will be reminded the given number of days before a service is due.
+          number below. Customers with an account get an in-app reminder the given number of days before a
+          service is due (once a day, mid-morning); they can turn it off.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -271,6 +273,15 @@ function SettingsCard({ settings }: { settings: ReminderSettings }) {
           <Button type="submit" variant="outline" disabled={!valid || save.isPending}>
             Save
           </Button>
+          <label className="flex items-center gap-2 text-sm sm:col-span-3">
+            <input
+              type="checkbox"
+              className="size-4"
+              checked={enabled}
+              onChange={(e) => setEnabled(e.target.checked)}
+            />
+            Send reminders to customers
+          </label>
         </form>
       </CardContent>
     </Card>

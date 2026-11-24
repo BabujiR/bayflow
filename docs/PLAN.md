@@ -794,8 +794,15 @@ in the page `<meta name="description">`.
     approved work matches; due = earliest of months and miles at the vehicle's miles a day (first
     visit to now, at least 30 days apart) or the shop's assumed miles a day. APIs:
     `/api/v1/service-intervals`, `/service-reminders/settings`, `/service-due`,
-    `/service-due/vehicles/{id}?mileage=`. Next (step 2): daily reminders to customers through the
-    outbox, the customer opt-out and a Send reminder button.
+    `/service-due/vehicles/{id}?mileage=`.
+38. **Customer reminders (R3b step 2).** A daily pass (`ReminderSchedule`, cron
+    `bayflow.workshop.reminders.cron`, default 14:00 UTC) finds organizations with something due
+    through the owner-run `ws_due_reminder_tenants` (V15), then per organization queues one
+    `SERVICE_DUE` outbox event per vehicle (service names in the payload's new `detail`) for services
+    due within *remind days before*, marking them reminded (once per due date). Skipped: shop switch
+    off, customers in `ws_reminder_opt_outs`, walk-ins without an account. Staff:
+    `POST /service-due/vehicles/{id}/remind`; customers: `GET/PUT /service-reminders/me`. In-app only
+    for now; e-mail and "already booked" checks are possible follow-ups.
 
 ---
 
