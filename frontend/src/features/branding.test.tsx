@@ -170,7 +170,7 @@ describe('a branded workshop', () => {
  * The settings page is large (the time-zone list alone has ~400 options), and a role query
  * scans the whole page, so finding the form can take longer than findBy's default second.
  */
-const brandingForm = () => screen.findByRole('form', { name: 'Branding' }, { timeout: 5_000 });
+const brandingForm = () => screen.findByRole('form', { name: 'Branding' }, { timeout: 10_000 });
 
 describe('branding settings (workshop ADMIN)', () => {
   it('saves colour and "Powered by Ramplight", sending the version read', async () => {

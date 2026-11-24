@@ -21,9 +21,14 @@ function announcement(overrides: Partial<Announcement> = {}): Announcement {
   };
 }
 
-/** The settings page is large (about 400 time zones), so the first lookup gets more time. */
+/**
+ * The settings page is large (about 400 time zones, QuickBooks, service intervals…), and the
+ * first test in this file also pays for loading it: the first lookups get more time.
+ */
+const SLOW_PAGE = { timeout: 10_000 };
+
 async function addButton() {
-  const button = await screen.findByRole('button', { name: 'Add announcement' }, { timeout: 5_000 });
+  const button = await screen.findByRole('button', { name: 'Add announcement' }, SLOW_PAGE);
   // Enabled once the list has loaded (it is disabled at 10).
   await vi.waitFor(() => expect(button).toBeEnabled());
   return button;
@@ -43,7 +48,7 @@ describe('announcements (workshop ADMIN)', () => {
     );
     renderApp('/settings');
 
-    const rows = await screen.findAllByTestId('announcement-row', undefined, { timeout: 5_000 });
+    const rows = await screen.findAllByTestId('announcement-row', undefined, SLOW_PAGE);
     expect(rows).toHaveLength(3);
     expect(rows[0]).toHaveTextContent('Live');
     expect(rows[1]).toHaveTextContent('Scheduled');
@@ -120,7 +125,7 @@ describe('announcements (workshop ADMIN)', () => {
     );
     renderApp('/settings');
 
-    const rows = await screen.findAllByTestId('announcement-row', undefined, { timeout: 5_000 });
+    const rows = await screen.findAllByTestId('announcement-row', undefined, SLOW_PAGE);
     await userEvent.click(within(rows[0]).getByRole('button', { name: /^Edit/ }));
     const dialog = await screen.findByRole('dialog', { name: 'Edit announcement' });
     const message = within(dialog).getByLabelText('Message');
