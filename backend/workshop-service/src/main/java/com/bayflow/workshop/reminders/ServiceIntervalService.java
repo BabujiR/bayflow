@@ -75,16 +75,14 @@ public class ServiceIntervalService {
     public ReminderSettings settings() {
         UUID tenant = TenantContext.require();
         Instant now = clock.instant();
-        ReminderSettings current = settings.findById(tenant).orElseGet(() -> ReminderSettings.create(tenant, now));
-        if (!current.isDefaultsAdded()) {
+        if (settings.createIfMissing(tenant, now) == 1) {
             int position = 0;
             for (Details starter : STARTERS) {
                 intervals.save(ServiceInterval.create(starter, position++, now));
             }
-            current.defaultsAdded(now);
-            current = settings.saveAndFlush(current);
+            intervals.flush();
         }
-        return current;
+        return settings.findById(tenant).orElseThrow();
     }
 
     @Transactional

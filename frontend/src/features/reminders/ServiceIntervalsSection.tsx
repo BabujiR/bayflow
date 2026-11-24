@@ -248,13 +248,13 @@ function SettingsCard({ settings }: { settings: ReminderSettings }) {
         <CardTitle>How due dates are worked out</CardTitle>
         <CardDescription>
           A vehicle's miles a day come from its visits here; for one seen only once, Ramplight assumes the
-          number below.
+          number below. Customers will be reminded the given number of days before a service is due.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form
           noValidate
-          className="grid gap-4 sm:grid-cols-[12rem_12rem_auto] sm:items-end"
+          className="grid gap-4 sm:grid-cols-[12rem_12rem_auto] sm:items-end sm:justify-start"
           onSubmit={(e) => {
             e.preventDefault();
             if (valid) {
@@ -265,7 +265,7 @@ function SettingsCard({ settings }: { settings: ReminderSettings }) {
           <Field label="Miles a day (assumed)">
             <Input inputMode="numeric" value={milesPerDay} onChange={(e) => setMilesPerDay(e.target.value)} />
           </Field>
-          <Field label="Remind days before" hint="For the customer reminders (next step)">
+          <Field label="Remind days before">
             <Input inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value)} />
           </Field>
           <Button type="submit" variant="outline" disabled={!valid || save.isPending}>
