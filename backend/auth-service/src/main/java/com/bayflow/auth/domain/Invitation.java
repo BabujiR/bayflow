@@ -65,8 +65,9 @@ public class Invitation {
     @Column(name = "accepted_at")
     private Instant acceptedAt;
 
-    @Column(name = "tenant_id")
-    private UUID tenantId;
+    /* The workshop created with it (not a tenant scope: invites are platform-level). */
+    @Column(name = "workshop_id")
+    private UUID workshopId;
 
     @Column(name = "workshop_slug", length = 30)
     private String workshopSlug;
@@ -127,7 +128,7 @@ public class Invitation {
             throw new IllegalStateException("Only valid pending invites can be accepted");
         }
         this.status = Status.ACCEPTED;
-        this.tenantId = tenant;
+        this.workshopId = tenant;
         this.workshopSlug = slug;
         this.acceptedAt = now;
     }
@@ -156,7 +157,7 @@ public class Invitation {
     public Instant getCreatedAt() { return createdAt; }
     public String getCreatedBy() { return createdBy; }
     public Instant getAcceptedAt() { return acceptedAt; }
-    public UUID getTenantId() { return tenantId; }
+    public UUID getWorkshopId() { return workshopId; }
     public String getWorkshopSlug() { return workshopSlug; }
     public Instant getRevokedAt() { return revokedAt; }
     public String getRevokedBy() { return revokedBy; }

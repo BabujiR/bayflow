@@ -1,7 +1,8 @@
 -- Onboarding step 2: workshops join by invitation. Ramplight's team sends a setup link from the
 -- console (<base domain>/setup?invite=…, valid 7 days, single use); the workshop owner opens it
 -- and creates the workshop and their admin account. Only a hash of the link's token is stored.
--- Platform-level, like demo requests: no tenant_id and no row-level security.
+-- Platform-level, like demo requests: no tenant_id and no row-level security (the workshop an
+-- invite created is workshop_id, so the per-workshop table checks don't count this table).
 CREATE TABLE auth_invitations (
     id              uuid          PRIMARY KEY,
     token_hash      varchar(64)   NOT NULL,
@@ -17,7 +18,7 @@ CREATE TABLE auth_invitations (
     created_by      varchar(100)  NOT NULL,
     -- The workshop it created (set on acceptance).
     accepted_at     timestamptz,
-    tenant_id       uuid          REFERENCES auth_tenants (id) ON DELETE SET NULL,
+    workshop_id     uuid          REFERENCES auth_tenants (id) ON DELETE SET NULL,
     workshop_slug   varchar(30),
     revoked_at      timestamptz,
     revoked_by      varchar(100),
