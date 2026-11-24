@@ -173,3 +173,49 @@ describe('the public site (base domain)', () => {
     expect(screen.queryByText(/Already on/)).not.toBeInTheDocument();
   });
 });
+
+describe("a workshop's sign-in page", () => {
+  it("shows the workshop's name and the welcome after sign-up", async () => {
+    server.use(noSession);
+    renderApp('/login?welcome=1');
+
+    expect(await screen.findByTestId('workshop-name')).toHaveTextContent('Bayflow Downtown');
+    expect(screen.getByText(/Your workshop is ready/)).toBeInTheDocument();
+  });
+
+  it('says so when no workshop has this address', async () => {
+    server.use(
+      noSession,
+      http.get('*/api/v1/tenants/current', () =>
+        problem(404, 'workshop-not-found', 'There is no workshop here.'),
+      ),
+    );
+    renderApp('/login');
+
+    expect(await screen.findByRole('heading', { name: 'Workshop not found' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Username')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Request a demo' })).toHaveAttribute(
+      'href',
+      'http://localhost:3000/#demo',
+    );
+  });
+
+  it('explains a suspended workshop', async () => {
+    server.use(
+      noSession,
+      http.get('*/api/v1/tenants/current', () =>
+        HttpResponse.json({ slug: 'demo', name: 'Demo', displayName: 'Demo', active: false }),
+      ),
+      http.post('*/api/v1/auth/login', () => problem(403, 'workshop-suspended', 'Suspended.')),
+    );
+    renderApp('/login');
+
+    expect(await screen.findByText(/account is suspended, so nobody can sign in/)).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Username or email'), 'admin1');
+    await userEvent.type(screen.getByLabelText('Password'), 'Bayflow!2026');
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(
+      await screen.findByText("This workshop's account is suspended. Please contact the workshop."),
+    ).toBeInTheDocument();
+  });
+});
