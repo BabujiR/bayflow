@@ -2,20 +2,27 @@ import type { ComponentType, SVGProps } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  BellIcon,
-  BoardIcon,
-  CalendarIcon,
-  ChartIcon,
-  JobCardIcon,
-  MapPinIcon,
-  ReceiptIcon,
-  WrenchIcon,
-} from '@/components/ui/icons';
 import { PRODUCT_NAME } from '@/lib/brand';
 import { BASE_DOMAIN } from '@/lib/site';
 
+import {
+  BellMotionIcon,
+  BoardMotionIcon,
+  BookingIcon,
+  ChartMotionIcon,
+  InspectionIcon,
+  PinMotionIcon,
+  ReceiptMotionIcon,
+  WrenchMotionIcon,
+} from './AnimatedFeatureIcons';
 import { DemoRequestForm } from './DemoRequestForm';
+import {
+  AdvisorPersona,
+  CustomerPersona,
+  ManagerPersona,
+  MechanicPersona,
+  OwnerPersona,
+} from './RolePersonas';
 
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -27,42 +34,42 @@ const BENEFITS = [
 
 const FEATURES: { icon: IconType; title: string; text: string }[] = [
   {
-    icon: CalendarIcon,
+    icon: BookingIcon,
     title: 'Online booking',
     text: 'Customers book, reschedule and cancel on your own site; double bookings are refused.',
   },
   {
-    icon: BoardIcon,
+    icon: BoardMotionIcon,
     title: "Today's board",
     text: 'Confirm, check in and track every car of the day from one screen at the front desk.',
   },
   {
-    icon: JobCardIcon,
+    icon: InspectionIcon,
     title: 'Inspections & approvals',
     text: 'Findings with severity, recommended work with estimates, and approval line by line.',
   },
   {
-    icon: WrenchIcon,
+    icon: WrenchMotionIcon,
     title: 'Canned jobs',
     text: 'Your everyday work with its hours and usual parts, added to an estimate in one click.',
   },
   {
-    icon: ReceiptIcon,
+    icon: ReceiptMotionIcon,
     title: 'Invoices & payments',
     text: 'Tax and shop fees worked out, payments recorded, invoices emailed and sent to QuickBooks.',
   },
   {
-    icon: BellIcon,
+    icon: BellMotionIcon,
     title: 'Maintenance reminders',
     text: 'Your own service intervals; customers are told when their vehicle is due again.',
   },
   {
-    icon: ChartIcon,
+    icon: ChartMotionIcon,
     title: 'Dashboard & reports',
     text: 'Sales, collected and unpaid, technicians, advisors, parts and tax, by day or month.',
   },
   {
-    icon: MapPinIcon,
+    icon: PinMotionIcon,
     title: 'One shop or many',
     text: 'Add locations as you grow; staff see their own, owners see the whole group.',
   },
@@ -91,12 +98,32 @@ const STEPS = [
   },
 ];
 
-const ROLES = [
-  { who: 'Owners', text: 'See the money and the workload at a glance, across every location.' },
-  { who: 'Location managers', text: 'Run their own shop in a group: its board, its team and its numbers.' },
-  { who: 'Service advisors', text: 'Book, check in, estimate and invoice without paper or retyping.' },
-  { who: 'Mechanics', text: 'Their jobs, the approved work, and parts and labour recorded as they go.' },
-  { who: 'Customers', text: 'Book, approve work, follow their car and see invoices online.' },
+const ROLES: { who: string; text: string; persona: IconType }[] = [
+  {
+    who: 'Owners',
+    text: 'See the money and the workload at a glance, across every location.',
+    persona: OwnerPersona,
+  },
+  {
+    who: 'Location managers',
+    text: 'Run their own shop in a group: its board, its team and its numbers.',
+    persona: ManagerPersona,
+  },
+  {
+    who: 'Service advisors',
+    text: 'Book, check in, estimate and invoice without paper or retyping.',
+    persona: AdvisorPersona,
+  },
+  {
+    who: 'Mechanics',
+    text: 'Their jobs, the approved work, and parts and labour recorded as they go.',
+    persona: MechanicPersona,
+  },
+  {
+    who: 'Customers',
+    text: 'Book, approve work, follow their car and see invoices online.',
+    persona: CustomerPersona,
+  },
 ];
 
 function Check() {
@@ -160,10 +187,14 @@ export function LandingPage() {
         </div>
         <div aria-label="Features" role="list" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map(({ icon: Icon, title, text }) => (
-            <Card key={title} role="listitem" className="transition-shadow hover:shadow-md">
+            <Card
+              key={title}
+              role="listitem"
+              className="transition duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+            >
               <CardHeader className="gap-3">
-                <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary">
-                  <Icon className="size-5" />
+                <span className="grid size-12 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <Icon className="size-7" />
                 </span>
                 <CardTitle className="text-base">{title}</CardTitle>
                 <CardDescription>{text}</CardDescription>
@@ -222,10 +253,16 @@ export function LandingPage() {
           Made for the whole shop
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {ROLES.map((r) => (
-            <div key={r.who} className="rounded-xl border bg-card p-5">
-              <h3 className="font-semibold">{r.who}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{r.text}</p>
+          {ROLES.map(({ who, text, persona: Persona }) => (
+            <div
+              key={who}
+              className="grid content-start gap-3 rounded-xl border bg-card p-5 transition duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+            >
+              <Persona className="size-20" />
+              <div>
+                <h3 className="font-semibold">{who}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{text}</p>
+              </div>
             </div>
           ))}
         </div>

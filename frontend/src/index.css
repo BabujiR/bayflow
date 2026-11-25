@@ -95,3 +95,384 @@
     @apply outline-2 outline-offset-2 outline-ring;
   }
 }
+
+/* ---- Landing page feature icons (features/site/AnimatedFeatureIcons.tsx) -------------------- */
+@keyframes rl-flip {
+  0%,
+  70%,
+  100% {
+    transform: rotateX(0);
+  }
+  80% {
+    transform: rotateX(70deg);
+  }
+}
+@keyframes rl-slide {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+}
+@keyframes rl-draw {
+  0% {
+    stroke-dashoffset: 14;
+  }
+  40%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes rl-turn {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0);
+  }
+  70% {
+    transform: rotate(-28deg);
+  }
+  85% {
+    transform: rotate(12deg);
+  }
+}
+@keyframes rl-print {
+  0% {
+    transform: translateY(-5px);
+    opacity: 0.3;
+  }
+  45%,
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes rl-ring {
+  0%,
+  55%,
+  100% {
+    transform: rotate(0);
+  }
+  62% {
+    transform: rotate(16deg);
+  }
+  70% {
+    transform: rotate(-14deg);
+  }
+  78% {
+    transform: rotate(9deg);
+  }
+  86% {
+    transform: rotate(-5deg);
+  }
+}
+@keyframes rl-grow {
+  0% {
+    transform: scaleY(0.25);
+  }
+  50%,
+  100% {
+    transform: scaleY(1);
+  }
+}
+@keyframes rl-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  72% {
+    transform: translateY(-6px);
+  }
+  84% {
+    transform: translateY(0);
+  }
+  90% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes rl-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.rl-anim-flip {
+  transform-box: view-box;
+  transform-origin: 12px 6px;
+  animation: rl-flip 3.2s ease-in-out infinite;
+}
+.rl-anim-slide {
+  animation: rl-slide 2.4s ease-in-out infinite;
+}
+.rl-anim-draw {
+  stroke-dasharray: 14;
+  animation: rl-draw 2.6s ease-out infinite;
+}
+.rl-anim-turn {
+  transform-box: view-box;
+  transform-origin: 12px 12px;
+  animation: rl-turn 3s ease-in-out infinite;
+}
+.rl-anim-print {
+  animation: rl-print 2.8s ease-out infinite;
+}
+.rl-anim-ring {
+  transform-box: view-box;
+  transform-origin: 12px 3px;
+  animation: rl-ring 3.4s ease-in-out infinite;
+}
+.rl-anim-grow {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: rl-grow 2.4s ease-out infinite;
+}
+.rl-anim-bounce {
+  animation: rl-bounce 2.6s ease-in-out infinite;
+}
+.rl-anim-pulse {
+  transform-box: view-box;
+  transform-origin: 12px 21px;
+  animation: rl-pulse 2.6s ease-out infinite;
+}
+.rl-delay-1 {
+  animation-delay: 0.25s;
+}
+.rl-delay-2 {
+  animation-delay: 0.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class*='rl-anim-'] {
+    animation: none !important;
+  }
+}
+
+/* ---- Landing page role characters (features/site/RolePersonas.tsx) ------------------------- */
+@keyframes rp-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes rp-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes rp-grow {
+  0% {
+    transform: scaleY(0.2);
+  }
+  45%,
+  100% {
+    transform: scaleY(1);
+  }
+}
+@keyframes rp-hop {
+  0%,
+  55%,
+  100% {
+    transform: translateY(0);
+  }
+  68% {
+    transform: translateY(-5px);
+  }
+  80% {
+    transform: translateY(0);
+  }
+}
+@keyframes rp-wave {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+@keyframes rp-turn {
+  0%,
+  55%,
+  100% {
+    transform: rotate(0);
+  }
+  68% {
+    transform: rotate(-35deg);
+  }
+  82% {
+    transform: rotate(10deg);
+  }
+}
+@keyframes rp-pop {
+  0%,
+  40% {
+    transform: scale(0);
+  }
+  55% {
+    transform: scale(1.25);
+  }
+  65%,
+  90% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+
+.rp-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rp-blink 4s infinite;
+}
+.rp-e2 {
+  animation-delay: 1.3s;
+}
+.rp-e3 {
+  animation-delay: 2.1s;
+}
+.rp-e4 {
+  animation-delay: 0.6s;
+}
+.rp-e5 {
+  animation-delay: 2.8s;
+}
+.rp-bob {
+  animation: rp-bob 3s ease-in-out infinite;
+}
+.rp-bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: rp-grow 2.6s ease-out infinite;
+}
+.rp-d1 {
+  animation-delay: 0.2s;
+}
+.rp-d2 {
+  animation-delay: 0.4s;
+}
+.rp-hop {
+  animation: rp-hop 2.4s ease-in-out infinite;
+}
+.rp-wave {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: rp-wave 1.8s ease-out infinite;
+}
+.rp-turn {
+  transform-box: fill-box;
+  transform-origin: 20% 80%;
+  animation: rp-turn 2.8s ease-in-out infinite;
+}
+.rp-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rp-pop 3.2s ease-in-out infinite;
+}
+.rp-delay-3 {
+  animation-delay: 0.3s;
+}
+.rp-delay-6 {
+  animation-delay: 0.6s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class*='rp-'] {
+    animation: none !important;
+  }
+}
+
+/* ---- "Switching to Ramplight" (features/site/SwitchingSection.tsx, not on the page yet) ---- */
+@keyframes sw-move {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  10%,
+  90% {
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+@keyframes sw-draw {
+  0%,
+  20% {
+    stroke-dashoffset: 24;
+  }
+  45%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes sw-fill {
+  0%,
+  20% {
+    transform: scale(0.85);
+    opacity: 0.04;
+  }
+  45%,
+  100% {
+    transform: scale(1);
+    opacity: 0.1;
+  }
+}
+
+.sw-chip {
+  offset-path: path('M120 110 C 200 40, 300 180, 380 110');
+  animation: sw-move 2.4s linear infinite;
+}
+.sw-chip.sw-d1 {
+  animation-delay: 0.8s;
+}
+.sw-chip.sw-d2 {
+  animation-delay: 1.6s;
+}
+.sw-tick {
+  stroke-dasharray: 24;
+  animation: sw-draw 4.5s ease-out infinite;
+}
+.sw-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sw-fill 4.5s ease-out infinite;
+}
+.sw-tick.sw-d1,
+.sw-ring.sw-d1 {
+  animation-delay: 0.5s;
+}
+.sw-tick.sw-d2,
+.sw-ring.sw-d2 {
+  animation-delay: 1s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sw-chip {
+    display: none;
+  }
+  [class*='sw-'] {
+    animation: none !important;
+  }
+}
