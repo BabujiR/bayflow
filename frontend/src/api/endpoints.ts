@@ -281,7 +281,7 @@ export const tenantsApi = {
   /** Whether a setup link works, and who it is for (400 invite-expired / invite-used / invite-invalid). */
   checkInvite: (token: string) => http.post<InviteDetails>('/api/v1/tenants/invitations/check', { token }),
   /** "Request a demo" on the public site (rate-limited per IP). */
-  requestDemo: (body: DemoRequest) => http.post<{ id: string }>('/api/v1/tenants/demo-requests', body),
+  requestDemo: (body: DemoRequest) => http.post<{ received: boolean }>('/api/v1/tenants/demo-requests', body),
 };
 
 /** The organization's locations (every signed-in user). Shown in the app from phase L3. */

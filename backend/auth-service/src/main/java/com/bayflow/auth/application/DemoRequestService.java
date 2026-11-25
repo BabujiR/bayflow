@@ -51,21 +51,39 @@ public class DemoRequestService {
      */
     public DemoRequest submit(DemoRequest.Details details, String clientIp) {
         limiter.check("demo-ip|" + clientIp, properties.getDemo().getMaxPerHourPerIp());
-        DemoRequest saved = requests.save(DemoRequest.create(details, clientIp, clock.instant()));
-        log.info("Demo request {} from {} ({} locations)", saved.getId(), saved.getShopName(), saved.getLocations());
+        String email = details.email().strip().toLowerCase();
+        // Asking again while the team is still on it joins that request (no second row). The form
+        // answers the same either way, so it never tells anyone whether an address asked before.
+        DemoRequest open = requests.findFirstByEmailAndStatusInOrderByCreatedAtDesc(email, DemoRequest.OPEN)
+                .orElse(null);
+        DemoRequest saved;
+        boolean repeat = open != null;
+        if (repeat) {
+            open.askedAgain(details, clock.instant());
+            saved = requests.save(open);
+            log.info("Demo request {} asked again ({} repeats)", saved.getId(), saved.getRepeatCount());
+        } else {
+            saved = requests.save(DemoRequest.create(details, clientIp, clock.instant()));
+            log.info("Demo request {} from {} ({} locations)", saved.getId(), saved.getShopName(),
+                    saved.getLocations());
+        }
         String to = properties.getDemo().getNotifyEmail();
         if (StringUtils.hasText(to) && gateway.isAvailable()) {
             // The outbox belongs to a workshop; platform mail goes under the default one.
-            TenantContext.run(Tenants.DEFAULT_TENANT_ID, () -> mail.enqueue(notice(to.strip(), saved)));
+            TenantContext.run(Tenants.DEFAULT_TENANT_ID, () -> mail.enqueue(notice(to.strip(), details, repeat)));
         }
         return saved;
     }
 
-    private static OutgoingMail notice(String to, DemoRequest r) {
-        String name = r.getFirstName() + " " + r.getLastName();
-        String subject = "Demo request: " + r.getShopName() + " (" + r.getLocations() + " locations)";
+    /** What was sent this time (for a repeat too), so the team sees the latest details. */
+    private static OutgoingMail notice(String to, DemoRequest.Details r, boolean repeat) {
+        String name = r.firstName().strip() + " " + r.lastName().strip();
+        String email = r.email().strip().toLowerCase();
+        String subject = (repeat ? "Demo request (asked again): " : "Demo request: ") + r.shopName().strip()
+                + " (" + r.locations() + " locations)";
+        String heading = repeat ? "Asked again for a demo (their open request is updated)" : "New demo request";
         String text = """
-                New demo request from getramplight.com
+                %s
 
                 Name: %s
                 Email: %s
@@ -75,11 +93,11 @@ public class DemoRequestService {
                 City: %s
 
                 %s
-                """.formatted(name, r.getEmail(), r.getPhone(), r.getShopName(), r.getLocations(),
-                orDash(r.getCity()), orDash(r.getMessage()));
+                """.formatted(heading, name, email, r.phone().strip(), r.shopName().strip(), r.locations(),
+                orDash(blankToNull(r.city())), orDash(blankToNull(r.message())));
         String html = """
                 <!doctype html><html><body style="font-family:system-ui,sans-serif;color:#0f172a">
-                <h2 style="margin:0 0 12px">New demo request</h2>
+                <h2 style="margin:0 0 12px">%s</h2>
                 <table cellpadding="4" style="border-collapse:collapse;font-size:15px">
                 <tr><td style="color:#475569">Name</td><td>%s</td></tr>
                 <tr><td style="color:#475569">Email</td><td><a href="mailto:%s">%s</a></td></tr>
@@ -90,10 +108,14 @@ public class DemoRequestService {
                 </table>
                 <p style="white-space:pre-line">%s</p>
                 </body></html>
-                """.formatted(htmlEscape(name), htmlEscape(r.getEmail()), htmlEscape(r.getEmail()),
-                htmlEscape(r.getPhone()), htmlEscape(r.getShopName()),
-                htmlEscape(r.getLocations()), htmlEscape(orDash(r.getCity())), htmlEscape(orDash(r.getMessage())));
-        return new OutgoingMail(to, "Ramplight", r.getEmail(), subject, text, html);
+                """.formatted(htmlEscape(heading), htmlEscape(name), htmlEscape(email), htmlEscape(email),
+                htmlEscape(r.phone().strip()), htmlEscape(r.shopName().strip()), htmlEscape(r.locations()),
+                htmlEscape(orDash(blankToNull(r.city()))), htmlEscape(orDash(blankToNull(r.message()))));
+        return new OutgoingMail(to, "Ramplight", email, subject, text, html);
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.strip();
     }
 
     private static String orDash(String value) {

@@ -124,7 +124,12 @@ export function DemoRequestsPage() {
                       {data.content.map((r) => (
                         <TableRow key={r.id}>
                           <TableCell className="whitespace-nowrap text-sm">
-                            {formatDateTime(r.createdAt)}
+                            {formatDateTime(r.lastRequestedAt ?? r.createdAt)}
+                            {r.lastRequestedAt && (
+                              <div className="text-xs text-muted-foreground">
+                                First {formatDateTime(r.createdAt)}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="font-medium">{r.shopName}</div>
@@ -144,7 +149,14 @@ export function DemoRequestsPage() {
                             {LOCATION_COUNTS[r.locations] ?? r.locations}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={VARIANT[r.status]}>{DEMO_STATUS_LABELS[r.status]}</Badge>
+                            <div className="flex flex-wrap gap-1">
+                              <Badge variant={VARIANT[r.status]}>{DEMO_STATUS_LABELS[r.status]}</Badge>
+                              {r.repeatCount > 0 && (
+                                <Badge variant="warning">
+                                  {r.repeatCount === 1 ? 'Asked again' : `Asked ${r.repeatCount + 1} times`}
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-right">
                             <Button
@@ -225,7 +237,17 @@ function RequestDialog({
   );
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent title={request.shopName} description={`Received ${formatDateTime(request.createdAt)}`}>
+      <DialogContent
+        title={request.shopName}
+        description={
+          request.lastRequestedAt
+            ? `Received ${formatDateTime(request.createdAt)}; asked again ${formatDateTime(request.lastRequestedAt)}` +
+              (request.repeatCount > 1
+                ? ` (${request.repeatCount} repeats, details in the notes)`
+                : ' (details in the notes)')
+            : `Received ${formatDateTime(request.createdAt)}`
+        }
+      >
         <dl className="grid grid-cols-[8rem_1fr] gap-x-4 gap-y-2 text-sm">
           <dt className="text-muted-foreground">Contact</dt>
           <dd>

@@ -24,6 +24,8 @@ const request = (overrides: Partial<ConsoleDemoRequest> = {}): ConsoleDemoReques
   updatedAt: null,
   updatedBy: null,
   version: 0,
+  repeatCount: 0,
+  lastRequestedAt: null,
   ...overrides,
 });
 
@@ -67,7 +69,9 @@ describe('Ramplight console', () => {
     let saved: unknown;
     server.use(
       sessionFor(user('PLATFORM_ADMIN', 'team')),
-      http.get('*/api/v1/auth/platform/demo-requests', () => HttpResponse.json(pageOf([request()]))),
+      http.get('*/api/v1/auth/platform/demo-requests', () =>
+        HttpResponse.json(pageOf([request({ repeatCount: 1, lastRequestedAt: '2026-11-24T18:00:00Z' })])),
+      ),
       http.put('*/api/v1/auth/platform/demo-requests/d1', async ({ request: req }) => {
         const body = (await req.json()) as { status: string; notes: string };
         saved = body;
@@ -79,6 +83,7 @@ describe('Ramplight console', () => {
     const row = (await screen.findByText('Lotus Auto Group')).closest('tr') as HTMLElement;
     expect(within(row).getByText('4–10 locations')).toBeInTheDocument();
     expect(within(row).getByText('New')).toBeInTheDocument();
+    expect(within(row).getByText('Asked again')).toBeInTheDocument();
 
     await userEvent.click(within(row).getByRole('button', { name: 'Open Lotus Auto Group' }));
     const dialog = await screen.findByRole('dialog', { name: 'Lotus Auto Group' });
