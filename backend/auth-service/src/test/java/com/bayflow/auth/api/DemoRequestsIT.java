@@ -43,7 +43,10 @@ class DemoRequestsIT extends IntegrationTestBase {
     @Test
     void aRequestIsStoredAndTheTeamIsEmailed() throws Exception {
         String shop = "Lotus Auto " + UUID.randomUUID().toString().substring(0, 6);
-        request(body(shop, "4-10")).andExpect(status().isCreated()).andExpect(jsonPath("$.id").isNotEmpty());
+        String email = uniqueEmail();
+        request(body(email, shop, "4-10")).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.received").value(true))
+                .andExpect(jsonPath("$.id").doesNotExist());
 
         assertThat(ownerJdbc().queryForObject(
                 "select locations from bayflow.auth_demo_requests where shop_name = ?", String.class, shop))
@@ -55,12 +58,45 @@ class DemoRequestsIT extends IntegrationTestBase {
         dispatcher.dispatchDue();
         assertThat(mail.to("sales@example.test")).anySatisfy(sent -> {
             assertThat(sent.subject()).isEqualTo("Demo request: " + shop + " (4-10 locations)");
-            assertThat(sent.replyTo()).isEqualTo("ana@example.com");
+            assertThat(sent.replyTo()).isEqualTo(email);
             assertThat(sent.text()).contains("Ana Silva").contains("+1 (555) 010-0199")
                     .doesNotContain("Type:");
         });
         // Nothing goes to the address typed in.
-        assertThat(mail.to("ana@example.com")).isEmpty();
+        assertThat(mail.to(email)).isEmpty();
+    }
+
+    @Test
+    void askingAgainWhileTheRequestIsOpenJoinsIt() throws Exception {
+        String email = uniqueEmail();
+        String shop = "Repeat Motors " + UUID.randomUUID().toString().substring(0, 6);
+        request(body(email.toUpperCase(), shop, "1")).andExpect(status().isCreated());
+        request(body(email, shop + " Group", "4-10").replace("Two bays, looking to switch.", "Now three shops"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.received").value(true));
+
+        var jdbc = ownerJdbc();
+        assertThat(jdbc.queryForObject("select count(*) from bayflow.auth_demo_requests where email = ?",
+                Integer.class, email)).isEqualTo(1);
+        var row = jdbc.queryForMap(
+                "select shop_name, locations, repeat_count, last_requested_at, notes from bayflow.auth_demo_requests"
+                        + " where email = ?", email);
+        // The first details stay; the new ones are in the notes.
+        assertThat(row.get("shop_name")).isEqualTo(shop);
+        assertThat(row.get("locations")).isEqualTo("1");
+        assertThat(row.get("repeat_count")).isEqualTo(1);
+        assertThat(row.get("last_requested_at")).isNotNull();
+        assertThat((String) row.get("notes")).startsWith("Asked again ")
+                .contains(shop + " Group").contains("4-10 locations").contains("\"Now three shops\"");
+        dispatcher.dispatchDue();
+        assertThat(mail.to("sales@example.test")).anySatisfy(sent -> assertThat(sent.subject())
+                .isEqualTo("Demo request (asked again): " + shop + " Group (4-10 locations)"));
+
+        // Once the request is closed, asking again starts a new one.
+        jdbc.update("update bayflow.auth_demo_requests set status = 'DECLINED' where email = ?", email);
+        request(body(email, shop, "1")).andExpect(status().isCreated());
+        assertThat(jdbc.queryForObject("select count(*) from bayflow.auth_demo_requests where email = ?",
+                Integer.class, email)).isEqualTo(2);
     }
 
     @Test
@@ -85,10 +121,19 @@ class DemoRequestsIT extends IntegrationTestBase {
                 .contentType(MediaType.APPLICATION_JSON).content(json));
     }
 
+    /** From a new address each time (asking again from the same one joins the open request). */
     private static String body(String shop, String locations) {
+        return body(uniqueEmail(), shop, locations);
+    }
+
+    private static String body(String email, String shop, String locations) {
         return """
-                {"firstName":"Ana","lastName":"Silva","email":"ana@example.com","phone":"+1 (555) 010-0199",
+                {"firstName":"Ana","lastName":"Silva","email":"%s","phone":"+1 (555) 010-0199",
                  "shopName":"%s","locations":"%s","city":"Detroit, MI",
-                 "message":"Two bays, looking to switch."}""".formatted(shop, locations);
+                 "message":"Two bays, looking to switch."}""".formatted(email, shop, locations);
+    }
+
+    private static String uniqueEmail() {
+        return "ana-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
     }
 }

@@ -464,6 +464,10 @@ export interface ConsoleDemoRequest {
   updatedAt: string | null;
   updatedBy: string | null;
   version: number;
+  /** Times the same email asked again while this was open (their new details are in the notes). */
+  repeatCount: number;
+  /** When they last asked (null: only once). */
+  lastRequestedAt: string | null;
 }
 
 /** A setup invite as the console shows it (Pending turns Expired after 7 days). */

@@ -207,7 +207,11 @@ getramplight.com (the base domain) shows the product, **Set up your workshop**, 
 shortcut to a workshop's address, and **Request a demo** (name, email, phone, shop or group name,
 shop type, number of locations). Requests are stored in `auth_demo_requests` and e-mailed to
 `BAYFLOW_DEMO_NOTIFY_EMAIL` when it is set (locally: Mailpit); nothing is sent to the address typed
-in, and each IP may send 5 an hour.
+in, and each IP may send 5 an hour. Someone who asks again while their request is still open
+(New, Contacted, Demo scheduled) doesn't get a second row: the new details go into that
+request's notes, it moves back to the top marked **Asked again**, and the team gets an "asked
+again" e-mail. The form answers the same either way, so it never reveals whether an address
+asked before.
 
 ### Ramplight console
 

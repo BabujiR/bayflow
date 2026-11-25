@@ -12,7 +12,7 @@ describe('request a demo (public site)', () => {
     server.use(
       http.post('*/api/v1/tenants/demo-requests', async ({ request }) => {
         sent = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ id: 'd1' }, { status: 201 });
+        return HttpResponse.json({ received: true }, { status: 201 });
       }),
     );
     renderSite('/');

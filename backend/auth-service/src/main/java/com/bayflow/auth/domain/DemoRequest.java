@@ -66,6 +66,14 @@ public class DemoRequest {
     @Column(name = "updated_by", length = 100)
     private String updatedBy;
 
+    /** How many times the same person asked again while this request was open. */
+    @Column(name = "repeat_count", nullable = false)
+    private int repeatCount;
+
+    /** When they last asked (null: only the first time). */
+    @Column(name = "last_requested_at")
+    private Instant lastRequestedAt;
+
     @Version
     private Long version;
 
@@ -106,6 +114,39 @@ public class DemoRequest {
         this.updatedAt = now;
     }
 
+    /** Statuses in which the team is still talking to them: asking again joins the open request. */
+    public static final java.util.Set<Status> OPEN = java.util.EnumSet.of(Status.NEW, Status.CONTACTED,
+            Status.DEMO_SCHEDULED);
+
+    private static final int NOTES_MAX = 2000;
+    private static final java.time.format.DateTimeFormatter DAY = java.time.format.DateTimeFormatter
+            .ofPattern("MMM d, yyyy", java.util.Locale.US).withZone(java.time.ZoneOffset.UTC);
+
+    /**
+     * The same person asked again while this request is open: what they sent this time goes into
+     * the notes (the original details stay as they were), and it counts as a repeat.
+     */
+    public void askedAgain(Details d, Instant now) {
+        StringBuilder line = new StringBuilder("Asked again ").append(DAY.format(now)).append(": ")
+                .append(d.firstName().strip()).append(' ').append(d.lastName().strip())
+                .append(", ").append(d.phone().strip())
+                .append(", ").append(d.shopName().strip())
+                .append(", ").append(d.locations()).append(" locations");
+        String city = blankToNull(d.city());
+        if (city != null) {
+            line.append(", ").append(city);
+        }
+        String message = blankToNull(d.message());
+        if (message != null) {
+            line.append(". \"").append(message).append('"');
+        }
+        String combined = notes == null ? line.toString() : notes + "\n" + line;
+        // Notes hold 2000 characters: keep what the team wrote, shorten the newest addition.
+        this.notes = combined.length() <= NOTES_MAX ? combined : combined.substring(0, NOTES_MAX - 1) + "…";
+        this.repeatCount++;
+        this.lastRequestedAt = now;
+    }
+
     /** A setup invite was sent for this request (an onboarded one stays onboarded). */
     public void invited(String by, Instant now) {
         if (status != Status.ONBOARDED) {
@@ -143,4 +184,6 @@ public class DemoRequest {
     public Instant getUpdatedAt() { return updatedAt; }
     public String getUpdatedBy() { return updatedBy; }
     public Long getVersion() { return version; }
+    public int getRepeatCount() { return repeatCount; }
+    public Instant getLastRequestedAt() { return lastRequestedAt; }
 }

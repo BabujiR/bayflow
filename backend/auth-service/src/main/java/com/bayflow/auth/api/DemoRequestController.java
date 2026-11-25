@@ -1,7 +1,5 @@
 package com.bayflow.auth.api;
 
-import java.util.UUID;
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -41,7 +39,11 @@ public class DemoRequestController {
             @Size(max = 1000) String message) {
     }
 
-    public record DemoResponse(UUID id) {
+    /**
+     * Just "received": no id, because a repeat joins the person's open request and the same id
+     * twice would tell anyone that this address asked before.
+     */
+    public record DemoResponse(boolean received) {
     }
 
     private final DemoRequestService demos;
@@ -56,9 +58,9 @@ public class DemoRequestController {
             description = "Send the X-Bayflow-Client header like the web app.")
     public DemoResponse request(@Valid @RequestBody DemoRequestBody body, HttpServletRequest httpRequest) {
         CookieRequestGuard.check(httpRequest);
-        DemoRequest saved = demos.submit(new DemoRequest.Details(body.firstName(), body.lastName(), body.email(),
+        demos.submit(new DemoRequest.Details(body.firstName(), body.lastName(), body.email(),
                 body.phone(), body.shopName(), body.shopType(), body.locations(), body.city(), body.message()),
                 httpRequest.getRemoteAddr());
-        return new DemoResponse(saved.getId());
+        return new DemoResponse(true);
     }
 }

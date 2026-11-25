@@ -63,10 +63,11 @@ class ConsoleIT extends IntegrationTestBase {
     @Test
     void theTeamWorksThroughTheDemoRequests() throws Exception {
         String shop = "Console Motors " + UUID.randomUUID().toString().substring(0, 6);
+        String email = "ana-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         mvc.perform(post("/api/v1/tenants/demo-requests").header("X-Bayflow-Client", "web")
                         .contentType(MediaType.APPLICATION_JSON).content("""
-                                {"firstName":"Ana","lastName":"Silva","email":"ana@example.com","phone":"5550100199",
-                                 "shopName":"%s","shopType":"TIRES","locations":"2-3"}""".formatted(shop)))
+                                {"firstName":"Ana","lastName":"Silva","email":"%s","phone":"5550100199",
+                                 "shopName":"%s","shopType":"TIRES","locations":"2-3"}""".formatted(email, shop)))
                 .andExpect(status().isCreated());
         String token = JsonPath.read(body(consoleLogin(username)), "$.accessToken");
 

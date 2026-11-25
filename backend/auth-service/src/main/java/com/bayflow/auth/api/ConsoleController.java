@@ -45,13 +45,13 @@ public class ConsoleController {
     public record DemoRequestResponse(UUID id, String firstName, String lastName, String email, String phone,
             String shopName, String shopType, String locations, String city, String message,
             DemoRequest.Status status, String notes, Instant createdAt, Instant updatedAt, String updatedBy,
-            long version) {
+            long version, int repeatCount, Instant lastRequestedAt) {
 
         static DemoRequestResponse from(DemoRequest d) {
             return new DemoRequestResponse(d.getId(), d.getFirstName(), d.getLastName(), d.getEmail(), d.getPhone(),
                     d.getShopName(), d.getShopType(), d.getLocations(), d.getCity(), d.getMessage(), d.getStatus(),
                     d.getNotes(), d.getCreatedAt(), d.getUpdatedAt(), d.getUpdatedBy(),
-                    d.getVersion() == null ? 0 : d.getVersion());
+                    d.getVersion() == null ? 0 : d.getVersion(), d.getRepeatCount(), d.getLastRequestedAt());
         }
     }
 
