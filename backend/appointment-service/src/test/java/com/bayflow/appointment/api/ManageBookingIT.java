@@ -1,6 +1,7 @@
 package com.bayflow.appointment.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -24,7 +25,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.bayflow.appointment.IntegrationTestBase;
 import com.bayflow.appointment.bookingservices.PublicBookingLimiter;
@@ -32,6 +35,7 @@ import com.bayflow.appointment.integration.MailClient;
 import com.bayflow.appointment.integration.MailClient.Mail;
 import com.bayflow.appointment.integration.WorkshopDirectory;
 import com.bayflow.appointment.integration.WorkshopDirectory.Workshop;
+import com.bayflow.security.Tenants;
 import com.jayway.jsonpath.JsonPath;
 
 /**
@@ -152,7 +156,7 @@ class ManageBookingIT extends IntegrationTestBase {
                 String.class, tenant);
         Instant thursday = TUESDAY_10AM.plus(Duration.ofDays(2));
         mvc.perform(patch("/api/v1/appointments/" + id + "/reschedule")
-                        .with(as("SERVICE_ADVISOR", UUID.randomUUID(), tenant)).header("X-Forwarded-Host", host())
+                        .with(advisorHere()).header("X-Forwarded-Host", host())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"scheduledAt\":\"" + thursday + "\"}"))
                 .andExpect(status().isOk());
@@ -169,7 +173,7 @@ class ManageBookingIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.reschedulesLeft").value(3));
 
         mvc.perform(post("/api/v1/appointments/" + id + "/cancel")
-                        .with(as("SERVICE_ADVISOR", UUID.randomUUID(), tenant)).header("X-Forwarded-Host", host()))
+                        .with(advisorHere()).header("X-Forwarded-Host", host()))
                 .andExpect(status().isOk());
         assertThat(lastMail().subject()).startsWith("Lotus Auto cancelled your booking");
         manage("", fresh).andExpect(jsonPath("$.cancelledByCustomer").value(false));
@@ -209,14 +213,25 @@ class ManageBookingIT extends IntegrationTestBase {
         claim(ana, token).andExpect(status().isOk()).andExpect(jsonPath("$.id").value(profileId));
         assertThat(jdbc.queryForObject("select count(*) from bayflow.apt_customers where tenant_id = ?",
                 Integer.class, tenant)).isEqualTo(1);
-        List<String> owners = jdbc.queryForList("select owner_id::text from bayflow.apt_vehicles where tenant_id = ?",
-                String.class, tenant);
+        List<String> owners = jdbc.queryForList(
+                "select customer_id::text from bayflow.apt_vehicles where tenant_id = ?", String.class, tenant);
         assertThat(owners).containsExactly(profileId);
         assertThat(jdbc.queryForObject("select customer_id::text from bayflow.apt_appointments where tenant_id = ?",
                 String.class, tenant)).isEqualTo(profileId);
     }
 
     // ---- helpers ---------------------------------------------------------------
+
+    /** An advisor signed in at this workshop's address (the token names its slug, like auth-service's). */
+    private RequestPostProcessor advisorHere() {
+        return jwt().jwt(t -> t.subject(UUID.randomUUID().toString())
+                        .claim("username", "advisor-mb")
+                        .claim("roles", List.of("SERVICE_ADVISOR"))
+                        .claim(Tenants.CLAIM, tenant.toString())
+                        .claim(Tenants.SLUG_CLAIM, slug)
+                        .claim(Tenants.LOCATIONS_CLAIM, List.of("*")))
+                .authorities(new SimpleGrantedAuthority("ROLE_SERVICE_ADVISOR"));
+    }
 
     private String host() {
         return slug + ".localhost:3000";

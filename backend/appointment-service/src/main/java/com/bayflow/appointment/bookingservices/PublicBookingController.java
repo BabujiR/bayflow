@@ -84,7 +84,7 @@ public class PublicBookingController {
             @NotBlank @Size(max = 50) String lastName,
             @NotBlank @Email @Size(max = 254) String email,
             @Pattern(regexp = "^$|^[0-9+()\\-. ]{7,30}$", message = "Enter a phone number.") String phone,
-            boolean smsConsent,
+            Boolean smsConsent,
             @Size(max = 200) String website) {
     }
 
@@ -167,7 +167,8 @@ public class PublicBookingController {
             ZoneId zone = locations.zoneOf(l);
             OnlineBooking.Booked booked = booking.book(l, zone, new OnlineBooking.Request(body.service(),
                     body.description(), body.vin(), body.year(), body.make(), body.model(), body.startsAt(),
-                    body.firstName(), body.lastName(), body.email(), body.phone(), body.smsConsent()));
+                    body.firstName(), body.lastName(), body.email(), body.phone(),
+                    Boolean.TRUE.equals(body.smsConsent())));
             Appointment saved = booked.appointment();
             boolean emailed = confirmation.send(workshop, l, active.size() > 1, zone, saved,
                     BookingConfirmation.Kind.BOOKED, booked.manageToken());

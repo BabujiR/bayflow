@@ -61,7 +61,7 @@ public class OnlineBooking {
             boolean smsConsent) {
     }
 
-    private final BookingServiceRepository services;
+    private final BookingCatalog catalog;
     private final BookingHours hours;
     private final CustomerRepository customers;
     private final VehicleRepository vehicles;
@@ -70,10 +70,10 @@ public class OnlineBooking {
     private final AppointmentProperties properties;
     private final Clock clock;
 
-    public OnlineBooking(BookingServiceRepository services, BookingHours hours, CustomerRepository customers,
+    public OnlineBooking(BookingCatalog catalog, BookingHours hours, CustomerRepository customers,
             VehicleRepository vehicles, AppointmentRepository appointments, OutboxService outbox,
             AppointmentProperties properties, Clock clock) {
-        this.services = services;
+        this.catalog = catalog;
         this.hours = hours;
         this.customers = customers;
         this.vehicles = vehicles;
@@ -88,7 +88,8 @@ public class OnlineBooking {
         checkVehicle(r);
         BookingService service = null;
         if (r.serviceCode() != null && !r.serviceCode().isBlank()) {
-            service = services.findAll().stream()
+            // The shop's list (a shop that never opened Settings gets its starting services first).
+            service = catalog.list().stream()
                     .filter(s -> s.getCode().equals(r.serviceCode()) && s.isActive() && s.offeredAt(location.id()))
                     .findFirst()
                     .orElseThrow(() -> ApiException.badRequest("invalid-service",

@@ -6,6 +6,8 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -70,7 +72,8 @@ public class BookingServiceController {
     }
 
     /** One weekday; {@code opens}/{@code closes} as "08:00", both null when closed. */
-    public record DayHoursDto(LocalTime opens, LocalTime closes) {
+    public record DayHoursDto(@JsonFormat(pattern = "HH:mm") LocalTime opens,
+            @JsonFormat(pattern = "HH:mm") LocalTime closes) {
     }
 
     /** A location's online booking hours; {@code days} Monday first. */
