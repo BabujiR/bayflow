@@ -83,6 +83,7 @@ import type {
   PublicBooked,
   PublicBookingOptions,
   PublicBookingRequest,
+  Role,
 } from './types';
 
 export interface Paging {
@@ -261,6 +262,9 @@ export const usersApi = {
     http.get<PageResponse<User>>('/api/v1/auth/users', { ...params }),
   create: (body: CreateStaffRequest) => http.post<User>('/api/v1/auth/users', body),
   setEnabled: (id: string, enabled: boolean) => http.patch<User>(`/api/v1/auth/users/${id}`, { enabled }),
+  /** Everything a staff member does (ADMIN only); `locationIds` when they work at chosen locations. */
+  setRoles: (id: string, body: { roles: Role[]; locationIds?: string[] }) =>
+    http.put<User>(`/api/v1/auth/users/${id}/roles`, body),
   /** Where a MANAGER, SERVICE_ADVISOR or MECHANIC works (at least one location). */
   setLocations: (id: string, locationIds: string[]) =>
     http.put<User>(`/api/v1/auth/users/${id}/locations`, { locationIds }),

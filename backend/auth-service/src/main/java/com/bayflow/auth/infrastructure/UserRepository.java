@@ -32,12 +32,27 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("select count(u) > 0 from User u join u.roles r where r = :role")
     boolean existsWithRole(@Param("role") Role role);
 
-    /** Enabled users with one of the roles who work at the location (notification-service asks). */
+    /**
+     * Enabled users with one of the roles who work at the location (notification-service asks).
+     * An ADMIN works at every location, so an owner who is also an advisor or mechanic is included.
+     */
     @Query("""
             select distinct u.id from User u join u.roles r
             where u.enabled = true and r in :roles
-              and exists (select 1 from UserLocation l where l.userId = u.id and l.locationId = :locationId)
+              and (:admin member of u.roles
+                   or exists (select 1 from UserLocation l where l.userId = u.id and l.locationId = :locationId))
             """)
     java.util.List<UUID> findEnabledIdsWithRolesAt(@Param("roles") java.util.Collection<Role> roles,
-            @Param("locationId") UUID locationId);
+            @Param("locationId") UUID locationId, @Param("admin") Role admin);
+
+    default java.util.List<UUID> findEnabledIdsWithRolesAt(java.util.Collection<Role> roles, UUID locationId) {
+        return findEnabledIdsWithRolesAt(roles, locationId, Role.ADMIN);
+    }
+
+    /** Enabled users other than {@code userId} with the role (the workshop keeps an admin). */
+    @Query("""
+            select count(distinct u) from User u join u.roles r
+            where u.enabled = true and r = :role and u.id <> :userId
+            """)
+    long countOtherEnabledWithRole(@Param("role") Role role, @Param("userId") UUID userId);
 }

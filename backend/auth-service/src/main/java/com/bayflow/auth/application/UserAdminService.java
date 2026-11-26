@@ -79,16 +79,60 @@ public class UserAdminService {
         return new TemporaryPassword(user, password, expiresAt);
     }
 
-    /** A staff account with its locations (MANAGER, SERVICE_ADVISOR, MECHANIC) in one transaction. */
+    /**
+     * A staff account with one or more roles (e.g. ADMIN + MECHANIC) and, when they work at
+     * particular locations, those locations, in one transaction.
+     */
     @Transactional
-    public User createStaff(String username, String email, String password, Role role, List<UUID> locationIds) {
-        if (role == null || !role.isStaff()) {
-            throw ApiException.badRequest("invalid-role",
-                    "Staff accounts must have role MANAGER, SERVICE_ADVISOR, MECHANIC or ADMIN.");
-        }
-        User user = authService.createUser(username, email, password, Set.of(role));
+    public User createStaff(String username, String email, String password, Set<Role> roles,
+            List<UUID> locationIds) {
+        requireStaffRoles(roles);
+        User user = authService.createUser(username, email, password, roles);
         userLocations.assign(user, locationIds);
         return user;
+    }
+
+    /**
+     * Changes everything a staff member does. The workshop keeps at least one admin, and an admin
+     * can't take their own admin role away (another admin can). Locations follow the roles:
+     * without ADMIN, a MANAGER, SERVICE_ADVISOR or MECHANIC works at {@code locationIds} (or the
+     * locations they had; or the only location); with ADMIN, everywhere. From their next token.
+     */
+    @Transactional
+    public User setRoles(UUID userId, Set<Role> roles, List<UUID> locationIds, UUID actingUserId) {
+        requireStaffRoles(roles);
+        User user = users.findById(userId).orElseThrow(() -> ApiException.notFound("User"));
+        if (!user.getRoles().stream().allMatch(Role::isStaff)) {
+            throw ApiException.badRequest("not-staff", "Customers' accounts have no staff roles.");
+        }
+        boolean losesAdmin = user.getRoles().contains(Role.ADMIN) && !roles.contains(Role.ADMIN);
+        if (losesAdmin && userId.equals(actingUserId)) {
+            throw ApiException.conflict("cannot-remove-own-admin",
+                    "You can't remove your own admin role. Another admin can.");
+        }
+        if (losesAdmin && users.countOtherEnabledWithRole(Role.ADMIN, userId) == 0) {
+            throw ApiException.conflict("last-admin", "The workshop needs at least one admin.");
+        }
+        boolean wasScoped = UserLocationService.isLocationScoped(user);
+        List<UUID> keep = locationIds == null || locationIds.isEmpty()
+                ? (wasScoped ? userLocations.accessOf(user).locationIds() : List.of())
+                : locationIds;
+        user.setRoles(roles, clock.instant());
+        users.saveAndFlush(user);
+        if (UserLocationService.isLocationScoped(user)) {
+            userLocations.assign(user, keep);
+        } else {
+            userLocations.clear(user);
+        }
+        log.info("Roles of account {} set to {} by {}", userId, roles, actingUserId);
+        return user;
+    }
+
+    private static void requireStaffRoles(Set<Role> roles) {
+        if (roles == null || roles.isEmpty() || !roles.stream().allMatch(Role::isStaff)) {
+            throw ApiException.badRequest("invalid-role",
+                    "Staff accounts have one or more of the roles ADMIN, MANAGER, SERVICE_ADVISOR and MECHANIC.");
+        }
     }
 
     /** Changes where a staff member works; applies to their next token (within 15 minutes). */

@@ -1,5 +1,6 @@
 package com.bayflow.auth.api;
 
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.bayflow.auth.api.AuthDtos.CreateStaffRequest;
 import com.bayflow.auth.api.AuthDtos.PageResponse;
 import com.bayflow.auth.api.AuthDtos.UpdateLocationsRequest;
+import com.bayflow.auth.api.AuthDtos.UpdateRolesRequest;
 import com.bayflow.auth.api.AuthDtos.UpdateUserRequest;
 import com.bayflow.auth.api.AuthDtos.UserResponse;
 import com.bayflow.auth.application.ApiException;
@@ -61,8 +63,20 @@ public class UserAdminController {
             description = "MANAGER, SERVICE_ADVISOR and MECHANIC work at locationIds; without them, at the "
                     + "organization's only location (400 locations-required if it has several).")
     public UserResponse create(@Valid @RequestBody CreateStaffRequest request) {
-        User user = userAdmin.createStaff(request.username(), request.email(), request.password(), request.role(),
+        User user = userAdmin.createStaff(request.username(), request.email(), request.password(), request.roleSet(),
                 request.locationIds());
+        return UserResponse.from(user, userAdmin.accessOf(user));
+    }
+
+    @PutMapping("/{id}/roles")
+    @Operation(summary = "Set everything a staff member does (one or more of ADMIN, MANAGER, SERVICE_ADVISOR, "
+            + "MECHANIC)",
+            description = "Applies from the user's next token (within 15 minutes). 409 last-admin / "
+                    + "cannot-remove-own-admin keep the workshop administrable.")
+    public UserResponse setRoles(@PathVariable UUID id, @Valid @RequestBody UpdateRolesRequest request,
+            Authentication auth) {
+        User user = userAdmin.setRoles(id, EnumSet.copyOf(request.roles()), request.locationIds(),
+                UUID.fromString(CurrentUser.from(auth).subject()));
         return UserResponse.from(user, userAdmin.accessOf(user));
     }
 

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
 import { useAuth } from '@/auth/auth-context';
-import { ROLE_LABELS } from '@/auth/roles';
+import { ROLE_LABELS, rolesSummary } from '@/auth/roles';
 import { UserAvatar } from '@/components/common/UserAvatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +21,7 @@ export function UserMenu() {
   if (!user) {
     return null;
   }
-  const roles = user.roles.map((role) => ROLE_LABELS[role]).join(', ');
+  const roles = rolesSummary(user.roles);
 
   const signOut = async () => {
     try {
@@ -48,6 +48,9 @@ export function UserMenu() {
         <DropdownMenuLabel>
           <span className="block font-medium">{user.username}</span>
           <span className="block text-xs text-muted-foreground">{user.email}</span>
+          <span className="mt-1 block text-xs text-muted-foreground">
+            {user.roles.map((role) => ROLE_LABELS[role]).join(', ')}
+          </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => navigate('/profile')}>

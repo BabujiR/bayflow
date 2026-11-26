@@ -211,7 +211,8 @@ describe('User accounts', () => {
     await userEvent.type(within(dialog).getByLabelText('Username'), 'mgr');
     await userEvent.type(within(dialog).getByLabelText('Email'), 'mgr@example.com');
     await userEvent.type(within(dialog).getByLabelText('Temporary password'), 'Correct-Horse-1');
-    await userEvent.selectOptions(within(dialog).getByLabelText('Role'), 'MANAGER');
+    await userEvent.click(within(dialog).getByRole('checkbox', { name: /^Mechanic/ }));
+    await userEvent.click(within(dialog).getByRole('checkbox', { name: /^Manager/ }));
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create account' }));
     expect(await within(dialog).findByText('Choose at least one location')).toBeInTheDocument();
@@ -219,6 +220,6 @@ describe('User accounts', () => {
 
     await userEvent.click(within(dialog).getByRole('checkbox', { name: /North/ }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create account' }));
-    await vi.waitFor(() => expect(created).toMatchObject({ role: 'MANAGER', locationIds: [NORTH.id] }));
+    await vi.waitFor(() => expect(created).toMatchObject({ roles: ['MANAGER'], locationIds: [NORTH.id] }));
   });
 });

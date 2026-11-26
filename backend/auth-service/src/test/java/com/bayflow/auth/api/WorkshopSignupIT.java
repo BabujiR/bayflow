@@ -229,6 +229,28 @@ class WorkshopSignupIT extends IntegrationTestBase {
         return signup(slug, username, email);
     }
 
+    @Test
+    void anOwnerWhoAlsoWorksTheDeskAndOnCarsGetsThoseRolesToo() throws Exception {
+        String slug = uniqueSlug();
+        String json = signupJson(slug, "owner", "owner@" + slug + ".example", "EUR")
+                .replace("\"inviteToken\"", "\"ownerAlso\":[\"SERVICE_ADVISOR\",\"MECHANIC\"],\"inviteToken\"");
+        mvc.perform(withClientHeader(post("/api/v1/tenants/signup")).contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated());
+        login(slug, "owner", PASSWORD).andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.roles", org.hamcrest.Matchers.containsInAnyOrder("ADMIN",
+                        "SERVICE_ADVISOR", "MECHANIC")))
+                .andExpect(jsonPath("$.user.allLocations").value(true));
+
+        String other = uniqueSlug();
+        String refused = signupJson(other, "owner", "owner@" + other + ".example", "EUR")
+                .replace("\"inviteToken\"", "\"ownerAlso\":[\"CUSTOMER\"],\"inviteToken\"");
+        mvc.perform(withClientHeader(post("/api/v1/tenants/signup")).contentType(MediaType.APPLICATION_JSON)
+                        .content(refused))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("urn:bayflow:problem:invalid-role"));
+    }
+
     private ResultActions signup(String slug, String username, String email) throws Exception {
         return signupRequest(slug, username, email, "EUR");
     }

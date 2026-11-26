@@ -2,6 +2,7 @@ package com.bayflow.auth.application;
 
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -38,9 +39,17 @@ public class SignupService {
 
     public enum Availability { AVAILABLE, TAKEN, RESERVED, INVALID }
 
+    /**
+     * {@code ownerAlso}: the roles the owner also works in besides ADMIN (SERVICE_ADVISOR: the front
+     * desk; MECHANIC: on cars). Null or empty: ADMIN only.
+     */
     public record Signup(String workshopName, String slug, BigDecimal labourRate, String currency,
-            String timeZone, String adminUsername, String adminEmail, String adminPassword, String inviteToken) {
+            String timeZone, String adminUsername, String adminEmail, String adminPassword, String inviteToken,
+            Set<Role> ownerAlso) {
     }
+
+    /** The roles an owner may add to their own ADMIN at sign-up. */
+    static final Set<Role> OWNER_ALSO = EnumSet.of(Role.SERVICE_ADVISOR, Role.MECHANIC);
 
     public record Created(Tenant tenant, User admin) {
     }
@@ -133,8 +142,15 @@ public class SignupService {
         settings.createForNewWorkshop(name, request.labourRate(), request.currency(), request.timeZone());
         // Its first location, "Main" (id = tenant id), using the organization's settings.
         locations.ensureMain();
+        Set<Role> roles = EnumSet.of(Role.ADMIN);
+        if (request.ownerAlso() != null) {
+            if (!OWNER_ALSO.containsAll(request.ownerAlso())) {
+                throw ApiException.badRequest("invalid-role", "The owner can also be a service advisor or a mechanic.");
+            }
+            roles.addAll(request.ownerAlso());
+        }
         User admin = authService.createUser(request.adminUsername(), request.adminEmail(), request.adminPassword(),
-                Set.of(Role.ADMIN));
+                roles);
         return new Created(tenants.findById(tenantId).orElseThrow(), admin);
     }
 

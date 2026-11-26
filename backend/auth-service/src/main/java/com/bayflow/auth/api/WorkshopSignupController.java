@@ -6,6 +6,7 @@ import static com.bayflow.auth.api.AuthDtos.USERNAME_PATTERN;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,6 +46,7 @@ import com.bayflow.auth.application.SignupService.Created;
 import com.bayflow.auth.application.TenantSettingsService;
 import com.bayflow.auth.domain.Announcement;
 import com.bayflow.auth.domain.Invitation;
+import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.Tenant;
 import com.bayflow.auth.domain.TenantAsset;
 import com.bayflow.auth.domain.TenantBranding;
@@ -72,7 +74,9 @@ public class WorkshopSignupController {
             String adminUsername,
             @NotBlank @Email @Size(max = 254) String adminEmail,
             @NotBlank @Size(min = 8, max = 100) String adminPassword,
-            @NotBlank @Size(max = 100) String inviteToken) {
+            @NotBlank @Size(max = 100) String inviteToken,
+            /* What else the owner does in the shop: SERVICE_ADVISOR and/or MECHANIC (optional). */
+            @Size(max = 2) Set<Role> ownerAlso) {
     }
 
     public record InviteCheck(@NotBlank @Size(max = 100) String token) {
@@ -143,7 +147,8 @@ public class WorkshopSignupController {
         UUID id = UUID.randomUUID();
         Created created = TenantContext.call(id, () -> signups.signUp(id, new SignupService.Signup(
                 request.workshopName(), request.slug(), request.labourRate(), request.currency(), request.timeZone(),
-                request.adminUsername(), request.adminEmail(), request.adminPassword(), request.inviteToken())));
+                request.adminUsername(), request.adminEmail(), request.adminPassword(), request.inviteToken(),
+                request.ownerAlso())));
         return new SignupResponse(created.tenant().getId(), created.tenant().getSlug(), created.tenant().getName(),
                 created.admin().getUsername());
     }

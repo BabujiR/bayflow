@@ -131,6 +131,24 @@ Workshops join by invitation only.
 Nobody touches the database: the new workshop has its own users, settings and data, and a
 session from one workshop is refused at any other workshop's address.
 
+### One person, several roles
+
+A person can do several jobs with one sign-in, e.g. a shop owner who is **Admin + Service advisor
++ Mechanic**. Roles combine: they see every page each role gives (the sidebar groups them into
+*Front desk*, *Workshop*, *Insights* and *Admin*, each link once), and an admin who also advises
+or fixes cars gets "Your work today" (Today's board, My jobs) on Home and the desk's and
+mechanics' notifications at every location.
+
+- *User accounts*: tick the roles when creating an account, and **Roles** changes them later
+  (with locations when they work at chosen ones; an admin works everywhere). The workshop always
+  keeps an admin, and nobody removes their own admin role.
+- Sign-up asks the owner *Do you also work in the shop?*; an owner who is only an admin is asked
+  once on Home.
+- API: `POST /api/v1/auth/users` takes `roles` (or the older single `role`);
+  `PUT /api/v1/auth/users/{id}/roles` (ADMIN; 409 `last-admin`, `cannot-remove-own-admin`);
+  sign-up takes `ownerAlso` (`SERVICE_ADVISOR`, `MECHANIC`). Changes apply from the user's next
+  token (within 15 minutes; your own at once). No migration: accounts already hold a set of roles.
+
 ### Avatars (My profile)
 
 Everyone signed in has **My profile** (user menu, top right) and chooses how they show: their

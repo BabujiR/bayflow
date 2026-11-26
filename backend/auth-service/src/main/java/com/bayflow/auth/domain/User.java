@@ -199,6 +199,16 @@ public class User {
         return mustChangePassword && temporaryPasswordExpiresAt != null && !temporaryPasswordExpiresAt.isAfter(now);
     }
 
+    /** Everything the user does (one or more roles); checked by the caller. */
+    public void setRoles(Set<Role> roles, Instant now) {
+        if (roles == null || roles.isEmpty()) {
+            throw new IllegalArgumentException("At least one role");
+        }
+        this.roles.clear();
+        this.roles.addAll(roles);
+        this.updatedAt = now;
+    }
+
     public void setEnabled(boolean enabled, Instant now) {
         this.enabled = enabled;
         this.updatedAt = now;

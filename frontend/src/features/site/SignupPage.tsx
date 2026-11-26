@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 import { tenantsApi } from '@/api/endpoints';
 import { ApiError, errorMessage } from '@/api/errors';
-import type { InviteDetails } from '@/api/types';
+import type { InviteDetails, Role } from '@/api/types';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -162,6 +162,12 @@ function SignupForm({
     },
   });
 
+  const [ownerAlso, setOwnerAlso] = useState<Role[]>([]);
+  const toggleOwnerAlso = (role: Role, on: boolean) =>
+    setOwnerAlso((current) =>
+      on ? [...current.filter((r) => r !== role), role] : current.filter((r) => r !== role),
+    );
+
   const name = watch('workshopName');
   useEffect(() => {
     if (!slugEdited) {
@@ -201,6 +207,7 @@ function SignupForm({
         adminEmail: values.adminEmail,
         adminPassword: values.adminPassword,
         inviteToken: token,
+        ...(ownerAlso.length ? { ownerAlso } : {}),
       });
       browser.go(workshopUrl(created.slug, '/login?welcome=1'));
     } catch (error) {
@@ -304,6 +311,29 @@ function SignupForm({
             <Field label="Confirm password" error={errors.confirmPassword?.message}>
               <Input type="password" autoComplete="new-password" {...register('confirmPassword')} />
             </Field>
+          </fieldset>
+          <fieldset className="mt-6 grid gap-2">
+            <legend className="mb-1 text-sm font-medium">Do you also work in the shop?</legend>
+            <p className="-mt-1 text-sm text-muted-foreground">
+              You&apos;ll run the workshop as its admin. Tick what else you do, and you&apos;ll get those
+              screens too. You can change it later.
+            </p>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={ownerAlso.includes('SERVICE_ADVISOR')}
+                onChange={(e) => toggleOwnerAlso('SERVICE_ADVISOR', e.target.checked)}
+              />
+              I also run the front desk (bookings, check-in, invoices)
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={ownerAlso.includes('MECHANIC')}
+                onChange={(e) => toggleOwnerAlso('MECHANIC', e.target.checked)}
+              />
+              I also work on cars (My jobs)
+            </label>
           </fieldset>
         </CardContent>
         <CardFooter className="flex-col gap-3">

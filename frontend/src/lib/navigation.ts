@@ -18,16 +18,20 @@ import {
   WrenchIcon,
 } from '@/components/ui/icons';
 
-/** Sections of the staff sidebar, in order. */
-export type NavGroup = 'work' | 'insights' | 'admin';
+/**
+ * Sections of the staff sidebar, in order. Someone with several roles (an owner who also runs
+ * the desk and works on cars) sees every section their roles give, each link once.
+ */
+export type NavGroup = 'desk' | 'work' | 'insights' | 'admin';
 
 export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
+  desk: 'Front desk',
   work: 'Workshop',
   insights: 'Insights',
   admin: 'Admin',
 };
 
-const GROUP_ORDER: NavGroup[] = ['work', 'insights', 'admin'];
+const GROUP_ORDER: NavGroup[] = ['desk', 'work', 'insights', 'admin'];
 
 export interface NavItem {
   to: string;
@@ -45,7 +49,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Dashboard',
     description: 'Sales, car count, average repair order and close ratio at a glance.',
     roles: ['ADMIN', 'MANAGER'],
-    group: 'work',
+    group: 'insights',
     icon: DashboardIcon,
   },
   {
@@ -53,7 +57,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Today's board",
     description: "Today's appointments by status: confirm, mark arrived and check in.",
     roles: ['SERVICE_ADVISOR'],
-    group: 'work',
+    group: 'desk',
     icon: BoardIcon,
   },
   {
@@ -69,7 +73,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Appointments',
     description: 'Book, reschedule or cancel service appointments.',
     roles: ['CUSTOMER', 'SERVICE_ADVISOR', 'ADMIN'],
-    group: 'work',
+    group: 'desk',
     icon: CalendarIcon,
   },
   {
@@ -93,7 +97,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Invoices',
     description: 'Bills for completed jobs: issue, take payment, print.',
     roles: ['CUSTOMER', 'SERVICE_ADVISOR', 'ADMIN'],
-    group: 'work',
+    group: 'desk',
     icon: ReceiptIcon,
   },
   {
@@ -101,7 +105,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Customers',
     description: 'Find customers, their vehicles and service history.',
     roles: ['SERVICE_ADVISOR', 'ADMIN'],
-    group: 'work',
+    group: 'desk',
     icon: UsersIcon,
   },
   {
@@ -109,7 +113,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Due soon',
     description: 'Vehicles due for a service by your intervals.',
     roles: ['SERVICE_ADVISOR', 'MANAGER', 'ADMIN'],
-    group: 'work',
+    group: 'desk',
     icon: BellIcon,
   },
   {

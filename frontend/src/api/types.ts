@@ -84,8 +84,9 @@ export type TokenResponse = Present<
 
 export type LoginRequest = A['LoginRequest'];
 export type RegisterRequest = A['RegisterRequest'];
-export type CreateStaffRequest = Omit<A['CreateStaffRequest'], 'role'> & {
-  role: Role;
+export type CreateStaffRequest = Omit<A['CreateStaffRequest'], 'role' | 'roles'> & {
+  /** Everything they do, e.g. ['ADMIN', 'MECHANIC'] (hand-written until `pnpm api:update`). */
+  roles: Role[];
   /** For MANAGER, SERVICE_ADVISOR and MECHANIC; none = the organization's only location. */
   locationIds?: string[];
 };
@@ -464,7 +465,13 @@ export type BrandingImageKind = 'logo' | 'logo-dark' | 'icon' | 'cover';
 
 /** A demo request as the Ramplight console sees it. */
 export type DemoStatus =
-  'NEW' | 'CONTACTED' | 'DEMO_SCHEDULED' | 'DEMO_DONE' | 'INVITED' | 'ONBOARDED' | 'DECLINED';
+  | 'NEW'
+  | 'CONTACTED'
+  | 'DEMO_SCHEDULED'
+  | 'DEMO_DONE'
+  | 'INVITED'
+  | 'ONBOARDED'
+  | 'DECLINED';
 
 export interface ConsoleDemoRequest {
   id: string;
@@ -685,7 +692,13 @@ export interface IssuedInvitation {
 
 /** "Request a demo" on the public site. */
 export type ShopType =
-  'GENERAL_REPAIR' | 'TIRES' | 'QUICK_LUBE' | 'COLLISION' | 'DEALERSHIP' | 'FLEET' | 'OTHER';
+  | 'GENERAL_REPAIR'
+  | 'TIRES'
+  | 'QUICK_LUBE'
+  | 'COLLISION'
+  | 'DEALERSHIP'
+  | 'FLEET'
+  | 'OTHER';
 export type LocationCount = '1' | '2-3' | '4-10' | '11+';
 
 export interface DemoRequest {
@@ -710,6 +723,8 @@ export interface SignupRequest {
   adminPassword: string;
   /** From the setup link (<site>/setup?invite=…); sign-up is by invite only. */
   inviteToken: string;
+  /** What else the owner does besides running it: the front desk and/or working on cars. */
+  ownerAlso?: Role[];
 }
 
 /** Who a setup link is for (POST /api/v1/tenants/invitations/check). */

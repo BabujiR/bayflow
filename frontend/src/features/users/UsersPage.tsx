@@ -6,9 +6,10 @@ import { z } from 'zod';
 
 import { avatarApi, usersApi } from '@/api/endpoints';
 import { ApiError } from '@/api/errors';
+import { refreshSession } from '@/api/http';
 import type { Role, User } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
-import { ROLE_LABELS } from '@/auth/roles';
+import { rolesSummary, STAFF_ROLES, worksAtChosenLocations } from '@/auth/roles';
 import { PageHeader } from '@/components/common/PageHeader';
 import { UserAvatar } from '@/components/common/UserAvatar';
 import { Pager } from '@/components/common/Pager';
@@ -18,7 +19,6 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LocationChecklist } from '@/features/locations/LocationChecklist';
 import { useLocationLookup, useLocations } from '@/features/locations/use-locations';
@@ -26,8 +26,7 @@ import { formatDate } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
 import { ResetPasswordButton } from './ResetPasswordButton';
-
-const STAFF_ROLES = ['SERVICE_ADVISOR', 'MECHANIC', 'MANAGER', 'ADMIN'] as const;
+import { RoleChecklist } from './RoleChecklist';
 
 const staffSchema = z.object({
   username: z
@@ -38,15 +37,15 @@ const staffSchema = z.object({
     .regex(/^[A-Za-z0-9._-]+$/, "Only letters, digits, '.', '_' and '-'"),
   email: z.email('Enter a valid email address'),
   password: z.string().min(8, 'At least 8 characters').max(100),
-  role: z.enum(STAFF_ROLES),
 });
 
 type StaffValues = z.infer<typeof staffSchema>;
 
-/** Roles that work at particular locations (ADMIN works with all of them). */
-const LOCATION_SCOPED: Role[] = ['MANAGER', 'SERVICE_ADVISOR', 'MECHANIC'];
-const isLocationScoped = (u: User) =>
-  !u.roles.includes('ADMIN') && u.roles.some((r) => LOCATION_SCOPED.includes(r));
+/** Works at chosen locations (an ADMIN works with all of them). */
+const isLocationScoped = (u: User) => worksAtChosenLocations(u.roles);
+
+/** Staff accounts (customers' roles never change here). */
+const isStaff = (u: User) => u.roles.every((r) => STAFF_ROLES.includes(r));
 
 /** Admins create staff accounts and enable or disable any account. */
 export function UsersPage() {
@@ -112,7 +111,7 @@ export function UsersPage() {
                       </span>
                     </TableCell>
                     <TableCell>{u.email}</TableCell>
-                    <TableCell>{u.roles.map((r) => ROLE_LABELS[r]).join(', ')}</TableCell>
+                    <TableCell>{rolesSummary(u.roles)}</TableCell>
                     {lookup.hasSeveral && (
                       <TableCell>
                         {isLocationScoped(u)
@@ -127,6 +126,7 @@ export function UsersPage() {
                     </TableCell>
                     <TableCell>{formatDate(u.createdAt)}</TableCell>
                     <TableCell className="text-right">
+                      {isStaff(u) && <EditRoles user={u} self={u.id === me?.id} />}
                       {lookup.hasSeveral && isLocationScoped(u) && <EditLocations user={u} />}
                       {u.id !== me?.id && u.avatar?.kind === 'PHOTO' && (
                         <Button
@@ -170,16 +170,16 @@ function StaffForm({ onCreated }: { onCreated: () => void }) {
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
-    watch,
   } = useForm<StaffValues>({
     resolver: zodResolver(staffSchema),
-    defaultValues: { username: '', email: '', password: '', role: 'MECHANIC' },
+    defaultValues: { username: '', email: '', password: '' },
   });
   const active = (useLocations().data ?? []).filter((l) => l.status === 'ACTIVE');
+  const [roles, setRoles] = useState<Role[]>(['MECHANIC']);
+  const [rolesError, setRolesError] = useState<string | undefined>();
   const [locationIds, setLocationIds] = useState<string[]>([]);
   const [locationError, setLocationError] = useState<string | undefined>();
-  const role = watch('role');
-  const choosesLocations = active.length > 1 && LOCATION_SCOPED.includes(role);
+  const choosesLocations = active.length > 1 && worksAtChosenLocations(roles);
   const create = useAction(usersApi.create, {
     success: (u) => `Account ${u.username} created`,
     invalidate: [['users']],
@@ -198,12 +198,20 @@ function StaffForm({ onCreated }: { onCreated: () => void }) {
       noValidate
       className="grid gap-4"
       onSubmit={handleSubmit(async (values) => {
+        if (roles.length === 0) {
+          setRolesError('Choose at least one role');
+          return;
+        }
         if (choosesLocations && locationIds.length === 0) {
           setLocationError('Choose at least one location');
           return;
         }
         await create
-          .mutateAsync({ ...values, locationIds: choosesLocations ? locationIds : undefined })
+          .mutateAsync({
+            ...values,
+            roles: ordered(roles),
+            locationIds: choosesLocations ? locationIds : undefined,
+          })
           .catch(() => undefined);
       })}
     >
@@ -216,15 +224,14 @@ function StaffForm({ onCreated }: { onCreated: () => void }) {
       <Field label="Temporary password" error={errors.password?.message}>
         <Input type="password" autoComplete="new-password" {...register('password')} />
       </Field>
-      <Field label="Role" error={errors.role?.message}>
-        <Select {...register('role')}>
-          {STAFF_ROLES.map((role) => (
-            <option key={role} value={role}>
-              {ROLE_LABELS[role]}
-            </option>
-          ))}
-        </Select>
-      </Field>
+      <RoleChecklist
+        value={roles}
+        error={rolesError}
+        onChange={(next) => {
+          setRoles(next);
+          setRolesError(undefined);
+        }}
+      />
       {choosesLocations && (
         <LocationChecklist
           locations={active}
@@ -240,6 +247,110 @@ function StaffForm({ onCreated }: { onCreated: () => void }) {
         Create account
       </Button>
     </form>
+  );
+}
+
+/** Roles in the usual order (Admin, Manager, Service advisor, Mechanic). */
+const ordered = (roles: Role[]) => STAFF_ROLES.filter((r) => roles.includes(r));
+
+/**
+ * Changes what a staff member does: e.g. an owner who also runs the desk and works on cars.
+ * Your own admin role stays (another admin can remove it). From their next token (15 minutes);
+ * your own change applies at once.
+ */
+function EditRoles({ user, self }: { user: User; self: boolean }) {
+  const { updateUser } = useAuth();
+  const [open, setOpen] = useState(false);
+  const active = (useLocations().data ?? []).filter((l) => l.status === 'ACTIVE');
+  const [roles, setRoles] = useState<Role[]>(user.roles);
+  const [ids, setIds] = useState<string[]>(user.locationIds ?? []);
+  const [error, setError] = useState<string | undefined>();
+  const [locationError, setLocationError] = useState<string | undefined>();
+  const choosesLocations = active.length > 1 && worksAtChosenLocations(roles);
+  const save = useAction(
+    () =>
+      usersApi.setRoles(user.id, {
+        roles: ordered(roles),
+        locationIds: choosesLocations ? ids : undefined,
+      }),
+    {
+      success: (u) => `${u.username} is now ${rolesSummary(u.roles)}`,
+      invalidate: [['users']],
+      onSuccess: (saved) => {
+        setOpen(false);
+        if (self) {
+          // New menus at once: the new token carries the new roles.
+          updateUser(saved);
+          void refreshSession();
+        }
+      },
+    },
+  );
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) {
+          setRoles(user.roles);
+          setIds(user.locationIds ?? []);
+          setError(undefined);
+          setLocationError(undefined);
+        }
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" aria-label={`Edit roles of ${user.username}`}>
+          Roles
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        title={`Roles of ${user.username}`}
+        description="Everything this person does. They see each role's pages; changes apply within 15 minutes."
+      >
+        <form
+          noValidate
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (roles.length === 0) {
+              setError('Choose at least one role');
+              return;
+            }
+            if (choosesLocations && ids.length === 0) {
+              setLocationError('Choose at least one location');
+              return;
+            }
+            save.mutate(undefined);
+          }}
+        >
+          <RoleChecklist
+            value={roles}
+            error={error}
+            locked={self && user.roles.includes('ADMIN') ? ['ADMIN'] : []}
+            onChange={(next) => {
+              setRoles(next);
+              setError(undefined);
+            }}
+          />
+          {choosesLocations && (
+            <LocationChecklist
+              locations={active}
+              value={ids}
+              error={locationError}
+              onChange={(next) => {
+                setIds(next);
+                setLocationError(undefined);
+              }}
+            />
+          )}
+          <Button type="submit" disabled={save.isPending} className="justify-self-start">
+            Save roles
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

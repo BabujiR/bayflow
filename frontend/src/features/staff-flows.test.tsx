@@ -208,7 +208,9 @@ describe('admin user accounts', () => {
     await userEvent.type(within(dialog).getByLabelText('Username'), 'advisor2');
     await userEvent.type(within(dialog).getByLabelText('Email'), 'advisor2@bayflow.local');
     await userEvent.type(within(dialog).getByLabelText('Temporary password'), 'Temp-Pass-2026');
-    await userEvent.selectOptions(within(dialog).getByLabelText('Role'), 'SERVICE_ADVISOR');
+    // Mechanic is ticked to start with: this one is a service advisor instead.
+    await userEvent.click(within(dialog).getByRole('checkbox', { name: /^Mechanic/ }));
+    await userEvent.click(within(dialog).getByRole('checkbox', { name: /^Service advisor/ }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create account' }));
 
     await vi.waitFor(() =>
@@ -216,7 +218,7 @@ describe('admin user accounts', () => {
         username: 'advisor2',
         email: 'advisor2@bayflow.local',
         password: 'Temp-Pass-2026',
-        role: 'SERVICE_ADVISOR',
+        roles: ['SERVICE_ADVISOR'],
       }),
     );
   });

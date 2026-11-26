@@ -67,8 +67,27 @@ public final class AuthDtos {
             String username,
             @NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(min = 8, max = 100) String password,
-            @NotNull Role role,
+            /* One role (older clients); or {@code roles}, several (e.g. ADMIN + MECHANIC). */
+            Role role,
+            @Size(max = 4) List<@NotNull Role> roles,
             /* For MANAGER, SERVICE_ADVISOR and MECHANIC; none = the organization's only location. */
+            @Size(max = 200) List<UUID> locationIds) {
+
+        /** {@code roles} when given, else {@code role}. */
+        public java.util.Set<Role> roleSet() {
+            if (roles != null && !roles.isEmpty()) {
+                return java.util.EnumSet.copyOf(roles);
+            }
+            return role == null ? java.util.Set.of() : java.util.EnumSet.of(role);
+        }
+    }
+
+    /**
+     * Everything a staff member does, e.g. ADMIN + SERVICE_ADVISOR + MECHANIC for an owner who also
+     * runs the desk and works on cars. {@code locationIds}: where they work when that matters
+     * (MANAGER, SERVICE_ADVISOR, MECHANIC without ADMIN); none = the organization's only location.
+     */
+    public record UpdateRolesRequest(@NotNull @Size(min = 1, max = 4) List<@NotNull Role> roles,
             @Size(max = 200) List<UUID> locationIds) {
     }
 

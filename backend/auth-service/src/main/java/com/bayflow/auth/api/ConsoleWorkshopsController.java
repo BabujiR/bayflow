@@ -109,7 +109,7 @@ public class ConsoleWorkshopsController {
         UUID id = UUID.randomUUID();
         Created created = TenantContext.call(id, () -> signups.createTest(id, new SignupService.Signup(
                 request.workshopName(), request.slug(), null, request.currency(), request.timeZone(),
-                request.adminUsername(), request.adminEmail(), request.adminPassword(), null)));
+                request.adminUsername(), request.adminEmail(), request.adminPassword(), null, null)));
         log.info("Test workshop '{}' created by {}", created.tenant().getSlug(), CurrentUser.from(auth).username());
         return new WorkshopResponse(created.tenant().getId(), created.tenant().getSlug(), created.tenant().getName(),
                 created.tenant().getStatus(), true, created.tenant().getCreatedAt(), 1, 0, 1,
