@@ -17,6 +17,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 import com.bayflow.auth.application.AvatarService;
 import com.bayflow.auth.application.LocationAccess;
+import com.bayflow.auth.domain.AuditEvent;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.User;
 
@@ -141,6 +142,17 @@ public final class AuthDtos {
         public static <S, T> PageResponse<T> from(Page<S> page, Function<S, T> mapper) {
             return new PageResponse<>(page.getContent().stream().map(mapper).toList(), page.getNumber(),
                     page.getSize(), page.getTotalElements(), page.getTotalPages());
+        }
+    }
+
+    /** One change to an account, for Admin > Activity. Names are as they were at the time. */
+    public record AuditEventResponse(UUID id, Instant occurredAt, String action, UUID actorId, String actorName,
+            UUID targetId, String targetName, String details, String requestId) {
+
+        public static AuditEventResponse from(AuditEvent event) {
+            return new AuditEventResponse(event.getId(), event.getOccurredAt(), event.getAction().name(),
+                    event.getActorId(), event.getActorName(), event.getTargetId(), event.getTargetName(),
+                    event.getDetails(), event.getRequestId());
         }
     }
 }

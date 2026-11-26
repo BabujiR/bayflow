@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bayflow.auth.config.AuthProperties;
+import com.bayflow.auth.domain.AuditEvent.Action;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.User;
 import com.bayflow.auth.infrastructure.RefreshTokenRepository;
@@ -38,17 +39,19 @@ public class UserAdminService {
     private final UserLocationService userLocations;
     private final PasswordEncoder passwordEncoder;
     private final AuthProperties properties;
+    private final AuditLog audit;
     private final Clock clock;
 
     public UserAdminService(AuthService authService, UserRepository users, RefreshTokenRepository refreshTokens,
             UserLocationService userLocations, PasswordEncoder passwordEncoder, AuthProperties properties,
-            Clock clock) {
+            AuditLog audit, Clock clock) {
         this.authService = authService;
         this.users = users;
         this.refreshTokens = refreshTokens;
         this.userLocations = userLocations;
         this.passwordEncoder = passwordEncoder;
         this.properties = properties;
+        this.audit = audit;
         this.clock = clock;
     }
 
@@ -75,6 +78,7 @@ public class UserAdminService {
         user.resetPassword(passwordEncoder.encode(password), expiresAt, now);
         users.saveAndFlush(user);
         refreshTokens.revokeAllForUser(userId);
+        audit.record(Action.PASSWORD_RESET, user, null);
         log.info("Password of account {} reset by {}", userId, actorId);
         return new TemporaryPassword(user, password, expiresAt);
     }
@@ -89,6 +93,8 @@ public class UserAdminService {
         requireStaffRoles(roles);
         User user = authService.createUser(username, email, password, roles);
         userLocations.assign(user, locationIds);
+        audit.record(Action.STAFF_CREATED, user,
+                AuditLog.describe(roles) + " at " + audit.describe(userLocations.accessOf(user)));
         return user;
     }
 
@@ -113,6 +119,7 @@ public class UserAdminService {
         if (losesAdmin && users.countOtherEnabledWithRole(Role.ADMIN, userId) == 0) {
             throw ApiException.conflict("last-admin", "The workshop needs at least one admin.");
         }
+        Set<Role> before = Set.copyOf(user.getRoles());
         boolean wasScoped = UserLocationService.isLocationScoped(user);
         List<UUID> keep = locationIds == null || locationIds.isEmpty()
                 ? (wasScoped ? userLocations.accessOf(user).locationIds() : List.of())
@@ -124,6 +131,8 @@ public class UserAdminService {
         } else {
             userLocations.clear(user);
         }
+        audit.record(Action.ROLES_CHANGED, user, AuditLog.describe(roles) + " at "
+                + audit.describe(userLocations.accessOf(user)) + " (was " + AuditLog.describe(before) + ")");
         log.info("Roles of account {} set to {} by {}", userId, roles, actingUserId);
         return user;
     }
@@ -144,6 +153,7 @@ public class UserAdminService {
                     "Admins and customers work with every location; they take no location list.");
         }
         userLocations.assign(user, locationIds);
+        audit.record(Action.LOCATIONS_CHANGED, user, audit.describe(userLocations.accessOf(user)));
         return user;
     }
 
@@ -179,6 +189,7 @@ public class UserAdminService {
         if (!enabled) {
             refreshTokens.revokeAllForUser(userId);
         }
+        audit.record(enabled ? Action.ACCOUNT_ENABLED : Action.ACCOUNT_DISABLED, user, null);
         return user;
     }
 

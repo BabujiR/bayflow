@@ -73,7 +73,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, PUBLIC_POST_PATHS.toArray(String[]::new)).permitAll()
                         .requestMatchers(HttpMethod.GET, "/.well-known/jwks.json").permitAll()
                         .requestMatchers(HttpMethod.GET, PUBLIC_WORKSHOP_GETS).permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info",
+                                "/actuator/prometheus").permitAll()
                         .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
                         .permitAll()
                         .requestMatchers("/error").permitAll()

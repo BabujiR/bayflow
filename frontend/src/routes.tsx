@@ -27,6 +27,7 @@ import { ProfilePage } from '@/features/profile/ProfilePage';
 import { LandingPage } from '@/features/site/LandingPage';
 import { SignupPage } from '@/features/site/SignupPage';
 import { SiteLayout } from '@/features/site/SiteLayout';
+import { ActivityPage } from '@/features/users/ActivityPage';
 import { UsersPage } from '@/features/users/UsersPage';
 import { VehicleDetailPage } from '@/features/vehicles/VehicleDetailPage';
 import { VehiclesPage } from '@/features/vehicles/VehiclesPage';
@@ -147,6 +148,7 @@ export const routes: RouteObject[] = withErrorPage([
             element: <RequireRole roles={['ADMIN']} />,
             children: [
               { path: '/users', element: <UsersPage /> },
+              { path: '/activity', element: <ActivityPage /> },
               { path: '/settings', element: <WorkshopSettingsPage /> },
               { path: '/locations', element: <LocationsPage /> },
             ],

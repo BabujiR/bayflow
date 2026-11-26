@@ -1247,3 +1247,26 @@ export interface PaymentRequest {
   amount: number;
   reference?: string;
 }
+
+/** Admin > Activity: one change to an account (hand-written until `pnpm api:update`). */
+export type AuditAction =
+  | 'STAFF_CREATED'
+  | 'ROLES_CHANGED'
+  | 'LOCATIONS_CHANGED'
+  | 'ACCOUNT_ENABLED'
+  | 'ACCOUNT_DISABLED'
+  | 'ACCOUNT_UNLOCKED'
+  | 'PASSWORD_RESET'
+  | 'AVATAR_RESET';
+
+export interface AuditEvent {
+  id: string;
+  occurredAt: string;
+  action: AuditAction;
+  actorId?: string | null;
+  actorName?: string | null;
+  targetId?: string | null;
+  targetName?: string | null;
+  details?: string | null;
+  requestId?: string | null;
+}

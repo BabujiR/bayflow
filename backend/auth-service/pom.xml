@@ -48,6 +48,16 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <!-- Metrics at /actuator/prometheus -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <!-- Tracing: Micrometer Tracing with the OpenTelemetry bridge and the OTLP exporter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-opentelemetry</artifactId>
+        </dependency>
         <!-- Password-reset e-mails over SMTP (Jakarta Mail); any provider: Gmail, SES, SendGrid, Mailpit -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -68,11 +78,35 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <!-- JSONassert and its android-json (CVE-2026-110974, never to be fixed): no test
+                     compares JSON with it; MockMvc's jsonPath() uses json-path instead. -->
+                <exclusion>
+                    <groupId>org.skyscreamer</groupId>
+                    <artifactId>jsonassert</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.vaadin.external.google</groupId>
+                    <artifactId>android-json</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security-test</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <!-- JSONassert and its android-json (CVE-2026-110974, never to be fixed): no test
+                     compares JSON with it; MockMvc's jsonPath() uses json-path instead. -->
+                <exclusion>
+                    <groupId>org.skyscreamer</groupId>
+                    <artifactId>jsonassert</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.vaadin.external.google</groupId>
+                    <artifactId>android-json</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

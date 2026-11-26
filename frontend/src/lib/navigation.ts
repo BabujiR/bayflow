@@ -9,6 +9,7 @@ import {
   ChartIcon,
   ClipboardIcon,
   DashboardIcon,
+  HistoryIcon,
   IdCardIcon,
   JobCardIcon,
   ReceiptIcon,
@@ -139,6 +140,14 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['ADMIN'],
     group: 'admin',
     icon: MapPinIcon,
+  },
+  {
+    to: '/activity',
+    label: 'Activity',
+    description: 'Who changed which account, and when: roles, locations, access and passwords.',
+    roles: ['ADMIN'],
+    group: 'admin',
+    icon: HistoryIcon,
   },
   {
     to: '/canned-jobs',

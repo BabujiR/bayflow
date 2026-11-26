@@ -5,6 +5,8 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,19 +23,23 @@ public class ClientCredentialsService {
 
     private static final Logger log = LoggerFactory.getLogger(ClientCredentialsService.class);
     static final String DEV_SECRET = "dev-system-secret";
+    /** The built-in development secrets (dev-system-secret, dev-workshop-secret...) all start so. */
+    static final String DEV_SECRET_PREFIX = "dev-";
 
     private final ServiceClientRepository clients;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
     private final Clock clock;
+    private final Environment environment;
     private final String dummyHash;
 
     public ClientCredentialsService(ServiceClientRepository clients, PasswordEncoder passwordEncoder,
-            TokenService tokenService, Clock clock) {
+            TokenService tokenService, Clock clock, Environment environment) {
         this.clients = clients;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
         this.clock = clock;
+        this.environment = environment;
         this.dummyHash = passwordEncoder.encode("bayflow-timing-equalizer");
     }
 
@@ -60,7 +66,13 @@ public class ClientCredentialsService {
             if (!StringUtils.hasText(settings.getSecret())) {
                 throw new IllegalStateException("bayflow.auth.clients." + clientId + ".secret must be set");
             }
-            if (DEV_SECRET.equals(settings.getSecret())) {
+            if (settings.getSecret().startsWith(DEV_SECRET_PREFIX)
+                    && environment.acceptsProfiles(Profiles.of("prod"))) {
+                // A secret anyone can read on GitHub would let anyone call the services as SYSTEM.
+                throw new IllegalStateException("bayflow.auth.clients." + clientId + ".secret is a development"
+                        + " secret; the prod profile needs a real one (BAYFLOW_*_CLIENT_SECRET).");
+            }
+            if (settings.getSecret().startsWith(DEV_SECRET_PREFIX)) {
                 log.warn("Client '{}' uses the development secret. Set a real secret outside local development.",
                         clientId);
             }

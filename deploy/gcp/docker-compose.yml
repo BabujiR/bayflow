@@ -41,6 +41,14 @@ x-db: &db
   # The APIs are not browsable in production.
   SPRINGDOC_SWAGGER_UI_ENABLED: "false"
   SPRINGDOC_API_DOCS_ENABLED: "false"
+  # Logs as JSON (Elastic Common Schema), one object per line, with trace and request ids:
+  # ready for Cloud Logging, Loki or Elastic. "docker compose logs" shows the same JSON.
+  LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+  # Tracing: ids are in every log line; spans are exported only once a collector is set up
+  # (BAYFLOW_TRACING_EXPORT=true and BAYFLOW_OTLP_TRACES_ENDPOINT, see docs/OBSERVABILITY.md).
+  BAYFLOW_TRACING_EXPORT: ${BAYFLOW_TRACING_EXPORT:-false}
+  BAYFLOW_OTLP_TRACES_ENDPOINT: ${BAYFLOW_OTLP_TRACES_ENDPOINT:-http://localhost:4318/v1/traces}
+  BAYFLOW_TRACING_SAMPLING: ${BAYFLOW_TRACING_SAMPLING:-0.1}
 
 services:
   postgres:
@@ -231,7 +239,27 @@ services:
       - caddy-data:/data
       - caddy-config:/config
 
+  # Metrics and alert rules (optional): docker compose --profile monitoring up -d
+  # Scrapes /actuator/prometheus inside this network; nothing is published to the internet.
+  # Open it through an SSH tunnel: gcloud compute ssh <vm> -- -L 9090:localhost:9090
+  prometheus:
+    image: prom/prometheus:v3.13.5   # LTS line (supported to mid-2027)
+    profiles: [monitoring]
+    restart: unless-stopped
+    <<: *logging
+    mem_limit: 512m
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+
 volumes:
   pgdata:
   caddy-data:
   caddy-config:
+  prometheus-data:

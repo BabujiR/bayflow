@@ -41,7 +41,7 @@ describe('staff sidebar', () => {
       within(sections[3])
         .getAllByRole('link')
         .map((l) => l.textContent),
-    ).toEqual(['Team', 'Locations', 'Canned jobs', 'Workshop settings']);
+    ).toEqual(['Team', 'Locations', 'Activity', 'Canned jobs', 'Workshop settings']);
   });
 
   it('collapses to icons, keeps the names for screen readers, and remembers it', async () => {

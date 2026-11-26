@@ -2,64 +2,48 @@ package com.bayflow.appointment.bookingservices;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import com.bayflow.appointment.application.ApiException;
+import com.bayflow.ops.InMemoryRateLimitStore;
+import com.bayflow.ops.RateLimitStore;
 
-/** At most {@link #MAX_PER_HOUR} online bookings an hour from one address (per instance). */
+/**
+ * At most {@link #MAX_PER_HOUR} online bookings an hour (a fixed clock hour) from one address.
+ * Counted in the database ({@link RateLimitStore}), so the limit holds across instances.
+ */
 @Component
 public class PublicBookingLimiter {
 
     public static final int MAX_PER_HOUR = 10;
-
-    /** Past this many addresses, the quiet ones are forgotten (checked on each booking). */
-    static final int CLEANUP_THRESHOLD = 10_000;
+    static final Duration WINDOW = Duration.ofHours(1);
 
     private final Clock clock;
-    private final Map<String, Deque<Instant>> recent = new ConcurrentHashMap<>();
+    private final RateLimitStore store;
 
-    public PublicBookingLimiter(Clock clock) {
+    @Autowired
+    public PublicBookingLimiter(Clock clock, RateLimitStore store) {
         this.clock = clock;
+        this.store = store;
+    }
+
+    /** Counted in memory (unit tests). */
+    public PublicBookingLimiter(Clock clock) {
+        this(clock, new InMemoryRateLimitStore());
     }
 
     public void check(String key) {
-        Instant now = clock.instant();
-        Deque<Instant> times = recent.computeIfAbsent(key, k -> new ArrayDeque<>());
-        synchronized (times) {
-            while (!times.isEmpty() && times.peekFirst().isBefore(now.minus(Duration.ofHours(1)))) {
-                times.pollFirst();
-            }
-            if (times.size() >= MAX_PER_HOUR) {
-                throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "too-many-requests", "Too Many Requests",
-                        "Too many bookings from here. Please call the shop, or try again later.");
-            }
-            times.addLast(now);
+        if (store.hit("booking|" + key, clock.instant(), WINDOW) > MAX_PER_HOUR) {
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "too-many-requests", "Too Many Requests",
+                    "Too many bookings from here. Please call the shop, or try again later.");
         }
-        if (recent.size() > CLEANUP_THRESHOLD) {
-            forgetQuiet(now);
-        }
-    }
-
-    /** Drops addresses with no booking in the last hour, so the map can't grow without end. */
-    private void forgetQuiet(Instant now) {
-        Instant cutoff = now.minus(Duration.ofHours(1));
-        recent.entrySet().removeIf(e -> {
-            Deque<Instant> times = e.getValue();
-            synchronized (times) {
-                return times.isEmpty() || times.peekLast().isBefore(cutoff);
-            }
-        });
     }
 
     /** Tests start from a clean slate. */
     public void reset() {
-        recent.clear();
+        store.clear();
     }
 }

@@ -1,0 +1,66 @@
+# Alert rules for Ramplight (Prometheus). Thresholds are starting points: tune them once
+# there is a few weeks of real traffic to compare with.
+groups:
+  - name: ramplight
+    rules:
+      - alert: ServiceDown
+        expr: up{job="ramplight"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.service }} is not answering"
+          description: "Prometheus could not scrape {{ $labels.instance }} for 2 minutes."
+
+      - alert: HighErrorRate
+        # Share of requests answered with a 5xx, over 5 minutes, when there is traffic at all.
+        expr: |
+          sum by (service) (rate(http_server_requests_seconds_count{job="ramplight", status=~"5.."}[5m]))
+            / sum by (service) (rate(http_server_requests_seconds_count{job="ramplight"}[5m])) > 0.02
+          and sum by (service) (rate(http_server_requests_seconds_count{job="ramplight"}[5m])) > 0.1
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.service }}: more than 2% of requests fail"
+          description: "{{ $value | humanizePercentage }} of requests answered 5xx over 5 minutes."
+
+      - alert: SlowRequests
+        expr: |
+          histogram_quantile(0.95, sum by (service, le) (
+            rate(http_server_requests_seconds_bucket{job="ramplight", uri!~"/actuator.*"}[5m]))) > 1
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.service }}: p95 latency above 1 s"
+          description: "95% of requests take up to {{ $value | humanizeDuration }} (10 minutes)."
+
+      - alert: OutboxGivenUp
+        # A message failed too many times and is no longer retried: someone has to look.
+        expr: bayflow_outbox_failed{job="ramplight"} > 0
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.service }}: {{ $value }} outbox message(s) given up on"
+          description: "See README, \"Outboxes: retries and giving up\", to inspect and retry them."
+
+      - alert: OutboxBacklog
+        expr: bayflow_outbox_oldest_pending_seconds{job="ramplight"} > 3600
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.service }}: an outbox message has waited over an hour"
+          description: "The oldest undelivered message is {{ $value | humanizeDuration }} old."
+
+      - alert: OutboxStatsUnavailable
+        expr: bayflow_outbox_pending{job="ramplight"} < 0
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.service }}: outbox numbers can't be read (database?)"
+
+      - alert: JvmHeapHigh
+        expr: |
+          sum by (service) (jvm_memory_used_bytes{job="ramplight", area="heap"})
+            / sum by (service) (jvm_memory_max_bytes{job="ramplight", area="heap"}) > 0.9
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.service }}: heap over 90% for 15 minutes"

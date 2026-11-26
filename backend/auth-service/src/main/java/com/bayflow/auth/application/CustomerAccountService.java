@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.bayflow.auth.domain.AuditEvent.Action;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.User;
 import com.bayflow.auth.infrastructure.RefreshTokenRepository;
@@ -31,11 +32,14 @@ public class CustomerAccountService {
 
     private final UserRepository users;
     private final RefreshTokenRepository refreshTokens;
+    private final AuditLog audit;
     private final Clock clock;
 
-    public CustomerAccountService(UserRepository users, RefreshTokenRepository refreshTokens, Clock clock) {
+    public CustomerAccountService(UserRepository users, RefreshTokenRepository refreshTokens, AuditLog audit,
+            Clock clock) {
         this.users = users;
         this.refreshTokens = refreshTokens;
+        this.audit = audit;
         this.clock = clock;
     }
 
@@ -63,6 +67,7 @@ public class CustomerAccountService {
         if (!enabled) {
             refreshTokens.revokeAllForUser(userId);
         }
+        audit.record(enabled ? Action.ACCOUNT_ENABLED : Action.ACCOUNT_DISABLED, user, "Customer account");
         log.info("Customer account {} {} by {}", userId, enabled ? "enabled" : "disabled", actingUserId);
         return user;
     }
@@ -72,6 +77,7 @@ public class CustomerAccountService {
         User user = get(userId);
         user.unlock(clock.instant());
         users.saveAndFlush(user);
+        audit.record(Action.ACCOUNT_UNLOCKED, user, "Customer account");
         log.info("Customer account {} unlocked by {}", userId, actingUserId);
         return user;
     }

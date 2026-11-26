@@ -85,7 +85,7 @@ public class AvatarController {
     @Operation(summary = "Put a user back to their initials (workshop ADMIN), e.g. for an unsuitable photo")
     @SecurityRequirement(name = "bearerAuth")
     public UserResponse reset(@PathVariable UUID id) {
-        User user = avatars.useInitials(id);
+        User user = avatars.resetByAdmin(id);
         return UserResponse.from(user, auth.accessOf(user));
     }
 

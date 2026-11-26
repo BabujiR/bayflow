@@ -141,6 +141,18 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm e2e:install
 
+      - name: API types match the services
+        # The TypeScript types in src/api/schema come from the running services' OpenAPI
+        # documents. If a backend change moved the API, this fails: run "pnpm api:update" with
+        # the stack up and commit the result.
+        working-directory: frontend
+        run: |
+          pnpm api:update
+          if ! git diff --exit-code --stat -- src/api/schema; then
+            echo "::error::src/api/schema is out of date. Run 'pnpm api:update' (stack running) and commit it."
+            exit 1
+          fi
+
       - name: Run end-to-end tests
         working-directory: frontend
         env:

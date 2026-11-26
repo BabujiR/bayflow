@@ -9,6 +9,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import com.bayflow.ops.RequestIds;
 import com.bayflow.workshop.config.WorkshopProperties;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -33,7 +34,9 @@ public class SystemTokenProvider {
     private Instant expiresAt = Instant.EPOCH;
 
     public SystemTokenProvider(WorkshopProperties properties, Clock clock) {
-        this.auth = RestClient.builder().baseUrl(properties.getAuthUrl()).requestFactory(factory(properties)).build();
+        this.auth = RestClient.builder()
+                .requestInterceptor(RequestIds.propagate())
+                .baseUrl(properties.getAuthUrl()).requestFactory(factory(properties)).build();
         this.properties = properties;
         this.clock = clock;
     }

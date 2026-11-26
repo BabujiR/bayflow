@@ -159,6 +159,12 @@ everywhere). The customer list shows each online account's status. API:
 `/api/v1/auth/customer-accounts/{userId}` (GET, PATCH `{enabled}`, POST `/unlock`) and
 `GET /api/v1/auth/customer-accounts?ids=…` (up to 100); customers' accounts only (404 for staff).
 
+**Activity** (`/activity`, admins) is the workshop's audit trail: staff created, roles and
+locations changed, accounts enabled, disabled or unlocked, passwords reset and photos removed,
+with who did it and when (`GET /api/v1/auth/audit-events?userId=…`). Each event is written in
+the same transaction as the change; the services may add events but never edit or delete them
+(`auth_audit_events` has no UPDATE or DELETE grant).
+
 ### Avatars (My profile)
 
 Everyone signed in has **My profile** (user menu, top right) and chooses how they show: their
@@ -499,6 +505,8 @@ spaced out to stay under the 10-per-minute login limit.
     unit tests, build
   - *dependencies*: Trivy scans the Maven and pnpm manifests (fails on a fixable HIGH/CRITICAL)
   - *compose*: validates `docker-compose.yml`
+  - *e2e* also checks that `frontend/src/api/schema` matches the running services' OpenAPI
+    documents: after a backend API change, run `pnpm api:update` (stack up) and commit it
   - *e2e* (after backend and frontend pass): `docker compose up --build --wait`, runs
     Playwright, uploads the report and the scenario videos, prints service logs on failure
 - **CD** (`.github/workflows/cd.yml`, after CI succeeds on `main`): builds each image, scans it
@@ -518,6 +526,21 @@ about 4 hours; `bayflow.integration.dispatcher.max-attempts`,
 an ERROR "Gave up on outbox message …" is logged. To retry one by hand:
 `UPDATE apt_outbox SET failed_at = NULL, attempts = 0, next_attempt_at = now() WHERE id = '…'`.
 A sent e-mail's content is cleared from the outbox (it holds the private booking link).
+The outboxes are in the metrics (`bayflow_outbox_pending`, `bayflow_outbox_failed`,
+`bayflow_outbox_oldest_pending_seconds`) with alerts; see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md).
+
+## Several instances of a service
+
+Every service can run as two or more instances behind a load balancer:
+
+- **Scheduled jobs** (outbox dispatchers, reminders, retention, invite reminders) run on one
+  instance at a time, through a lock row in PostgreSQL (`<prefix>_job_locks`, `JobLock`). A lock
+  lasts at most a set time, so a crashed instance can't block a job; daily jobs keep theirs a few
+  minutes so an instance with a slightly late clock doesn't run them twice.
+- **Rate limits** (logins, sign-ups, password-reset e-mails, online bookings) are counted in
+  PostgreSQL (`auth_rate_limits`, `apt_rate_limits`) in fixed windows, so the limits hold across
+  instances. Keys are stored hashed (no e-mail addresses or IPs).
+- Sessions are tokens and the outboxes are in the database, so nothing else is per instance.
 
 ## Running outside local development
 
@@ -534,6 +557,9 @@ Caddy with a wildcard certificate, nightly backups). It applies everything below
 - Serve the web app over HTTPS (e.g. a load balancer in front of `bayflow-web`) and set
   `BAYFLOW_COOKIE_SECURE=true` so the refresh cookie is only sent over HTTPS.
 - Turn Swagger UI off if the APIs should not be browsable (`SPRINGDOC_SWAGGER_UI_ENABLED=false`).
+- Under the `prod` profile, auth-service refuses to start with a built-in development client
+  secret (`dev-…`).
+- Logs, metrics, tracing and alerts: [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md).
 
 ## Repository layout
 

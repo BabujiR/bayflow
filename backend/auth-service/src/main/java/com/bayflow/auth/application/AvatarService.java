@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.bayflow.auth.domain.AuditEvent.Action;
 import com.bayflow.auth.domain.User;
 import com.bayflow.auth.domain.UserAvatar;
 import com.bayflow.auth.infrastructure.UserAvatarRepository;
@@ -32,12 +33,22 @@ public class AvatarService {
 
     private final UserRepository users;
     private final UserAvatarRepository photos;
+    private final AuditLog audit;
     private final Clock clock;
 
-    public AvatarService(UserRepository users, UserAvatarRepository photos, Clock clock) {
+    public AvatarService(UserRepository users, UserAvatarRepository photos, AuditLog audit, Clock clock) {
         this.users = users;
         this.photos = photos;
+        this.audit = audit;
         this.clock = clock;
+    }
+
+    /** An admin puts someone back to their initials (an unsuitable photo, say): audited. */
+    @Transactional
+    public User resetByAdmin(UUID userId) {
+        User user = useInitials(userId);
+        audit.record(Action.AVATAR_RESET, user, null);
+        return user;
     }
 
     @Transactional

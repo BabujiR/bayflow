@@ -3,6 +3,7 @@ import type {
   AdvisorRow,
   Announcement,
   AnnouncementRequest,
+  AuditEvent,
   AppNotification,
   Appointment,
   Branding,
@@ -284,6 +285,12 @@ export const usersApi = {
     http.put<User>(`/api/v1/auth/users/${id}/locations`, { locationIds }),
   /** ADMIN: anyone else; MANAGER and SERVICE_ADVISOR: customers. Returns the temporary password once. */
   resetPassword: (id: string) => http.post<TemporaryPassword>(`/api/v1/auth/users/${id}/password-reset`),
+};
+
+export const auditApi = {
+  /** ADMIN: account changes, newest first; one person's with `userId`. */
+  list: (params: Paging & { userId?: string }) =>
+    http.get<PageResponse<AuditEvent>>('/api/v1/auth/audit-events', { ...params }),
 };
 
 export const workshopApi = {

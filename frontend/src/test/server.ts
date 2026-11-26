@@ -67,6 +67,7 @@ const defaults = [
     HttpResponse.json(bookingHours({ locationId: String(params.locationId) })),
   ),
   http.get('*/api/v1/auth/users', () => HttpResponse.json(pageOf([]))),
+  http.get('*/api/v1/auth/audit-events', () => HttpResponse.json(pageOf([]))),
   // QuickBooks: not set up on the server.
   http.get('*/api/v1/quickbooks', () =>
     HttpResponse.json({

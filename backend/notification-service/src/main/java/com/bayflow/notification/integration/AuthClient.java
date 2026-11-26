@@ -19,6 +19,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import com.bayflow.notification.config.NotificationProperties;
+import com.bayflow.ops.RequestIds;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
@@ -61,7 +62,9 @@ public class AuthClient {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(properties.getConnectTimeout());
         factory.setReadTimeout(properties.getReadTimeout());
-        this.auth = RestClient.builder().baseUrl(properties.getAuthUrl()).requestFactory(factory).build();
+        this.auth = RestClient.builder()
+                .requestInterceptor(RequestIds.propagate())
+                .baseUrl(properties.getAuthUrl()).requestFactory(factory).build();
         this.properties = properties;
         this.clock = clock;
     }
@@ -97,7 +100,7 @@ public class AuthClient {
         });
     }
 
-    /** Forgets every cached answer (tests). */
+    /* Forgets every cached answer (tests). */
     public void evictAll() {
         staff.clear();
         locations.clear();

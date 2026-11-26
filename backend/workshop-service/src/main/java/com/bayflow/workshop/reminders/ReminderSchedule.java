@@ -1,5 +1,6 @@
 package com.bayflow.workshop.reminders;
 
+import java.time.Duration;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -9,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import com.bayflow.ops.JobLock;
 import com.bayflow.security.TenantContext;
 
 /**
@@ -24,14 +26,17 @@ public class ReminderSchedule {
     private static final Logger log = LoggerFactory.getLogger(ReminderSchedule.class);
 
     private final ReminderService reminders;
+    private final JobLock lock;
 
-    public ReminderSchedule(ReminderService reminders) {
+    public ReminderSchedule(ReminderService reminders, JobLock lock) {
         this.reminders = reminders;
+        this.lock = lock;
     }
 
     @Scheduled(cron = "${bayflow.workshop.reminders.cron:0 0 14 * * *}", zone = "UTC")
     void daily() {
-        runOnce();
+        // Once a day across every instance; held 10 minutes so a slightly late clock can't rerun it.
+        lock.runExclusively("service-reminders", Duration.ofMinutes(10), Duration.ofHours(2), this::runOnce);
     }
 
     /** One pass over every organization with something due; one failing doesn't stop the rest. */
