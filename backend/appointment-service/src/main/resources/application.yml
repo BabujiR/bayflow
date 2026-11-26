@@ -51,6 +51,8 @@ bayflow:
   appointment:
     workshop-zone: ${BAYFLOW_WORKSHOP_ZONE:America/New_York}
     default-duration-minutes: 60
+    # Links in customers' e-mails: https://<slug>.<this host>/book/manage?token=…
+    site-url: ${BAYFLOW_SITE_URL:http://localhost:3000}
   integration:
     auth-url: ${BAYFLOW_AUTH_URL:http://localhost:8083}
     workshop-url: ${BAYFLOW_WORKSHOP_URL:http://localhost:8082}

@@ -116,6 +116,8 @@ services:
       # Tokens are verified with auth-service's public key
       BAYFLOW_JWKS_URI: http://auth-service:8083/.well-known/jwks.json
       BAYFLOW_BASE_DOMAIN: ${BAYFLOW_BASE_DOMAIN:-localhost}
+      # Online bookings' "change or cancel" links: https://<slug>.<this host>/book/manage?token=…
+      BAYFLOW_SITE_URL: ${BAYFLOW_SITE_URL:-http://localhost:3000}
       # Fallback only, used while auth-service can't be reached (workshops set their own zone).
       BAYFLOW_WORKSHOP_ZONE: ${BAYFLOW_WORKSHOP_ZONE:-America/New_York}
       # Check-in opens the job card in workshop-service using a SYSTEM token from auth-service.

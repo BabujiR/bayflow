@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.bayflow.appointment.bookingservices.ShopChangeMails;
 import com.bayflow.appointment.config.AppointmentProperties;
 import com.bayflow.appointment.domain.Appointment;
 import com.bayflow.appointment.domain.AppointmentAction;
@@ -57,16 +58,19 @@ public class AppointmentService {
     private final OutboxService outbox;
     private final AppointmentProperties properties;
     private final Locations locations;
+    private final ShopChangeMails shopChangeMails;
     private final Clock clock;
 
     public AppointmentService(AppointmentRepository appointments, VehicleRepository vehicles, Callers callers,
-            OutboxService outbox, AppointmentProperties properties, Locations locations, Clock clock) {
+            OutboxService outbox, AppointmentProperties properties, Locations locations,
+            ShopChangeMails shopChangeMails, Clock clock) {
         this.appointments = appointments;
         this.vehicles = vehicles;
         this.callers = callers;
         this.outbox = outbox;
         this.properties = properties;
         this.locations = locations;
+        this.shopChangeMails = shopChangeMails;
         this.clock = clock;
     }
 
@@ -204,6 +208,9 @@ public class AppointmentService {
         Appointment appointment = get(user, id);
         appointment.cancel(clock.instant());
         outbox.enqueueNotification(appointment, Events.CANCELLED, null);
+        if (!user.isCustomer()) {
+            shopChangeMails.cancelled(appointment);
+        }
         return appointment;
     }
 
@@ -222,6 +229,9 @@ public class AppointmentService {
         Instant previous = appointment.getScheduledAt();
         appointment.reschedule(scheduledAt, minutes, now);
         outbox.enqueueNotification(appointment, Events.RESCHEDULED, previous);
+        if (!user.isCustomer()) {
+            shopChangeMails.moved(appointment);
+        }
         return appointments.saveAndFlush(appointment);
     }
 

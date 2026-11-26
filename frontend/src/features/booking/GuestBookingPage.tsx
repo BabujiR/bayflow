@@ -1,27 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 
 import { bookingApi } from '@/api/endpoints';
 import { ApiError, errorMessage } from '@/api/errors';
 import type { PublicBooked, PublicBookingOptions } from '@/api/types';
-import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import { BrandBanner } from '@/features/branding/BrandBanner';
-import { PoweredBy } from '@/features/branding/PoweredBy';
-import { WorkshopLogo } from '@/features/branding/WorkshopLogo';
-import { todayIso } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { WorkshopNotFoundPage } from '@/pages/WorkshopNotFoundPage';
 
 import { durationLabel, priceLabel } from './BookingServicesSection';
+import { BookingShell, PublicQueryState, Summary, TimePicker, whenLabel } from './booking-ui';
+import { rememberClaim } from './claim';
 
 export const BOOKING_OPTIONS_KEY = ['booking', 'options'] as const;
 
@@ -36,31 +31,6 @@ const PHONE = /^[0-9+()\-. ]{7,30}$/;
 const NEXT_YEAR = new Date().getFullYear() + 1;
 const YEARS = Array.from({ length: NEXT_YEAR - 1950 + 1 }, (_, i) => NEXT_YEAR - i);
 
-/** "2026-11-16" plus `days`, as a date (no time zone involved). */
-function addDays(date: string, days: number): string {
-  const d = new Date(`${date}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-const dayLabel = (date: string, options: Intl.DateTimeFormatOptions) =>
-  new Intl.DateTimeFormat(undefined, { ...options, timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`));
-
-const timeLabel = (iso: string, zone: string) =>
-  new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', timeZone: zone }).format(
-    new Date(iso),
-  );
-
-const whenLabel = (iso: string, zone: string) =>
-  new Intl.DateTimeFormat(undefined, {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: zone,
-  }).format(new Date(iso));
-
 /**
  * The public booking page (`<workshop>/book`): customers book without an account, from a link
  * on Google Maps or the shop's site. `?location=<code>` picks the location (shops with one
@@ -73,45 +43,11 @@ export function GuestBookingPage() {
     staleTime: 5 * 60_000,
     retry: (count, error) => !(error instanceof ApiError && error.isClientError) && count < 2,
   });
-  const notFound = options.error instanceof ApiError && options.error.code === 'workshop-not-found';
 
   return (
-    <div className="min-h-svh bg-gradient-to-b from-primary/5 to-background">
-      <div className="flex min-h-svh flex-col">
-        <BrandBanner />
-        <header className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <WorkshopLogo />
-            {options.data && (
-              <span className="truncate font-semibold" data-testid="booking-shop-name">
-                {options.data.shopName}
-              </span>
-            )}
-          </div>
-          <ThemeToggle />
-        </header>
-        <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-16">
-          {options.isPending ? (
-            <div className="grid gap-3" aria-label="Loading">
-              <Skeleton className="h-8 w-56" />
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
-            </div>
-          ) : notFound ? (
-            <WorkshopNotFoundPage />
-          ) : options.isError ? (
-            <Alert>
-              {options.error instanceof ApiError && options.error.code === 'workshop-suspended'
-                ? "This workshop isn't taking online bookings right now. Please call the shop."
-                : errorMessage(options.error)}
-            </Alert>
-          ) : (
-            <BookingFlow options={options.data} />
-          )}
-        </main>
-        <PoweredBy />
-      </div>
-    </div>
+    <BookingShell shopName={options.data?.shopName}>
+      <PublicQueryState query={options}>{(o) => <BookingFlow options={o} />}</PublicQueryState>
+    </BookingShell>
   );
 }
 
@@ -519,7 +455,19 @@ function BookingFlow({ options }: { options: PublicBookingOptions }) {
                     !(
                       book.error instanceof ApiError &&
                       ['slot-taken', 'double-booking'].includes(book.error.code)
-                    ) && <Alert>{errorMessage(book.error)}</Alert>}
+                    ) && (
+                      <Alert>
+                        {errorMessage(book.error)}
+                        {book.error instanceof ApiError && book.error.code === 'sign-in-to-book' && (
+                          <>
+                            {' '}
+                            <Link to="/login" className="font-medium underline underline-offset-4">
+                              Sign in
+                            </Link>
+                          </>
+                        )}
+                      </Alert>
+                    )}
                 </>
               )}
             </div>
@@ -607,146 +555,6 @@ function Choice({
   );
 }
 
-function TimePicker({
-  location,
-  zone,
-  slot,
-  onPick,
-  error,
-}: {
-  location: string;
-  zone: string;
-  slot: string | null;
-  onPick: (slot: string) => void;
-  error: string | null;
-}) {
-  const today = useMemo(() => todayIso(new Date(), zone), [zone]);
-  const [from, setFrom] = useState(today);
-  const availability = useQuery({
-    queryKey: ['booking', 'availability', location, from],
-    queryFn: () => bookingApi.availability(location, from, 7),
-  });
-  const days = availability.data?.days ?? [];
-  const [day, setDay] = useState<string | null>(null);
-  const firstOpen = days.find((d) => d.slots.length > 0)?.date ?? null;
-  const shown = days.find((d) => d.date === day) ?? days.find((d) => d.date === firstOpen);
-
-  return (
-    <div className="grid gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="font-medium">Pick a time</h2>
-        <div className="flex gap-1">
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            aria-label="Earlier days"
-            disabled={from <= today}
-            onClick={() => {
-              setFrom(addDays(from, -7) < today ? today : addDays(from, -7));
-              setDay(null);
-            }}
-          >
-            ←
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            aria-label="Later days"
-            onClick={() => {
-              setFrom(addDays(from, 7));
-              setDay(null);
-            }}
-          >
-            →
-          </Button>
-        </div>
-      </div>
-      {availability.isPending ? (
-        <Skeleton className="h-32 w-full" />
-      ) : availability.isError ? (
-        <Alert>{errorMessage(availability.error)}</Alert>
-      ) : (
-        <>
-          <div className="grid grid-cols-7 gap-1" role="group" aria-label="Days">
-            {days.map((d) => {
-              const open = d.slots.length > 0;
-              const selected = shown?.date === d.date;
-              return (
-                <button
-                  key={d.date}
-                  type="button"
-                  disabled={!open}
-                  aria-pressed={selected}
-                  aria-label={dayLabel(d.date, { weekday: 'long', day: 'numeric', month: 'long' })}
-                  onClick={() => setDay(d.date)}
-                  className={cn(
-                    'grid justify-items-center gap-0.5 rounded-lg border px-1 py-2 text-xs transition-colors',
-                    selected
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'hover:border-primary/60',
-                    !open && 'cursor-not-allowed opacity-40',
-                  )}
-                >
-                  <span>{dayLabel(d.date, { weekday: 'short' })}</span>
-                  <span className="text-base font-semibold">{dayLabel(d.date, { day: 'numeric' })}</span>
-                </button>
-              );
-            })}
-          </div>
-          {shown && shown.slots.length > 0 ? (
-            <div
-              key={shown.date}
-              className="gb-step grid grid-cols-3 gap-2 sm:grid-cols-4"
-              role="group"
-              aria-label="Times"
-            >
-              {shown.slots.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  aria-pressed={slot === s}
-                  onClick={() => onPick(s)}
-                  className={cn(
-                    'rounded-lg border px-2 py-2 text-sm font-medium transition-all hover:border-primary/60',
-                    slot === s && 'scale-[1.03] border-primary bg-primary text-primary-foreground',
-                  )}
-                >
-                  {timeLabel(s, zone)}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="rounded-lg bg-muted px-3 py-4 text-center text-sm text-muted-foreground">
-              No free times these days. Try later days with →.
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground">Times are the shop&apos;s local time.</p>
-        </>
-      )}
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function Summary({ rows }: { rows: [string, string][] }) {
-  return (
-    <dl className="grid gap-1 rounded-lg bg-muted/50 p-3 text-sm">
-      {rows.map(([label, value]) => (
-        <div key={label} className="flex justify-between gap-3">
-          <dt className="text-muted-foreground">{label}</dt>
-          <dd className="text-right font-medium">{value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
 function Booked({
   booked,
   car,
@@ -788,9 +596,42 @@ function Booked({
           {booked.emailed
             ? `A confirmation is on its way to ${booked.email}.`
             : 'Keep this page for your records: the confirmation e-mail could not be sent just now.'}{' '}
-          Need to change it? Reply to the e-mail or call the shop.
         </p>
+        {booked.manageToken && (
+          <div className="grid w-full max-w-sm gap-2">
+            <Button asChild variant="outline">
+              <Link to={`/book/manage?token=${encodeURIComponent(booked.manageToken)}`}>
+                Change or cancel
+              </Link>
+            </Button>
+            <AccountLink token={booked.manageToken} />
+          </div>
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+/** "Create an account": their online bookings join it once they've signed up (or signed in). */
+export function AccountLink({ token }: { token: string }) {
+  return (
+    <p className="text-sm text-muted-foreground">
+      <Link
+        to="/register"
+        onClick={() => rememberClaim(token)}
+        className="font-medium text-primary underline-offset-4 hover:underline"
+      >
+        Create an account
+      </Link>{' '}
+      to see all your visits in one place, or{' '}
+      <Link
+        to="/login"
+        onClick={() => rememberClaim(token)}
+        className="font-medium text-primary underline-offset-4 hover:underline"
+      >
+        sign in
+      </Link>{' '}
+      to add this one.
+    </p>
   );
 }

@@ -7,6 +7,7 @@ import { AppointmentsPage } from '@/features/appointments/AppointmentsPage';
 import { BookAppointmentPage } from '@/features/appointments/BookAppointmentPage';
 import { BoardPage } from '@/features/board/BoardPage';
 import { GuestBookingPage } from '@/features/booking/GuestBookingPage';
+import { ManageBookingPage } from '@/features/booking/ManageBookingPage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { CannedJobsPage } from '@/features/cannedjobs/CannedJobsPage';
@@ -56,6 +57,8 @@ export const routes: RouteObject[] = [
   },
   // The public booking page (Google Maps / the shop's site link): no account needed.
   { path: '/book', element: <GuestBookingPage /> },
+  // An online booking's private link (from its e-mails): change or cancel it.
+  { path: '/book/manage', element: <ManageBookingPage /> },
   {
     // Signed in or not: the e-mailed link signs in whoever proves they read that mailbox.
     element: <AuthLayout />,

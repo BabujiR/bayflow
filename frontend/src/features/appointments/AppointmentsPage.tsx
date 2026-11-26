@@ -205,6 +205,14 @@ export function AppointmentsPage() {
                       </TableCell>
                       <TableCell>
                         <AppointmentStatusBadge status={a.status} />
+                        {a.cancelledByCustomer && (
+                          <span className="block text-xs text-muted-foreground">
+                            By the customer{a.cancelReason ? `: “${a.cancelReason}”` : ''}
+                          </span>
+                        )}
+                        {!a.cancelledByCustomer && (a.customerReschedules ?? 0) > 0 && (
+                          <span className="block text-xs text-muted-foreground">Moved by the customer</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <AppointmentActions appointment={a} />

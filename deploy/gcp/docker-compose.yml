@@ -129,6 +129,8 @@ services:
       BAYFLOW_WORKSHOP_URL: http://workshop-service:8082
       BAYFLOW_NOTIFICATION_URL: http://notification-service:8084
       BAYFLOW_SYSTEM_CLIENT_SECRET: ${BAYFLOW_SYSTEM_CLIENT_SECRET:?set BAYFLOW_SYSTEM_CLIENT_SECRET in .env}
+      # Online bookings' "change or cancel" links in e-mails.
+      BAYFLOW_SITE_URL: https://${BAYFLOW_BASE_DOMAIN}
 
   workshop-service:
     <<: *service

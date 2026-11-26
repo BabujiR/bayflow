@@ -69,6 +69,15 @@ public class Customer {
         this.updatedAt = now;
     }
 
+    /** An online booker's record joins the account they created (they proved the e-mailed link). */
+    public void linkUser(UUID userId, Instant now) {
+        if (this.userId != null) {
+            throw new IllegalStateException("Already linked");
+        }
+        this.userId = userId;
+        this.updatedAt = now;
+    }
+
     public boolean isOwnedBy(UUID user) {
         return userId != null && userId.equals(user);
     }

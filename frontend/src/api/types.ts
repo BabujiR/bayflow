@@ -116,6 +116,11 @@ export type Appointment = Present<
   bookedOnline?: boolean;
   /** The service they picked online, e.g. "Oil change" or "Something else". */
   serviceName?: string | null;
+  /** Cancelled by the customer from their booking's private link, with their reason. */
+  cancelledByCustomer?: boolean;
+  cancelReason?: string | null;
+  /** Times the customer moved it from the link. */
+  customerReschedules?: number;
 };
 
 export type ProfileRequest = P['ProfileRequest'];
@@ -583,6 +588,34 @@ export interface PublicBooked {
   email: string;
   /** A confirmation e-mail is on its way. */
   emailed: boolean;
+  /** The private "change or cancel" link's token (null for a request the server ignored). */
+  manageToken: string | null;
+}
+
+/** Why an online booking can't be changed from its link (NONE: it can). */
+export type ManageBlocked = 'NONE' | 'CANCELLED' | 'ARRIVED' | 'PAST' | 'TOO_LATE' | 'LOCATION_CLOSED';
+
+/** An online booking as its private link shows it (/book/manage?token=…). */
+export interface ManagedBooking {
+  status: AppointmentStatus;
+  startsAt: string;
+  timeZone: string;
+  durationMinutes: number;
+  locationCode: string | null;
+  locationName: string | null;
+  address: string | null;
+  manyLocations: boolean;
+  serviceName: string;
+  car: string;
+  shopName: string;
+  firstName: string;
+  canChange: boolean;
+  blocked: ManageBlocked;
+  noticeMinutes: number;
+  reschedulesLeft: number;
+  cancelledByCustomer: boolean;
+  /** Already in a customer account. */
+  hasAccount: boolean;
 }
 
 /** A setup invite as the console shows it (Pending turns Expired after 7 days). */

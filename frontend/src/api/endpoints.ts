@@ -78,6 +78,7 @@ import type {
   Vehicle,
   WorkLogRequest,
   Workshop,
+  ManagedBooking,
   PublicAvailability,
   PublicBooked,
   PublicBookingOptions,
@@ -94,6 +95,8 @@ export interface Paging {
 export const customersApi = {
   me: () => http.get<Customer>('/api/v1/customers/me'),
   createMe: (body: ProfileRequest) => http.post<Customer>('/api/v1/customers/me', body),
+  /** Adds an online booking (by its private-link token) and that booker's cars to my account. */
+  claim: (token: string) => http.post<Customer>('/api/v1/customers/me/claim', { token }),
   updateMe: (body: ProfileRequest) => http.put<Customer>('/api/v1/customers/me', body),
   create: (body: CreateCustomerRequest) => http.post<Customer>('/api/v1/customers', body),
   list: (params: Paging & { q?: string }) =>
@@ -211,6 +214,12 @@ export const bookingApi = {
   availability: (location: string, from: string, days = 7) =>
     http.get<PublicAvailability>('/api/v1/booking/availability', { location, from, days }),
   book: (body: PublicBookingRequest) => http.post<PublicBooked>('/api/v1/booking/appointments', body),
+  /** The booking's private link (the token goes in the body, out of server logs). */
+  manage: (token: string) => http.post<ManagedBooking>('/api/v1/booking/manage', { token }),
+  reschedule: (token: string, startsAt: string) =>
+    http.post<ManagedBooking>('/api/v1/booking/manage/reschedule', { token, startsAt }),
+  cancel: (token: string, reason: string | null) =>
+    http.post<ManagedBooking>('/api/v1/booking/manage/cancel', { token, reason }),
 };
 
 export const cannedJobsApi = {

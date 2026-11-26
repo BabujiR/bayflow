@@ -131,7 +131,8 @@ public final class AppointmentDtos {
             Instant scheduledAt, Instant endsAt, int durationMinutes, ServiceType serviceType, String notes,
             AppointmentStatus status, Integer arrivalMileage, Instant confirmedAt, Instant arrivedAt,
             Instant checkedInAt, Instant cancelledAt, UUID jobCardId, Instant createdAt, Instant updatedAt,
-            boolean bookedOnline, String serviceName) {
+            boolean bookedOnline, String serviceName, boolean cancelledByCustomer, String cancelReason,
+            int customerReschedules) {
 
         public static AppointmentResponse from(Appointment a) {
             return new AppointmentResponse(a.getId(), a.getLocationId(), a.getCustomer().getId(),
@@ -139,7 +140,8 @@ public final class AppointmentDtos {
                     VehicleSummary.from(a.getVehicle()), a.getScheduledAt(), a.getEndsAt(), a.getDurationMinutes(),
                     a.getServiceType(), a.getNotes(), a.getStatus(), a.getArrivalMileage(), a.getConfirmedAt(),
                     a.getArrivedAt(), a.getCheckedInAt(), a.getCancelledAt(), a.getJobCardId(), a.getCreatedAt(),
-                    a.getUpdatedAt(), a.isBookedOnline(), a.getServiceName());
+                    a.getUpdatedAt(), a.isBookedOnline(), a.getServiceName(), a.isCancelledByCustomer(),
+                    a.getCancelReason(), a.getCustomerReschedules());
         }
     }
 

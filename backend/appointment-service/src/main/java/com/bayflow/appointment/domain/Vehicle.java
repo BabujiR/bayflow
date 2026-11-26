@@ -117,6 +117,12 @@ public class Vehicle {
     }
 
     /** Fills in what an online booking didn't give (at check-in); what is known stays. */
+    /** The car joins the customer's account (claimed online booking, merged profiles). */
+    public void moveTo(Customer newOwner, Instant now) {
+        this.owner = newOwner;
+        this.updatedAt = now;
+    }
+
     public void complete(String vin, String registration, Instant now) {
         if (this.vin == null) {
             String normalizedVin = normalizeVin(vin);

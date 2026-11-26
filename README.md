@@ -255,8 +255,22 @@ at once and e-mailed; staff see it with an **Online** badge and are notified as 
 customer is matched by e-mail (or added without a login) and the car by VIN or year/make/model.
 A car booked without VIN or plate gets them at check-in (the job card needs both). Bookings are
 limited to 10 an hour per address. Public API: `/api/v1/booking/options`, `/availability`,
-`/appointments` (send `X-Bayflow-Client`). Rescheduling and cancelling by the customer come in
-the next step.
+`/appointments` (send `X-Bayflow-Client`).
+
+**Change or cancel** (`<address>/book/manage?token=…`): every e-mail about an online booking
+carries a private link (only the token's SHA-256 is stored). The customer can move the booking
+to another free time (up to 3 times) or cancel it with an optional reason, until the location's
+notice before the visit; after that, or once the car has arrived, the page says to call the
+shop. The desk is notified of every customer change, and the appointments list shows "By the
+customer: <reason>" or "Moved by the customer". When staff move or cancel an online booking the
+customer is e-mailed; a moved booking gets a new link (the old one stops working). Links use
+`BAYFLOW_SITE_URL`. Public API: `POST /api/v1/booking/manage`, `/manage/reschedule`,
+`/manage/cancel` (token in the body).
+
+**Accounts**: the confirmation and manage pages offer *Create an account* / *sign in*. Once the
+customer is signed in, the booking is claimed with its token (`POST /api/v1/customers/me/claim`):
+with no profile yet, the online booker's record becomes theirs; otherwise its cars and bookings
+move to their profile. An e-mail that belongs to an account can't book without signing in.
 
 ### Canned jobs
 

@@ -66,6 +66,7 @@ describe('public booking page (/book)', () => {
             serviceName: 'Oil change',
             email: 'ana@example.com',
             emailed: true,
+            manageToken: 'A'.repeat(43),
           },
           { status: 201 },
         );
@@ -105,6 +106,10 @@ describe('public booking page (/book)', () => {
     expect(await screen.findByRole('heading', { name: "You're booked!" })).toBeInTheDocument();
     expect(screen.getByText(/A confirmation is on its way to ana@example.com/)).toBeInTheDocument();
     expect(screen.getByText('2019 Honda Civic')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Change or cancel' })).toHaveAttribute(
+      'href',
+      `/book/manage?token=${'A'.repeat(43)}`,
+    );
     expect(sent).toMatchObject({
       location: 'main',
       service: 'oil-change',

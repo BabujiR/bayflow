@@ -2,6 +2,8 @@ package com.bayflow.appointment.infrastructure;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -55,4 +57,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID>,
      */
     @Query(value = "select 1 from (select pg_advisory_xact_lock(hashtextextended(:key, 0))) l", nativeQuery = true)
     Integer lockSlot(@Param("key") String key);
+
+    /** The online booking a private "change or cancel" link names (by the token's hash). */
+    Optional<Appointment> findByManageTokenHash(String manageTokenHash);
+
+    List<Appointment> findAllByCustomerId(UUID customerId);
 }

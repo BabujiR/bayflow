@@ -3,6 +3,8 @@ package com.bayflow.appointment.api;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,6 +24,7 @@ import com.bayflow.appointment.api.AppointmentDtos.CustomerResponse;
 import com.bayflow.appointment.api.AppointmentDtos.PageResponse;
 import com.bayflow.appointment.api.AppointmentDtos.ProfileRequest;
 import com.bayflow.appointment.application.CustomerService;
+import com.bayflow.appointment.bookingservices.BookingClaim;
 import com.bayflow.security.CurrentUser;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,8 +38,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class CustomerController {
 
     private final CustomerService customers;
+    private final BookingClaim claims;
 
-    public CustomerController(CustomerService customers) {
+    /** An online booking's private-link token. */
+    public record ClaimRequest(@NotBlank @Size(max = 64) String token) {
+    }
+
+    public CustomerController(CustomerService customers, BookingClaim claims) {
+        this.claims = claims;
         this.customers = customers;
     }
 
@@ -47,6 +56,14 @@ public class CustomerController {
     public CustomerResponse createProfile(@Valid @RequestBody ProfileRequest request, Authentication auth) {
         return CustomerResponse.from(customers.createOwnProfile(CurrentUser.from(auth), request.name(),
                 request.email(), request.phone()));
+    }
+
+    @PostMapping("/me/claim")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(summary = "Add an online booking (and its customer's cars and bookings) to my account",
+            description = "The token from the booking's private link proves the e-mail is mine.")
+    public CustomerResponse claim(@Valid @RequestBody ClaimRequest request, Authentication auth) {
+        return CustomerResponse.from(claims.claim(CurrentUser.from(auth), request.token()));
     }
 
     @GetMapping("/me")

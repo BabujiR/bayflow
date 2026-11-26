@@ -47,6 +47,14 @@ public class OnlineBooking {
 
     public static final String SOMETHING_ELSE = "Something else";
 
+    static final String BOOKED = "APPOINTMENT_BOOKED";
+    static final String RESCHEDULED = "APPOINTMENT_RESCHEDULED";
+    static final String CANCELLED = "APPOINTMENT_CANCELLED";
+
+    /** The booking and its private "change or cancel" link's token (only its hash is stored). */
+    public record Booked(Appointment appointment, String manageToken) {
+    }
+
     /** What the page sends. {@code serviceCode} null: "Something else" (then a description is needed). */
     public record Request(String serviceCode, String description, String vin, Integer year, String make,
             String model, Instant startsAt, String firstName, String lastName, String email, String phone,
@@ -76,7 +84,7 @@ public class OnlineBooking {
     }
 
     @Transactional
-    public Appointment book(LocationSettings location, ZoneId zone, Request r) {
+    public Booked book(LocationSettings location, ZoneId zone, Request r) {
         checkVehicle(r);
         BookingService service = null;
         if (r.serviceCode() != null && !r.serviceCode().isBlank()) {
@@ -98,7 +106,14 @@ public class OnlineBooking {
         Instant now = clock.instant();
         String email = r.email().strip().toLowerCase(Locale.ROOT);
         String phone = r.phone() == null || r.phone().isBlank() ? null : r.phone().strip();
-        Customer customer = customers.findFirstByEmailOrderByCreatedAtAsc(email).orElseGet(() ->
+        Customer customer = customers.findFirstByEmailOrderByCreatedAtAsc(email).map(c -> {
+            // Someone's account: they sign in to book, so nobody books into it by typing the e-mail.
+            if (c.getUserId() != null) {
+                throw ApiException.conflict("sign-in-to-book",
+                        "This e-mail has an account with the shop. Sign in to book.");
+            }
+            return c;
+        }).orElseGet(() ->
                 customers.saveAndFlush(Customer.create(null, r.firstName().strip() + " " + r.lastName().strip(),
                         email, phone, now)));
         Vehicle vehicle = vehicleFor(customer, r, now);
@@ -119,10 +134,13 @@ public class OnlineBooking {
         appointment.bookedOnline(service == null ? SOMETHING_ELSE : service.getName(),
                 service == null ? null : service.getPriceKind().name(), service == null ? null : service.getPrice(),
                 phone != null && r.smsConsent() ? now : null);
+        String token = ManageTokens.newToken();
+        appointment.useManageToken(ManageTokens.hash(token));
         Appointment saved = appointments.saveAndFlush(appointment);
-        outbox.enqueueNotification(saved, "APPOINTMENT_BOOKED", null);
+        // Booked by the customer: the shop's desk is told.
+        outbox.enqueueNotification(saved, BOOKED, null, true);
         log.info("Online booking {} at location {}", saved.getId(), location.id());
-        return saved;
+        return new Booked(saved, token);
     }
 
     private void checkVehicle(Request r) {

@@ -72,6 +72,16 @@ public class OutboxService {
      */
     @Transactional
     public void enqueueNotification(Appointment appointment, String type, Instant previousScheduledAt) {
+        enqueueNotification(appointment, type, previousScheduledAt, false);
+    }
+
+    /**
+     * {@code byCustomer}: the customer did it without signing in (the public booking page or
+     * their booking's private link), so the shop's desk is told.
+     */
+    @Transactional
+    public void enqueueNotification(Appointment appointment, String type, Instant previousScheduledAt,
+            boolean byCustomer) {
         if (!properties.getNotifications().isEnabled()) {
             return;
         }
@@ -79,7 +89,8 @@ public class OutboxService {
         UUID tenant = TenantContext.require();
         NotificationPayload payload = new NotificationPayload(null, tenant,
                 appointment.getLocationId(), type, actor == null ? null : parseId(actor.subject()),
-                actor != null && actor.isCustomer(), appointment.getCustomer().getUserId(), appointment.getId(),
+                byCustomer || actor != null && actor.isCustomer(), appointment.getCustomer().getUserId(),
+                appointment.getId(),
                 appointment.getVehicle().getRegistration(), appointment.getScheduledAt(), previousScheduledAt);
         outbox.save(OutboxMessage.create(appointment.getId(), OutboxMessage.NOTIFY,
                 json.writeValueAsString(payload), clock.instant()));
