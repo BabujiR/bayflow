@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { JobCard } from '@/api/types';
+import { toggleOption } from '@/test/multi-select';
 import { renderApp } from '@/test/render';
 import { appointment, jobCard, pageOf, server, sessionFor, user } from '@/test/server';
 
@@ -209,8 +210,8 @@ describe('admin user accounts', () => {
     await userEvent.type(within(dialog).getByLabelText('Email'), 'advisor2@bayflow.local');
     await userEvent.type(within(dialog).getByLabelText('Temporary password'), 'Temp-Pass-2026');
     // Mechanic is ticked to start with: this one is a service advisor instead.
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: /^Mechanic/ }));
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: /^Service advisor/ }));
+    await toggleOption(dialog, 'Roles', /^Mechanic/);
+    await toggleOption(dialog, 'Roles', /^Service advisor/);
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create account' }));
 
     await vi.waitFor(() =>

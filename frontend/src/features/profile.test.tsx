@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { avatarApi } from '@/api/endpoints';
 import type { User } from '@/api/types';
 import { renderApp } from '@/test/render';
 import { pageOf, server, sessionFor, user } from '@/test/server';
@@ -48,18 +49,13 @@ describe('My profile: avatar', () => {
   });
 
   it('uploads a photo', async () => {
-    let uploaded: FormDataEntryValue | null = null;
     const me = user('SERVICE_ADVISOR', 'advisor1');
-    server.use(
-      sessionFor(me),
-      http.put('*/api/v1/auth/me/avatar/photo', async ({ request }) => {
-        uploaded = (await request.formData()).get('file');
-        return HttpResponse.json<User>({
-          ...me,
-          avatar: { kind: 'PHOTO', character: null, photoUrl: '/api/v1/tenants/current/avatars/u1?v=abc' },
-        });
-      }),
-    );
+    // Multipart bodies don't survive jsdom + MSW: the call itself is checked (as for branding images).
+    const upload = vi.spyOn(avatarApi, 'upload').mockResolvedValue({
+      ...me,
+      avatar: { kind: 'PHOTO', character: null, photoUrl: '/api/v1/tenants/current/avatars/u1?v=abc' },
+    });
+    server.use(sessionFor(me));
     renderApp('/profile');
 
     await userEvent.click(await screen.findByRole('radio', { name: 'Photo' }, { timeout: 10_000 }));
@@ -68,7 +64,8 @@ describe('My profile: avatar', () => {
     expect(await screen.findByRole('img', { name: 'Avatar preview' })).toHaveAttribute('src', 'blob:preview');
     await userEvent.click(screen.getByRole('button', { name: 'Save avatar' }));
 
-    await vi.waitFor(() => expect(uploaded).not.toBeNull());
+    // jsdom can't draw on a canvas, so the picked file itself goes (a browser sends the 512 px square).
+    await vi.waitFor(() => expect(upload).toHaveBeenCalledWith(photo));
   });
 
   it('refuses a file that is not a photo', async () => {

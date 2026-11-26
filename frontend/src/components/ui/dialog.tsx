@@ -21,6 +21,8 @@ export function DialogContent({
         className={cn(
           'fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 gap-4',
           'rounded-xl border bg-card p-6 text-card-foreground shadow-lg',
+          // A tall form scrolls inside the dialog; the dialog never runs off the screen.
+          'max-h-[calc(100svh-2rem)] overflow-y-auto overscroll-contain',
           className,
         )}
         {...(description ? {} : { 'aria-describedby': undefined })}

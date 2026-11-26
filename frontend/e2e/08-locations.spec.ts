@@ -6,6 +6,7 @@ import {
   seedCustomer,
   slot,
   test,
+  toggleOption,
   uid,
   type Api,
 } from './support/bayflow';
@@ -54,8 +55,9 @@ test.describe('Locations', () => {
       await dialog.getByLabel('Username').fill(advisorName);
       await dialog.getByLabel('Email').fill(`${advisorName}@example.com`);
       await dialog.getByLabel('Temporary password').fill(NEW_PASSWORD);
-      await dialog.getByLabel('Role').selectOption('SERVICE_ADVISOR');
-      await dialog.getByRole('checkbox', { name: new RegExp(name) }).check();
+      await toggleOption(dialog, 'Roles', /^Mechanic/);
+      await toggleOption(dialog, 'Roles', /^Service advisor/);
+      await toggleOption(dialog, 'Works at', new RegExp(name));
       await dialog.getByRole('button', { name: 'Create account' }).click();
       await admin.expectToast(`Account ${advisorName} created`);
 

@@ -18,7 +18,7 @@ describe('managers (phase L2)', () => {
     const nav = await screen.findByRole('navigation', { name: 'Main' });
     expect(within(nav).getByRole('link', { name: "Today's board" })).toBeInTheDocument();
     expect(within(nav).getByRole('link', { name: 'Customers' })).toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: 'User accounts' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Team' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Not permitted' })).not.toBeInTheDocument();
   });
 });

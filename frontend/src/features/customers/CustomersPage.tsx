@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 
-import { customersApi } from '@/api/endpoints';
+import { customerAccountsApi, customersApi } from '@/api/endpoints';
 import { useAuth } from '@/auth/auth-context';
 import { EmptyState } from '@/components/common/EmptyState';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatDate } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
+import { AccountStatusBadge } from './OnlineAccountCard';
 import { ProfileForm } from './ProfileForm';
 
 export function CustomersPage() {
@@ -27,6 +28,14 @@ export function CustomersPage() {
   const [creating, setCreating] = useState(false);
   const params = { q: q.trim() || undefined, page, size: 20 };
   const customers = useQuery({ queryKey: ['customers', params], queryFn: () => customersApi.list(params) });
+  // The online accounts' status for this page (Active, Locked, Disabled), in one request.
+  const userIds = (customers.data?.content ?? []).flatMap((c) => (c.userId ? [c.userId] : []));
+  const accounts = useQuery({
+    queryKey: ['customer-accounts', userIds],
+    queryFn: () => customerAccountsApi.statuses(userIds),
+    enabled: userIds.length > 0,
+  });
+  const accountOf = (userId: string) => accounts.data?.find((a) => a.id === userId);
   const create = useAction(customersApi.create, {
     success: (c) => `${c.name} added`,
     invalidate: [['customers']],
@@ -99,7 +108,21 @@ export function CustomersPage() {
                       </TableCell>
                       <TableCell>{c.email}</TableCell>
                       <TableCell>{c.phone ?? '—'}</TableCell>
-                      <TableCell>{c.userId ? 'Online account' : 'Walk-in'}</TableCell>
+                      <TableCell>
+                        {c.userId ? (
+                          <span className="flex flex-wrap items-center gap-2">
+                            Online
+                            {accountOf(c.userId) && (
+                              <AccountStatusBadge
+                                enabled={accountOf(c.userId)!.enabled}
+                                locked={accountOf(c.userId)!.locked}
+                              />
+                            )}
+                          </span>
+                        ) : (
+                          'Walk-in'
+                        )}
+                      </TableCell>
                       <TableCell>{formatDate(c.createdAt)}</TableCell>
                     </TableRow>
                   ))}

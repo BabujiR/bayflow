@@ -126,8 +126,8 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/users',
-    label: 'User accounts',
-    description: 'Create staff accounts and enable or disable users.',
+    label: 'Team',
+    description: 'Your staff: accounts, roles and where each person works.',
     roles: ['ADMIN'],
     group: 'admin',
     icon: IdCardIcon,

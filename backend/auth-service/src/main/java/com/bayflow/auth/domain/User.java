@@ -199,6 +199,13 @@ public class User {
         return mustChangePassword && temporaryPasswordExpiresAt != null && !temporaryPasswordExpiresAt.isAfter(now);
     }
 
+    /** Lifts a lockout after too many failed sign-ins (the password stays). */
+    public void unlock(Instant now) {
+        this.lockedUntil = null;
+        this.failedAttempts = 0;
+        this.updatedAt = now;
+    }
+
     /** Everything the user does (one or more roles); checked by the caller. */
     public void setRoles(Set<Role> roles, Instant now) {
         if (roles == null || roles.isEmpty()) {

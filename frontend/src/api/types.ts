@@ -44,6 +44,20 @@ export type User = Present<
   avatar?: Avatar;
 };
 
+/** A customer's online account as staff see it on the customer's page. */
+export interface CustomerAccount {
+  id: string;
+  username: string;
+  email: string;
+  enabled: boolean;
+  /** Too many failed sign-ins: locked until `lockedUntil` (or until unlocked). */
+  locked: boolean;
+  lockedUntil: string | null;
+  /** Has a temporary password from a reset, not yet replaced. */
+  mustChangePassword: boolean;
+  createdAt: string;
+}
+
 export type AvatarKind = 'INITIALS' | 'CHARACTER' | 'PHOTO';
 
 /** INITIALS (from the username), a built-in CHARACTER (`character`), or their PHOTO (`photoUrl`). */

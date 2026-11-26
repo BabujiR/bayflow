@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { User } from '@/api/types';
+import { optionOf, toggleOption } from '@/test/multi-select';
 import { renderApp } from '@/test/render';
 import { pageOf, problem, server, sessionFor, token, user } from '@/test/server';
 
@@ -36,7 +37,7 @@ describe('one person, several roles', () => {
     await userEvent.type(within(dialog).getByLabelText('Username'), 'sam');
     await userEvent.type(within(dialog).getByLabelText('Email'), 'sam@example.com');
     await userEvent.type(within(dialog).getByLabelText('Temporary password'), 'Correct-Horse-1');
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: /^Service advisor/ }));
+    await toggleOption(dialog, 'Roles', /^Service advisor/);
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create account' }));
 
     await vi.waitFor(() => expect(created).toMatchObject({ roles: ['SERVICE_ADVISOR', 'MECHANIC'] }));
@@ -59,12 +60,13 @@ describe('one person, several roles', () => {
       await screen.findByRole('button', { name: 'Edit roles of owner1' }, { timeout: 10_000 }),
     );
     let dialog = await screen.findByRole('dialog', { name: 'Roles of owner1' });
-    expect(within(dialog).getByRole('checkbox', { name: /^Admin/ })).toBeDisabled();
+    expect(await optionOf(dialog, 'Roles', /^Admin/)).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.keyboard('{Escape}');
     await userEvent.keyboard('{Escape}');
 
     await userEvent.click(screen.getByRole('button', { name: 'Edit roles of mech1' }));
     dialog = await screen.findByRole('dialog', { name: 'Roles of mech1' });
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: /^Service advisor/ }));
+    await toggleOption(dialog, 'Roles', /^Service advisor/);
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save roles' }));
 
     await vi.waitFor(() => expect(sent).toEqual({ roles: ['SERVICE_ADVISOR', 'MECHANIC'] }));
@@ -114,8 +116,8 @@ describe('one person, several roles', () => {
       await screen.findByRole('button', { name: 'Edit roles of admin2' }, { timeout: 10_000 }),
     );
     const dialog = await screen.findByRole('dialog', { name: 'Roles of admin2' });
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: /^Admin/ }));
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: /^Mechanic/ }));
+    await toggleOption(dialog, 'Roles', /^Admin/);
+    await toggleOption(dialog, 'Roles', /^Mechanic/);
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save roles' }));
     // Stays open: the change didn't happen.
     expect(await screen.findByRole('dialog', { name: 'Roles of admin2' })).toBeInTheDocument();

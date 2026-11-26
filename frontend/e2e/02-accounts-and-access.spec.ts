@@ -8,6 +8,7 @@ import {
   seedCustomer,
   slot,
   test,
+  toggleOption,
   uid,
 } from './support/bayflow';
 
@@ -164,9 +165,9 @@ test.describe('Accounts and access', () => {
     await admin.signIn('admin1');
     await admin.page.goto('/users');
 
-    await admin.check('Admins cannot disable their own account (no button on their row)');
+    await admin.check('Admins cannot disable or reset their own account (only Roles on their row)');
     const ownRow = admin.page.getByRole('row', { name: /admin1/ });
-    await expect(ownRow.getByRole('button')).toHaveCount(0);
+    await expect(ownRow.getByRole('button', { name: /^(Disable|Enable|Reset password)/ })).toHaveCount(0);
 
     await admin.say('Creates a mechanic account');
     await admin.page.getByRole('button', { name: 'New staff account' }).click();
@@ -175,11 +176,10 @@ test.describe('Accounts and access', () => {
     await dialog.getByLabel('Username').fill('mechanic1');
     await dialog.getByLabel('Email').fill(`${staffName}@example.com`);
     await dialog.getByLabel('Temporary password').fill(NEW_PASSWORD);
-    await dialog.getByLabel('Role').selectOption('MECHANIC');
-    // With several locations (e.g. a "North" left over from 08-locations), staff need one.
-    const worksAt = dialog.getByRole('group', { name: 'Works at' });
-    if (await worksAt.isVisible()) {
-      await worksAt.getByRole('checkbox', { name: /^Main/ }).check();
+    // Roles start as Mechanic. With several locations (e.g. a "North" left over from
+    // 08-locations), staff need one.
+    if (await dialog.getByRole('button', { name: /^Works at/ }).isVisible()) {
+      await toggleOption(dialog, 'Works at', /^Main/);
     }
     await dialog.getByRole('button', { name: 'Create account' }).click();
     await expect(dialog.getByText('That username is already taken.')).toBeVisible();

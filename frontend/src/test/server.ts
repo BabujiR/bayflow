@@ -10,6 +10,7 @@ import type {
   PublicBranding,
   PublicWorkshop,
   Customer,
+  CustomerAccount,
   JobCard,
   PageResponse,
   PeriodMetrics,
@@ -39,6 +40,11 @@ const defaults = [
   http.get('*/api/v1/notifications/unread-count', () => HttpResponse.json({ count: 0 })),
   http.get('*/api/v1/notifications', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/customers/me', () => HttpResponse.json(customer())),
+  // Customers' online accounts (their page, the customer list): active.
+  http.get('*/api/v1/auth/customer-accounts/:id', ({ params }) =>
+    HttpResponse.json(customerAccount({ id: String(params.id) })),
+  ),
+  http.get('*/api/v1/auth/customer-accounts', () => HttpResponse.json([])),
   http.get('*/api/v1/vehicles', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/appointments', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/job-cards', () => HttpResponse.json(pageOf([]))),
@@ -105,6 +111,21 @@ const defaults = [
 
 /** MSW server shared by all tests. */
 export const server = setupServer(...defaults);
+
+/** A customer's online account as staff see it. */
+export function customerAccount(overrides: Partial<CustomerAccount> = {}): CustomerAccount {
+  return {
+    id: '00000000-0000-0000-0000-000000000001',
+    username: 'jane',
+    email: 'jane@example.com',
+    enabled: true,
+    locked: false,
+    lockedUntil: null,
+    mustChangePassword: false,
+    createdAt: '2026-11-01T10:00:00Z',
+    ...overrides,
+  };
+}
 
 /** A location's booking hours as the server sends them before they are first saved. */
 export function bookingHours(overrides: Partial<BookingHours> = {}): BookingHours {

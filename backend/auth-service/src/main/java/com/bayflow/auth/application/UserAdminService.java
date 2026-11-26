@@ -155,9 +155,16 @@ public class UserAdminService {
         return userLocations.accessOf(list);
     }
 
+    /** Which accounts a list shows: the team (staff), customers, or everyone. */
+    public enum Kind { STAFF, CUSTOMER, ALL }
+
     @Transactional(readOnly = true)
-    public Page<User> list(Pageable pageable) {
-        return users.findAll(pageable);
+    public Page<User> list(Kind kind, Pageable pageable) {
+        return switch (kind) {
+            case STAFF -> users.findWithoutRole(Role.CUSTOMER, pageable);
+            case CUSTOMER -> users.findWithRole(Role.CUSTOMER, pageable);
+            case ALL -> users.findAll(pageable);
+        };
     }
 
     /** Enables or disables an account. Disabling also ends all of the user's sessions. */

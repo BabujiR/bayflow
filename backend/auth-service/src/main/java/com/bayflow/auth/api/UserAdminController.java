@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -89,9 +90,11 @@ public class UserAdminController {
     }
 
     @GetMapping
-    @Operation(summary = "List all accounts",
+    @Operation(summary = "List accounts: the team (kind=staff), customers (kind=customer) or all (default)",
             description = "Sort by username, email, createdAt or enabled, e.g. sort=createdAt,desc")
-    public PageResponse<UserResponse> list(@ParameterObject
+    public PageResponse<UserResponse> list(
+            @RequestParam(defaultValue = "all") String kind,
+            @ParameterObject
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         for (Sort.Order order : pageable.getSort()) {
             if (!SORTABLE.contains(order.getProperty())) {
@@ -100,7 +103,13 @@ public class UserAdminController {
                                 SORTABLE.stream().sorted().toList()) + ".");
             }
         }
-        Page<User> page = userAdmin.list(pageable);
+        UserAdminService.Kind which = switch (kind.toLowerCase(java.util.Locale.ROOT)) {
+            case "staff" -> UserAdminService.Kind.STAFF;
+            case "customer" -> UserAdminService.Kind.CUSTOMER;
+            case "all" -> UserAdminService.Kind.ALL;
+            default -> throw ApiException.badRequest("invalid-kind", "Use kind=staff, customer or all.");
+        };
+        Page<User> page = userAdmin.list(which, pageable);
         Map<UUID, LocationAccess> access = userAdmin.accessOf(page.getContent());
         return PageResponse.from(page, u -> UserResponse.from(u, access.get(u.getId())));
     }

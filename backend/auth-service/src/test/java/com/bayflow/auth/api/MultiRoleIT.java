@@ -127,14 +127,10 @@ class MultiRoleIT extends IntegrationTestBase {
 
     // ---- helpers ------------------------------------------------------------------
 
+    /** newUser puts a manager, advisor or mechanic at the workshop's Main location. */
     private User newStaff(Set<Role> roles) {
         String username = unique("mr");
-        User user = newUser(MAIN, username, username + "@example.com", PASSWORD, roles);
-        if (!roles.contains(Role.ADMIN)) {
-            jdbc.update("insert into bayflow.auth_user_locations (id, tenant_id, user_id, location_id, created_at)"
-                    + " values (gen_random_uuid(), ?, ?, ?, now())", MAIN, user.getId(), MAIN);
-        }
-        return user;
+        return newUser(MAIN, username, username + "@example.com", PASSWORD, roles);
     }
 
     private ResultActions setRoles(String token, UUID userId, String roles, List<UUID> locations) throws Exception {

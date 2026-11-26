@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { loadLocationChoiceFor, locationHeader, setLocationChoice } from '@/features/locations/selection';
 import { formatDateTime } from '@/lib/format';
+import { toggleOption } from '@/test/multi-select';
 import { renderApp } from '@/test/render';
 import { appointment, location, pageOf, problem, server, sessionFor, user, vehicle } from '@/test/server';
 
@@ -211,14 +212,14 @@ describe('User accounts', () => {
     await userEvent.type(within(dialog).getByLabelText('Username'), 'mgr');
     await userEvent.type(within(dialog).getByLabelText('Email'), 'mgr@example.com');
     await userEvent.type(within(dialog).getByLabelText('Temporary password'), 'Correct-Horse-1');
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: /^Mechanic/ }));
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: /^Manager/ }));
+    await toggleOption(dialog, 'Roles', /^Mechanic/);
+    await toggleOption(dialog, 'Roles', /^Manager/);
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create account' }));
     expect(await within(dialog).findByText('Choose at least one location')).toBeInTheDocument();
     expect(created).toBeUndefined();
 
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: /North/ }));
+    await toggleOption(dialog, 'Works at', /North/);
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create account' }));
     await vi.waitFor(() => expect(created).toMatchObject({ roles: ['MANAGER'], locationIds: [NORTH.id] }));
   });

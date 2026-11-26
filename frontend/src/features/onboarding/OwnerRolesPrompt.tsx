@@ -22,7 +22,7 @@ function readDismissed(userId: string): boolean {
 /**
  * For an admin who is only an admin: "Do you also work in the shop?" Ticking the front desk or
  * working on cars adds those roles to their own account, so they get the board and My jobs too.
- * Asked once per browser (Not now hides it); roles can change later in User accounts.
+ * Asked once per browser (Not now hides it); roles can change later under Team.
  */
 export function OwnerRolesPrompt() {
   const { user, updateUser } = useAuth();

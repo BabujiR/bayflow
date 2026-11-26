@@ -78,6 +78,7 @@ import type {
   Vehicle,
   WorkLogRequest,
   Workshop,
+  CustomerAccount,
   ManagedBooking,
   PublicAvailability,
   PublicBooked,
@@ -257,8 +258,21 @@ export const avatarApi = {
   reset: (userId: string) => http.delete<User>(`/api/v1/auth/users/${userId}/avatar`),
 };
 
+/** Customers' online accounts, from their page (advisors, managers, admins; customers' accounts only). */
+export const customerAccountsApi = {
+  get: (userId: string) => http.get<CustomerAccount>(`/api/v1/auth/customer-accounts/${userId}`),
+  /** Status of several at once (a page of the customer list, at most 100). */
+  statuses: (userIds: string[]) =>
+    http.get<CustomerAccount[]>('/api/v1/auth/customer-accounts', { ids: userIds.join(',') }),
+  /** Managers and admins: disabling signs them out everywhere. */
+  setEnabled: (userId: string, enabled: boolean) =>
+    http.patch<CustomerAccount>(`/api/v1/auth/customer-accounts/${userId}`, { enabled }),
+  unlock: (userId: string) => http.post<CustomerAccount>(`/api/v1/auth/customer-accounts/${userId}/unlock`),
+};
+
 export const usersApi = {
-  list: (params: Paging & { sort?: string }) =>
+  /** `kind`: staff (the Team page), customer, or all (default). */
+  list: (params: Paging & { sort?: string; kind?: 'staff' | 'customer' | 'all' }) =>
     http.get<PageResponse<User>>('/api/v1/auth/users', { ...params }),
   create: (body: CreateStaffRequest) => http.post<User>('/api/v1/auth/users', body),
   setEnabled: (id: string, enabled: boolean) => http.patch<User>(`/api/v1/auth/users/${id}`, { enabled }),

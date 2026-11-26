@@ -47,12 +47,13 @@ const isLocationScoped = (u: User) => worksAtChosenLocations(u.roles);
 /** Staff accounts (customers' roles never change here). */
 const isStaff = (u: User) => u.roles.every((r) => STAFF_ROLES.includes(r));
 
-/** Admins create staff accounts and enable or disable any account. */
+/** The team (staff only): admins create accounts, set roles and locations, and enable or disable them. */
 export function UsersPage() {
   const { user: me } = useAuth();
   const [page, setPage] = useState(0);
   const [creating, setCreating] = useState(false);
-  const params = { page, size: 20, sort: 'createdAt,desc' };
+  // The team only: customers' accounts are on each customer's page.
+  const params = { page, size: 20, sort: 'createdAt,desc', kind: 'staff' as const };
   const lookup = useLocationLookup();
   const users = useQuery({ queryKey: ['users', params], queryFn: () => usersApi.list(params) });
   const setEnabled = useAction(
@@ -71,14 +72,18 @@ export function UsersPage() {
   return (
     <>
       <PageHeader
-        title="User accounts"
-        description="Customers register themselves; staff accounts are created here. Reset password gives someone who forgot theirs a temporary one; disabling an account signs it out everywhere."
+        title="Team"
+        description="Your staff and what each person does. Reset password gives someone who forgot theirs a temporary one; disabling an account signs it out everywhere. Customers' accounts are on each customer's page."
         actions={
           <Dialog open={creating} onOpenChange={setCreating}>
             <DialogTrigger asChild>
               <Button>New staff account</Button>
             </DialogTrigger>
-            <DialogContent title="New staff account" description="Share the password with them securely.">
+            <DialogContent
+              title="New staff account"
+              description="Share the password with them securely."
+              className="max-w-xl"
+            >
               <StaffForm onCreated={() => setCreating(false)} />
             </DialogContent>
           </Dialog>
@@ -306,6 +311,7 @@ function EditRoles({ user, self }: { user: User; self: boolean }) {
         </Button>
       </DialogTrigger>
       <DialogContent
+        className="max-w-xl"
         title={`Roles of ${user.username}`}
         description="Everything this person does. They see each role's pages; changes apply within 15 minutes."
       >

@@ -5,6 +5,7 @@ import {
   type APIRequestContext,
   type Browser,
   type BrowserContext,
+  type Locator,
   type Page,
   type TestInfo,
 } from '@playwright/test';
@@ -607,4 +608,16 @@ export async function openJobCardFromRow(actor: Actor, date: string, registratio
 /** The job card page heading, which carries the status badge. */
 export function jobCardHeading(actor: Actor) {
   return actor.page.getByRole('heading', { name: /Job card ·/ });
+}
+
+/**
+ * Ticks or unticks one option of a multi-select field (e.g. "Roles", "Works at") inside
+ * `container`: opens its dropdown, clicks the option, closes the dropdown.
+ */
+export async function toggleOption(container: Locator, field: string, option: RegExp | string) {
+  await container.getByRole('button', { name: new RegExp(`^${field}`) }).click();
+  const menu = container.page().getByRole('menu', { name: field });
+  await menu.getByRole('menuitemcheckbox', { name: option }).click();
+  await container.page().keyboard.press('Escape');
+  await expect(menu).toBeHidden();
 }

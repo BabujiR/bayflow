@@ -84,7 +84,7 @@ export function LocationsPage() {
             <DialogTrigger asChild>
               <Button>Add location</Button>
             </DialogTrigger>
-            <DialogContent title="Add location" description="Staff are assigned to it under User accounts.">
+            <DialogContent title="Add location" description="Staff are assigned to it under Team.">
               <LocationForm onSaved={() => setAdding(false)} />
             </DialogContent>
           </Dialog>

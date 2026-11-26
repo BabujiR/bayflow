@@ -149,6 +149,16 @@ mechanics' notifications at every location.
   sign-up takes `ownerAlso` (`SERVICE_ADVISOR`, `MECHANIC`). Changes apply from the user's next
   token (within 15 minutes; your own at once). No migration: accounts already hold a set of roles.
 
+### Team and customers' accounts
+
+*Team* (`/users`, admins) lists **staff only** (`GET /api/v1/auth/users?kind=staff`). Customers'
+online accounts are handled on each **customer's page**, in the *Online account* card: username,
+sign-in email, status (Active / Locked / Disabled), **Reset password** and **Unlock** (advisors,
+managers, admins), **Disable / Enable sign-in** (managers and admins; disabling signs them out
+everywhere). The customer list shows each online account's status. API:
+`/api/v1/auth/customer-accounts/{userId}` (GET, PATCH `{enabled}`, POST `/unlock`) and
+`GET /api/v1/auth/customer-accounts?ids=…` (up to 100); customers' accounts only (404 for staff).
+
 ### Avatars (My profile)
 
 Everyone signed in has **My profile** (user menu, top right) and chooses how they show: their
