@@ -6,7 +6,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
@@ -130,12 +129,38 @@ public class BookingCatalog {
         return code;
     }
 
+    /**
+     * "Brake & Rotor Check" → "brake-rotor-check", "Café crème" → "cafe-creme": lower-case letters
+     * and digits, one hyphen between words, at most 40 characters. One pass over the name, no
+     * regular expressions (names come from users).
+     */
     static String slug(String name) {
-        String ascii = Normalizer.normalize(name, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
-        String slug = ascii.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("^-+|-+$", "");
-        if (slug.length() > 40) {
-            slug = slug.substring(0, 40).replaceAll("-+$", "");
+        String decomposed = Normalizer.normalize(name, Normalizer.Form.NFD);
+        StringBuilder slug = new StringBuilder(40);
+        boolean gap = false;
+        for (int i = 0; i < decomposed.length(); i++) {
+            char c = Character.toLowerCase(decomposed.charAt(i));
+            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+                boolean hyphen = gap && !slug.isEmpty();
+                if (slug.length() + (hyphen ? 2 : 1) > 40) {
+                    break;
+                }
+                if (hyphen) {
+                    slug.append('-');
+                }
+                slug.append(c);
+                gap = false;
+            } else if (!isAccent(c)) {
+                gap = true;
+            }
         }
-        return slug.isEmpty() ? "service" : slug;
+        return slug.isEmpty() ? "service" : slug.toString();
+    }
+
+    /** An accent split off its letter by NFD ("é" → "e" + U+0301): dropped, not a word break. */
+    private static boolean isAccent(char c) {
+        int type = Character.getType(c);
+        return type == Character.NON_SPACING_MARK || type == Character.ENCLOSING_MARK
+                || type == Character.COMBINING_SPACING_MARK;
     }
 }
