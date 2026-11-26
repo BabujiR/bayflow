@@ -131,6 +131,18 @@ Workshops join by invitation only.
 Nobody touches the database: the new workshop has its own users, settings and data, and a
 session from one workshop is refused at any other workshop's address.
 
+### Avatars (My profile)
+
+Everyone signed in has **My profile** (user menu, top right) and chooses how they show: their
+**initials** (the default, in a colour of their own), one of 12 built-in **characters** (they move
+gently on the profile page), or their own **photo** (JPEG, PNG or WebP; the page sends the middle
+square, the server re-checks it, cuts it square, keeps 256 px JPEG and drops metadata such as
+location). The avatar shows in the header and in *User accounts*, where an admin can **Remove
+photo** (back to initials) but never upload for someone. API: `PUT /api/v1/auth/me/avatar`,
+`PUT /api/v1/auth/me/avatar/photo` (multipart), `DELETE /api/v1/auth/users/{id}/avatar` (ADMIN);
+photos are served at `/api/v1/tenants/current/avatars/{userId}?v=…` (the version makes the address
+unguessable and cacheable for good). Migration: auth V21.
+
 ### Brand your workshop
 
 Sign in as the workshop's admin → *Workshop settings* → **Branding**:

@@ -4,12 +4,13 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { usersApi } from '@/api/endpoints';
+import { avatarApi, usersApi } from '@/api/endpoints';
 import { ApiError } from '@/api/errors';
 import type { Role, User } from '@/api/types';
 import { useAuth } from '@/auth/auth-context';
 import { ROLE_LABELS } from '@/auth/roles';
 import { PageHeader } from '@/components/common/PageHeader';
+import { UserAvatar } from '@/components/common/UserAvatar';
 import { Pager } from '@/components/common/Pager';
 import { QueryState } from '@/components/common/QueryState';
 import { Badge } from '@/components/ui/badge';
@@ -62,6 +63,11 @@ export function UsersPage() {
       invalidate: [['users']],
     },
   );
+  // An unsuitable photo: the user is shown by their initials again (they can choose anew).
+  const resetAvatar = useAction((id: string) => avatarApi.reset(id), {
+    success: (u) => `${u.username} is shown by their initials again`,
+    invalidate: [['users']],
+  });
 
   return (
     <>
@@ -99,7 +105,12 @@ export function UsersPage() {
               <TableBody>
                 {result.content.map((u: User) => (
                   <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.username}</TableCell>
+                    <TableCell className="font-medium">
+                      <span className="flex items-center gap-2">
+                        <UserAvatar name={u.username} avatar={u.avatar} />
+                        {u.username}
+                      </span>
+                    </TableCell>
                     <TableCell>{u.email}</TableCell>
                     <TableCell>{u.roles.map((r) => ROLE_LABELS[r]).join(', ')}</TableCell>
                     {lookup.hasSeveral && (
@@ -117,6 +128,17 @@ export function UsersPage() {
                     <TableCell>{formatDate(u.createdAt)}</TableCell>
                     <TableCell className="text-right">
                       {lookup.hasSeveral && isLocationScoped(u) && <EditLocations user={u} />}
+                      {u.id !== me?.id && u.avatar?.kind === 'PHOTO' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={resetAvatar.isPending}
+                          onClick={() => resetAvatar.mutate(u.id)}
+                          aria-label={`Remove ${u.username}'s photo`}
+                        >
+                          Remove photo
+                        </Button>
+                      )}
                       {u.id !== me?.id && <ResetPasswordButton userId={u.id} name={u.username} />}
                       {u.id !== me?.id && (
                         <Button

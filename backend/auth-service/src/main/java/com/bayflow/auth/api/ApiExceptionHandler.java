@@ -64,8 +64,8 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     ResponseEntity<ProblemDetail> handleTooLarge(MaxUploadSizeExceededException ex) {
-        return respond(HttpStatus.PAYLOAD_TOO_LARGE, problem(HttpStatus.PAYLOAD_TOO_LARGE, "image-too-large",
-                "Payload Too Large", "The file is too large."));
+        return respond(HttpStatus.CONTENT_TOO_LARGE, problem(HttpStatus.CONTENT_TOO_LARGE, "image-too-large",
+                "Content Too Large", "The file is too large."));
     }
 
     @ExceptionHandler({ MissingServletRequestPartException.class, MultipartException.class })

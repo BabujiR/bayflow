@@ -526,3 +526,63 @@
     animation: none !important;
   }
 }
+
+/* ---- Avatars (features/profile/avatar-characters.tsx): only while `animated` ---------------- */
+@keyframes av-blink {
+  0%,
+  90%,
+  100% {
+    transform: scaleY(1);
+  }
+  94% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes av-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+@keyframes av-turn {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0);
+  }
+  80% {
+    transform: rotate(-18deg);
+  }
+  90% {
+    transform: rotate(8deg);
+  }
+}
+@keyframes av-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
+}
+.av-animated .av-blink {
+  animation: av-blink 3.6s ease-in-out infinite;
+}
+.av-animated .av-bob {
+  animation: av-bob 2.2s ease-in-out infinite;
+}
+.av-animated .av-turn {
+  animation: av-turn 3s ease-in-out infinite;
+}
+.av-animated .av-pulse {
+  animation: av-pulse 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .av-animated [class*='av-'] {
+    animation: none !important;
+  }
+}

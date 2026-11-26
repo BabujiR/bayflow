@@ -23,6 +23,8 @@ export interface AuthContextValue {
   /** Sets a new password through an e-mailed reset link, and signs in. */
   resetPassword: (request: ResetPasswordRequest) => Promise<User>;
   hasRole: (...roles: Role[]) => boolean;
+  /** The signed-in user changed their own details (e.g. their avatar): shown everywhere at once. */
+  updateUser: (user: User) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

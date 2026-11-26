@@ -43,7 +43,7 @@ public class SecurityConfig {
     /** Public workshop lookups (sign-in page name, sign-up address check). */
     static final String[] PUBLIC_WORKSHOP_GETS = { "/api/v1/tenants/current", "/api/v1/tenants/slug-availability",
         "/api/v1/tenants/current/logo", "/api/v1/tenants/current/logo-dark", "/api/v1/tenants/current/icon",
-        "/api/v1/tenants/current/cover" };
+        "/api/v1/tenants/current/cover", "/api/v1/tenants/current/avatars/*" };
 
     @Bean
     Clock clock() {

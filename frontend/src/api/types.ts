@@ -40,7 +40,18 @@ export type User = Present<
   locationIds?: string[];
   /** Signed in with a temporary password from a staff reset: must choose a new one first. */
   mustChangePassword?: boolean;
+  /** How they show in the app (initials when missing). Hand-written until `pnpm api:update`. */
+  avatar?: Avatar;
 };
+
+export type AvatarKind = 'INITIALS' | 'CHARACTER' | 'PHOTO';
+
+/** INITIALS (from the username), a built-in CHARACTER (`character`), or their PHOTO (`photoUrl`). */
+export interface Avatar {
+  kind: AvatarKind;
+  character: string | null;
+  photoUrl: string | null;
+}
 
 /** A staff password reset's result: shown once, then gone. */
 export interface TemporaryPassword {

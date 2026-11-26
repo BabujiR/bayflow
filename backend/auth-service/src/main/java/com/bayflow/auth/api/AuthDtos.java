@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import com.bayflow.auth.application.AvatarService;
 import com.bayflow.auth.application.LocationAccess;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.User;
@@ -84,13 +85,30 @@ public final class AuthDtos {
      * signed in with a temporary password from a reset, which they must replace first.
      */
     public record UserResponse(UUID id, String username, String email, List<String> roles, boolean enabled,
-            Instant createdAt, boolean allLocations, List<UUID> locationIds, boolean mustChangePassword) {
+            Instant createdAt, boolean allLocations, List<UUID> locationIds, boolean mustChangePassword,
+            AvatarResponse avatar) {
 
         public static UserResponse from(User user, LocationAccess access) {
             List<String> roles = user.getRoles().stream().map(Role::name).sorted().toList();
             return new UserResponse(user.getId(), user.getUsername(), user.getEmail(), roles, user.isEnabled(),
-                    user.getCreatedAt(), access.all(), access.locationIds(), user.isMustChangePassword());
+                    user.getCreatedAt(), access.all(), access.locationIds(), user.isMustChangePassword(),
+                    AvatarResponse.from(user));
         }
+    }
+
+    /**
+     * How the user shows: {@code kind} INITIALS (drawn from the username), CHARACTER
+     * ({@code character}: a built-in one's code) or PHOTO ({@code photoUrl}).
+     */
+    public record AvatarResponse(User.AvatarKind kind, String character, String photoUrl) {
+
+        static AvatarResponse from(User user) {
+            return new AvatarResponse(user.getAvatarKind(), user.getAvatarCharacter(), AvatarService.photoUrl(user));
+        }
+    }
+
+    /** {@code kind} INITIALS or CHARACTER (with {@code character}); photos are uploaded instead. */
+    public record AvatarRequest(@NotNull User.AvatarKind kind, @Size(max = 20) String character) {
     }
 
     /** Access token response. {@code user} is omitted for service-client tokens. */

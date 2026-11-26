@@ -242,6 +242,20 @@ export const historyApi = {
 
 // ---- auth-service ----------------------------------------------------------------------------
 
+/** The signed-in user's own avatar. */
+export const avatarApi = {
+  choose: (body: { kind: 'INITIALS' | 'CHARACTER'; character?: string }) =>
+    http.put<User>('/api/v1/auth/me/avatar', body),
+  /** PNG or JPEG up to 2 MB (the page sends a square 512 px JPEG); the server re-encodes it. */
+  upload: (file: Blob) => {
+    const form = new FormData();
+    form.append('file', file, 'avatar.jpg');
+    return http.put<User>('/api/v1/auth/me/avatar/photo', form);
+  },
+  /** Workshop ADMIN: back to initials (e.g. an unsuitable photo). */
+  reset: (userId: string) => http.delete<User>(`/api/v1/auth/users/${userId}/avatar`),
+};
+
 export const usersApi = {
   list: (params: Paging & { sort?: string }) =>
     http.get<PageResponse<User>>('/api/v1/auth/users', { ...params }),
