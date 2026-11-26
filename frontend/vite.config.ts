@@ -29,6 +29,7 @@ export default defineConfig({
       '/api/v1/customers': to(APPOINTMENT),
       '/api/v1/vehicles': to(APPOINTMENT),
       '/api/v1/appointments': to(APPOINTMENT),
+      '/api/v1/booking-services': to(APPOINTMENT),
       '/api/v1/job-cards': to(WORKSHOP),
       '/api/v1/service-history': to(WORKSHOP),
       '/api/v1/reports': to(WORKSHOP),

@@ -15,6 +15,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { BookingServicesSection } from '@/features/booking/BookingServicesSection';
 import { BrandingSection } from '@/features/branding/BrandingSection';
 import { QuickBooksSection } from '@/features/quickbooks/QuickBooksSection';
 import { ServiceIntervalsSection } from '@/features/reminders/ServiceIntervalsSection';
@@ -59,6 +60,9 @@ export function WorkshopSettingsPage() {
       <QueryState query={workshop}>{(w) => <SettingsForm key={w.version} workshop={w} />}</QueryState>
       <div className="mt-12">
         <BrandingSection />
+      </div>
+      <div className="mt-12">
+        <BookingServicesSection />
       </div>
       <div className="mt-12">
         <ServiceIntervalsSection />

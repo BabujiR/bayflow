@@ -232,6 +232,17 @@ and locations: **Suspend** stops every sign-in there (data kept) until **Reactiv
 **Create test workshop** makes one for internal testing without an invite, labelled **Test**.
 APIs: `/api/v1/auth/platform/**`.
 
+### Online booking (services and links)
+
+Admins keep the services customers can book under *Settings → Online booking*: name, a short
+description, the price customers see (**from $54**, **$79**, **Free**, **Ask for a quote**, or
+none), the typical time, and for groups which location offers it; hide, show and reorder them.
+A new shop starts with oil change, routine service, brakes, tires, inspection and diagnostic,
+without prices. "Something else" is always offered. Each active location has a **Copy booking
+link** under *Locations* (`<address>/book?location=<code>`) for its Google Business Profile and
+website. API: `/api/v1/booking-services` (appointment-service). The booking page itself comes in
+the next step.
+
 ### Canned jobs
 
 Managers and admins keep the shop's everyday work under *Canned jobs* (e.g. "Synthetic oil

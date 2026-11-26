@@ -83,6 +83,21 @@ public class Locations {
     }
 
     /**
+     * Checks that {@code locationId} is an active location of this organization (400 otherwise;
+     * 503 when auth-service can't be asked). For settings that name a location, not bookings.
+     */
+    public UUID requireActive(UUID locationId) {
+        UUID tenant = TenantContext.require();
+        List<LocationSettings> known = all(tenant, locationId).orElseThrow(() -> new ApiException(
+                HttpStatus.SERVICE_UNAVAILABLE, "locations-unavailable", "Service Unavailable",
+                "The location could not be checked. Try again shortly."));
+        return known.stream().filter(LocationSettings::active).filter(l -> l.id().equals(locationId)).findFirst()
+                .map(LocationSettings::id)
+                .orElseThrow(() -> ApiException.badRequest("invalid-location",
+                        "That location does not exist or is archived."));
+    }
+
+    /**
      * The location whose "today" a list uses: the one asked for, otherwise the organization's
      * default ("Main" if it still exists, else its first active location).
      */

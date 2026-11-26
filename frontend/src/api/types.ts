@@ -444,7 +444,13 @@ export type BrandingImageKind = 'logo' | 'logo-dark' | 'icon' | 'cover';
 
 /** A demo request as the Ramplight console sees it. */
 export type DemoStatus =
-  'NEW' | 'CONTACTED' | 'DEMO_SCHEDULED' | 'DEMO_DONE' | 'INVITED' | 'ONBOARDED' | 'DECLINED';
+  | 'NEW'
+  | 'CONTACTED'
+  | 'DEMO_SCHEDULED'
+  | 'DEMO_DONE'
+  | 'INVITED'
+  | 'ONBOARDED'
+  | 'DECLINED';
 
 export interface ConsoleDemoRequest {
   id: string;
@@ -468,6 +474,38 @@ export interface ConsoleDemoRequest {
   repeatCount: number;
   /** When they last asked (null: only once). */
   lastRequestedAt: string | null;
+}
+
+/** How a bookable service's price shows: "from $54", "$79", "Free", "Ask for a quote", or nothing. */
+export type PriceKind = 'NONE' | 'FROM' | 'FIXED' | 'FREE' | 'QUOTE';
+
+/** A service customers can book online (Settings → Online booking). */
+export interface BookingServiceItem {
+  id: string;
+  /** Stable link name, e.g. "oil-change" (/book?service=oil-change). */
+  code: string;
+  name: string;
+  description: string | null;
+  priceKind: PriceKind;
+  price: number | null;
+  durationMinutes: number | null;
+  /** Null: every location. */
+  locationId: string | null;
+  active: boolean;
+  sortOrder: number;
+  updatedAt: string;
+  version: number;
+}
+
+export interface BookingServiceRequest {
+  name: string;
+  description: string | null;
+  priceKind: PriceKind;
+  price: number | null;
+  durationMinutes: number | null;
+  locationId: string | null;
+  active: boolean;
+  version?: number;
 }
 
 /** A setup invite as the console shows it (Pending turns Expired after 7 days). */
@@ -532,7 +570,13 @@ export interface IssuedInvitation {
 
 /** "Request a demo" on the public site. */
 export type ShopType =
-  'GENERAL_REPAIR' | 'TIRES' | 'QUICK_LUBE' | 'COLLISION' | 'DEALERSHIP' | 'FLEET' | 'OTHER';
+  | 'GENERAL_REPAIR'
+  | 'TIRES'
+  | 'QUICK_LUBE'
+  | 'COLLISION'
+  | 'DEALERSHIP'
+  | 'FLEET'
+  | 'OTHER';
 export type LocationCount = '1' | '2-3' | '4-10' | '11+';
 
 export interface DemoRequest {

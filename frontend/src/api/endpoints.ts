@@ -26,6 +26,8 @@ import type {
   CannedJob,
   CannedJobRequest,
   DemoRequest,
+  BookingServiceItem,
+  BookingServiceRequest,
   ConsoleDemoRequest,
   ConsoleInvitation,
   ConsoleWorkshop,
@@ -181,6 +183,15 @@ export const remindersApi = {
   /** At check-in: the vehicle's services due within 30 days or 500 miles of `mileage`. */
   forVehicle: (vehicleId: string, mileage?: number) =>
     http.get<DueService[]>(`/api/v1/service-due/vehicles/${vehicleId}`, { mileage }),
+};
+
+/** Settings → Online booking: the services customers can book (ADMIN edits; staff read). */
+export const bookingServicesApi = {
+  list: () => http.get<BookingServiceItem[]>('/api/v1/booking-services'),
+  create: (body: BookingServiceRequest) => http.post<BookingServiceItem>('/api/v1/booking-services', body),
+  update: (id: string, body: BookingServiceRequest) =>
+    http.put<BookingServiceItem>(`/api/v1/booking-services/${id}`, body),
+  reorder: (ids: string[]) => http.put<BookingServiceItem[]>('/api/v1/booking-services/order', { ids }),
 };
 
 export const cannedJobsApi = {

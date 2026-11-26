@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { z } from 'zod';
 
 import { locationsApi } from '@/api/endpoints';
@@ -136,6 +137,7 @@ export function LocationsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      {l.status === 'ACTIVE' && <CopyBookingLink code={l.code} name={l.name} />}
                       <EditLocation location={l} />
                       <LocationBillingButton location={l} />
                       {l.status === 'ACTIVE' ? (
@@ -310,5 +312,33 @@ function LocationForm({ location, onSaved }: { location?: Location; onSaved: () 
         {location ? 'Save location' : 'Add location'}
       </Button>
     </form>
+  );
+}
+
+/**
+ * This location's online booking link, for its Google Business Profile ("Book" button) and its page
+ * on the shop's website: the booking page opens with the location already chosen.
+ */
+function bookingLink(code: string): string {
+  return `${window.location.origin}/book?location=${encodeURIComponent(code)}`;
+}
+
+function CopyBookingLink({ code, name }: { code: string; name: string }) {
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      aria-label={`Copy booking link for ${name}`}
+      title={bookingLink(code)}
+      onClick={() => {
+        const link = bookingLink(code);
+        void navigator.clipboard?.writeText(link).then(
+          () => toast.success(`Booking link for ${name} copied`),
+          () => toast.error(`Copy failed. The link is ${link}`),
+        );
+      }}
+    >
+      Copy booking link
+    </Button>
   );
 }

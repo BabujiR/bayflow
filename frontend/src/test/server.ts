@@ -54,6 +54,7 @@ const defaults = [
   ),
   // Canned jobs: none yet (advisors see the picker only when there are some).
   http.get('*/api/v1/canned-jobs', () => HttpResponse.json([])),
+  http.get('*/api/v1/booking-services', () => HttpResponse.json([])),
   http.get('*/api/v1/auth/users', () => HttpResponse.json(pageOf([]))),
   // QuickBooks: not set up on the server.
   http.get('*/api/v1/quickbooks', () =>
