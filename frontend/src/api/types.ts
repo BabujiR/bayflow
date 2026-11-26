@@ -479,13 +479,7 @@ export type BrandingImageKind = 'logo' | 'logo-dark' | 'icon' | 'cover';
 
 /** A demo request as the Ramplight console sees it. */
 export type DemoStatus =
-  | 'NEW'
-  | 'CONTACTED'
-  | 'DEMO_SCHEDULED'
-  | 'DEMO_DONE'
-  | 'INVITED'
-  | 'ONBOARDED'
-  | 'DECLINED';
+  'NEW' | 'CONTACTED' | 'DEMO_SCHEDULED' | 'DEMO_DONE' | 'INVITED' | 'ONBOARDED' | 'DECLINED';
 
 export interface ConsoleDemoRequest {
   id: string;
@@ -706,13 +700,7 @@ export interface IssuedInvitation {
 
 /** "Request a demo" on the public site. */
 export type ShopType =
-  | 'GENERAL_REPAIR'
-  | 'TIRES'
-  | 'QUICK_LUBE'
-  | 'COLLISION'
-  | 'DEALERSHIP'
-  | 'FLEET'
-  | 'OTHER';
+  'GENERAL_REPAIR' | 'TIRES' | 'QUICK_LUBE' | 'COLLISION' | 'DEALERSHIP' | 'FLEET' | 'OTHER';
 export type LocationCount = '1' | '2-3' | '4-10' | '11+';
 
 export interface DemoRequest {
