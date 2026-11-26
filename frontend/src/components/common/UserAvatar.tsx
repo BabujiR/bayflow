@@ -78,7 +78,12 @@ export function UserAvatar({
         className={cn('inline-flex shrink-0 overflow-hidden rounded-full', SIZES[size], className)}
         style={{ background: character.background }}
       >
-        <svg viewBox="0 0 48 48" className={cn('size-full', animated && 'av-animated')}>
+        <svg
+          viewBox="0 0 48 48"
+          /* Inline size: inside a Button, its `[&_svg]:size-4` rule would otherwise shrink it. */
+          style={{ width: '100%', height: '100%' }}
+          className={cn(animated && 'av-animated')}
+        >
           {character.draw()}
         </svg>
       </span>
