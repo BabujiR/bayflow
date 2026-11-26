@@ -106,11 +106,11 @@ class BrandingImagesTest {
     void eachKindHasItsOwnSizeLimit() {
         byte[] bigPng = new byte[1024 * 1024 + 1];
         System.arraycopy(new byte[] { (byte) 0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a }, 0, bigPng, 0, 8);
-        assertRefused(Kind.LOGO, bigPng, HttpStatus.PAYLOAD_TOO_LARGE, "image-too-large");
+        assertRefused(Kind.LOGO, bigPng, HttpStatus.CONTENT_TOO_LARGE, "image-too-large");
 
         byte[] hugePng = new byte[3 * 1024 * 1024 + 1];
         System.arraycopy(bigPng, 0, hugePng, 0, 8);
-        assertRefused(Kind.COVER, hugePng, HttpStatus.PAYLOAD_TOO_LARGE, "image-too-large");
+        assertRefused(Kind.COVER, hugePng, HttpStatus.CONTENT_TOO_LARGE, "image-too-large");
     }
 
     @Test
