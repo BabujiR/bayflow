@@ -36,7 +36,8 @@ public interface OutboxRepository extends JpaRepository<OutboxMessage, UUID> {
             nativeQuery = true)
     List<DueMessage> findDueAcrossTenants(@Param("now") Instant now, @Param("limit") int limit);
 
-    List<OutboxMessage> findByAppointmentIdAndProcessedAtIsNull(UUID appointmentId);
+    /** Undelivered and not given up. */
+    List<OutboxMessage> findByAppointmentIdAndProcessedAtIsNullAndFailedAtIsNull(UUID appointmentId);
 
     List<OutboxMessage> findByAppointmentId(UUID appointmentId);
 }

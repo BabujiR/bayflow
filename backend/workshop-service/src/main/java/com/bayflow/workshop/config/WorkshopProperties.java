@@ -120,6 +120,11 @@ public class WorkshopProperties {
         private int batchSize = 20;
         private Duration initialBackoff = Duration.ofSeconds(10);
         private Duration maxBackoff = Duration.ofMinutes(5);
+        /**
+         * Failures after which a message is given up (about 4 hours with the default backoff) and
+         * logged as an error for an operator; it stays in the outbox with its last error.
+         */
+        private int maxAttempts = 50;
 
         public boolean isEnabled() { return enabled; }
         public void setEnabled(boolean enabled) { this.enabled = enabled; }
@@ -137,5 +142,7 @@ public class WorkshopProperties {
         public void setInitialBackoff(Duration initialBackoff) { this.initialBackoff = initialBackoff; }
         public Duration getMaxBackoff() { return maxBackoff; }
         public void setMaxBackoff(Duration maxBackoff) { this.maxBackoff = maxBackoff; }
+        public int getMaxAttempts() { return maxAttempts; }
+        public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
     }
 }

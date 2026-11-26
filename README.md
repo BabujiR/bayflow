@@ -495,15 +495,29 @@ spaced out to stay under the 10-per-minute login limit.
 
 - **CI** (`.github/workflows/ci.yml`, every push and pull request):
   - *backend*: `mvn verify`, uploads test and coverage reports
-  - *frontend*: lint, type-check, unit tests, build
+  - *frontend*: `pnpm audit` (production dependencies, fails on HIGH/CRITICAL), lint, type-check,
+    unit tests, build
+  - *dependencies*: Trivy scans the Maven and pnpm manifests (fails on a fixable HIGH/CRITICAL)
   - *compose*: validates `docker-compose.yml`
   - *e2e* (after backend and frontend pass): `docker compose up --build --wait`, runs
     Playwright, uploads the report and the scenario videos, prints service logs on failure
-- **CD** (`.github/workflows/cd.yml`, after CI succeeds on `main`): builds and pushes
-  `ghcr.io/<owner>/bayflow-auth`, `bayflow-appointment`, `bayflow-workshop` and
-  `bayflow-web`, tagged with the commit SHA and `latest`.
+- **CD** (`.github/workflows/cd.yml`, after CI succeeds on `main`): builds each image, scans it
+  with Trivy (a fixable HIGH/CRITICAL stops it), then pushes `ghcr.io/<owner>/bayflow-auth`,
+  `bayflow-appointment`, `bayflow-workshop`, `bayflow-notification` and `bayflow-web`, tagged with
+  the commit SHA and `latest`, with an SBOM and build provenance attached.
 - **Dependabot** keeps Maven, npm, Docker and GitHub Actions dependencies current.
   PostgreSQL, Java and Node major versions are upgraded deliberately, not by bot.
+
+## Outboxes: retries and giving up
+
+appointment-service and workshop-service send job cards, notification events and online-booking
+e-mails through outboxes (`apt_outbox`, `ws_outbox`): saved with the change, sent right after it
+commits (never while it holds a lock), retried with backoff. After `max-attempts` failures (50,
+about 4 hours; `bayflow.integration.dispatcher.max-attempts`,
+`bayflow.workshop.notifications.max-attempts`) a message is given up: `failed_at` is set and
+an ERROR "Gave up on outbox message …" is logged. To retry one by hand:
+`UPDATE apt_outbox SET failed_at = NULL, attempts = 0, next_attempt_at = now() WHERE id = '…'`.
+A sent e-mail's content is cleared from the outbox (it holds the private booking link).
 
 ## Running outside local development
 

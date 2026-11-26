@@ -21,6 +21,7 @@ import com.bayflow.appointment.domain.OutboxMessage;
 import com.bayflow.appointment.infrastructure.AppointmentRepository;
 import com.bayflow.appointment.infrastructure.OutboxRepository;
 import com.bayflow.appointment.infrastructure.OutboxRepository.DueMessage;
+import com.bayflow.appointment.integration.MailClient;
 import com.bayflow.appointment.integration.NotificationPayload;
 import com.bayflow.appointment.integration.OpenJobCardPayload;
 import com.bayflow.security.CurrentUser;
@@ -60,6 +61,37 @@ public class OutboxService {
                 appointment.getArrivalMileage(), appointment.getTenantId(), appointment.getLocationId());
         outbox.save(OutboxMessage.create(appointment.getId(), OutboxMessage.CREATE_JOB_CARD,
                 json.writeValueAsString(payload), clock.instant()));
+    }
+
+    /** An e-mail was queued; sent right after the transaction commits (see the dispatcher). */
+    public record MailQueued(UUID tenantId, UUID appointmentId) {
+    }
+
+    /**
+     * Queues an e-mail in the caller's transaction: it is sent (through auth-service) only if the
+     * change commits, after the commit, so no database lock waits on the mail service; failures
+     * are retried like any outbox message.
+     */
+    @Transactional
+    public void enqueueMail(UUID appointmentId, MailClient.Mail mail) {
+        UUID tenant = TenantContext.require();
+        outbox.save(OutboxMessage.create(appointmentId, OutboxMessage.SEND_MAIL, json.writeValueAsString(mail),
+                clock.instant()));
+        events.publishEvent(new MailQueued(tenant, appointmentId));
+    }
+
+    public MailClient.Mail mail(OutboxMessage message) {
+        return json.readValue(message.getPayload(), MailClient.Mail.class);
+    }
+
+    /** Settles a sent e-mail and forgets its content (it may hold a private link). */
+    @Transactional
+    public void markMailSent(UUID messageId) {
+        OutboxMessage message = outbox.findById(messageId).orElseThrow();
+        if (!message.isProcessed()) {
+            message.markDelivered(clock.instant());
+            message.forgetPayload();
+        }
     }
 
     /** A notification event was queued; sent right after the transaction commits (see the dispatcher). */
@@ -125,7 +157,7 @@ public class OutboxService {
 
     @Transactional(readOnly = true)
     public List<OutboxMessage> pendingFor(UUID appointmentId) {
-        return outbox.findByAppointmentIdAndProcessedAtIsNull(appointmentId);
+        return outbox.findByAppointmentIdAndProcessedAtIsNullAndFailedAtIsNull(appointmentId);
     }
 
     /**
@@ -173,6 +205,10 @@ public class OutboxService {
             return;
         }
         IntegrationProperties.Dispatcher settings = properties.getDispatcher();
-        message.markFailed(error, clock.instant(), settings.getInitialBackoff(), settings.getMaxBackoff());
+        if (message.markFailed(error, clock.instant(), settings.getInitialBackoff(), settings.getMaxBackoff(),
+                settings.getMaxAttempts())) {
+            log.error("Gave up on outbox message {} ({}, appointment {}) after {} attempts: {}", message.getId(),
+                    message.getType(), message.getAppointmentId(), message.getAttempts(), message.getLastError());
+        }
     }
 }

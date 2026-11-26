@@ -19,6 +19,9 @@ public class PublicBookingLimiter {
 
     public static final int MAX_PER_HOUR = 10;
 
+    /** Past this many addresses, the quiet ones are forgotten (checked on each booking). */
+    static final int CLEANUP_THRESHOLD = 10_000;
+
     private final Clock clock;
     private final Map<String, Deque<Instant>> recent = new ConcurrentHashMap<>();
 
@@ -39,6 +42,20 @@ public class PublicBookingLimiter {
             }
             times.addLast(now);
         }
+        if (recent.size() > CLEANUP_THRESHOLD) {
+            forgetQuiet(now);
+        }
+    }
+
+    /** Drops addresses with no booking in the last hour, so the map can't grow without end. */
+    private void forgetQuiet(Instant now) {
+        Instant cutoff = now.minus(Duration.ofHours(1));
+        recent.entrySet().removeIf(e -> {
+            Deque<Instant> times = e.getValue();
+            synchronized (times) {
+                return times.isEmpty() || times.peekLast().isBefore(cutoff);
+            }
+        });
     }
 
     /** Tests start from a clean slate. */

@@ -72,12 +72,37 @@ jobs:
             org.opencontainers.image.description=Ramplight: the smarter way to run your auto workshop.
             org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}
 
+      # Built once locally and scanned before anything is pushed: an image with a fixable
+      # HIGH or CRITICAL vulnerability never reaches the registry.
+      - name: Build for scanning
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          load: true
+          tags: scan/${{ matrix.image }}:${{ github.event.workflow_run.head_sha }}
+          build-args: |
+            VITE_BASE_DOMAIN=${{ vars.BAYFLOW_BASE_DOMAIN || 'localhost' }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+
+      - name: Scan the image for vulnerabilities
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: scan/${{ matrix.image }}:${{ github.event.workflow_run.head_sha }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
+          # A software bill of materials and build provenance travel with the image.
+          sbom: true
+          provenance: mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # The web app has its domain built in (workshops at <slug>.<domain>). Set the

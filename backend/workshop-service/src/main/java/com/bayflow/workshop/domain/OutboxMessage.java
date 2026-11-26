@@ -50,6 +50,10 @@ public class OutboxMessage {
     @Column(name = "processed_at")
     private Instant processedAt;
 
+    /** Set when retries were given up after too many attempts: no longer tried; an operator looks. */
+    @Column(name = "failed_at")
+    private Instant failedAt;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -78,9 +82,27 @@ public class OutboxMessage {
     }
 
     public void markFailed(String error, Instant now, Duration initialBackoff, Duration maxBackoff) {
+        markFailed(error, now, initialBackoff, maxBackoff, Integer.MAX_VALUE);
+    }
+
+    /**
+     * A failed attempt: retried after the backoff, or, from the {@code maxAttempts}th failure on,
+     * given up (never tried again). True when it was given up now.
+     */
+    public boolean markFailed(String error, Instant now, Duration initialBackoff, Duration maxBackoff,
+            int maxAttempts) {
         attempts++;
         lastError = error == null ? null : error.substring(0, Math.min(error.length(), 1000));
         nextAttemptAt = now.plus(backoff(attempts, initialBackoff, maxBackoff));
+        if (attempts >= maxAttempts && failedAt == null) {
+            failedAt = now;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isGivenUp() {
+        return failedAt != null;
     }
 
     /** initial × 2^(attempts − 1), capped at max. */
@@ -103,5 +125,6 @@ public class OutboxMessage {
     public Instant getNextAttemptAt() { return nextAttemptAt; }
     public String getLastError() { return lastError; }
     public Instant getProcessedAt() { return processedAt; }
+    public Instant getFailedAt() { return failedAt; }
     public Instant getCreatedAt() { return createdAt; }
 }

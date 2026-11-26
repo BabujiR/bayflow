@@ -1,6 +1,7 @@
 import type { RouteObject } from 'react-router';
 
 import { CHANGE_PASSWORD_PATH, GuestOnly, RequireAuth, RequireRole } from '@/auth/guards';
+import { withErrorPage } from '@/components/common/RouteError';
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { AppointmentsPage } from '@/features/appointments/AppointmentsPage';
@@ -42,7 +43,7 @@ import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
  * A workshop's app (`<slug>.localhost`). Role guards mirror the API's rules; the API remains the
  * real enforcement.
  */
-export const routes: RouteObject[] = [
+export const routes: RouteObject[] = withErrorPage([
   {
     element: <GuestOnly />,
     children: [
@@ -155,10 +156,10 @@ export const routes: RouteObject[] = [
       },
     ],
   },
-];
+]);
 
 /** The public site at the base domain (`localhost:3000`): landing page and workshop sign-up. */
-export const publicRoutes: RouteObject[] = [
+export const publicRoutes: RouteObject[] = withErrorPage([
   {
     element: <SiteLayout />,
     children: [
@@ -168,4 +169,4 @@ export const publicRoutes: RouteObject[] = [
       { path: '*', element: <NotFoundPage /> },
     ],
   },
-];
+]);

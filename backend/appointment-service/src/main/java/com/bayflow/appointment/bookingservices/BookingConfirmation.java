@@ -11,19 +11,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.bayflow.appointment.application.OutboxService;
 import com.bayflow.appointment.config.AppointmentProperties;
 import com.bayflow.appointment.domain.Appointment;
 import com.bayflow.appointment.domain.Vehicle;
 import com.bayflow.appointment.integration.LocationsClient.LocationSettings;
-import com.bayflow.appointment.integration.MailClient;
 import com.bayflow.appointment.integration.MailClient.Mail;
 import com.bayflow.appointment.integration.WorkshopDirectory.Workshop;
 
 /**
  * The e-mails an online booker gets: booked, moved and cancelled (by them or by the shop). While
- * the booking can still change, each carries its private "change or cancel" link. Best effort:
- * the change stands if the e-mail can't be sent (no mail server set up, or auth-service
- * unreachable); that is logged, never shown.
+ * the booking can still change, each carries its private "change or cancel" link. Queued in the
+ * outbox with the change, sent through auth-service right after it commits and retried if that
+ * fails; the change never waits on the mail service.
  */
 @Component
 public class BookingConfirmation {
@@ -54,17 +54,17 @@ public class BookingConfirmation {
     private static final Logger log = LoggerFactory.getLogger(BookingConfirmation.class);
     private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("EEEE, MMMM d 'at' h:mm a", Locale.US);
 
-    private final MailClient mail;
+    private final OutboxService outbox;
     private final AppointmentProperties properties;
 
-    public BookingConfirmation(MailClient mail, AppointmentProperties properties) {
-        this.mail = mail;
+    public BookingConfirmation(OutboxService outbox, AppointmentProperties properties) {
+        this.outbox = outbox;
         this.properties = properties;
     }
 
     /**
      * {@code token}: the private link's token, or null for no link (cancelled bookings never
-     * have one). True when the e-mail was handed over.
+     * have one). Joins the caller's transaction when there is one. True when the e-mail was queued.
      */
     public boolean send(Workshop shop, LocationSettings location, boolean manyLocations, ZoneId zone, Appointment a,
             Kind kind, String token) {
@@ -119,10 +119,10 @@ public class BookingConfirmation {
                         : "<tr><td style=\"color:#475569\">Where</td><td>" + htmlEscape(where) + "</td></tr>",
                 button, footer, htmlEscape(name));
         try {
-            mail.send(shop.id(), new Mail(a.getCustomer().getEmail(), name, null, subject, text, html));
+            outbox.enqueueMail(a.getId(), new Mail(a.getCustomer().getEmail(), name, null, subject, text, html));
             return true;
         } catch (RuntimeException e) {
-            log.warn("Booking e-mail {} for {} not sent: {}", kind, a.getId(), e.getMessage());
+            log.warn("Booking e-mail {} for {} not queued: {}", kind, a.getId(), e.getMessage());
             return false;
         }
     }

@@ -75,6 +75,9 @@ class ManageBookingIT extends IntegrationTestBase {
         // The e-mail carries the same private link.
         Mail booked = lastMail();
         assertThat(booked.text()).contains("http://" + slug + ".localhost:3000/book/manage?token=" + token);
+        // Sent after the booking committed, through the outbox; the private link isn't kept there.
+        assertThat(jdbc.queryForList("select payload from bayflow.apt_outbox where tenant_id = ? and type = 'SEND_MAIL'"
+                + " and processed_at is not null", String.class, tenant)).containsExactly("{}");
 
         manage("", token)
                 .andExpect(status().isOk())

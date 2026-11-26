@@ -1,11 +1,12 @@
 package com.bayflow.workshop.application;
 
 import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -39,6 +40,8 @@ public class OutboxService {
     /** An event was queued; sent right after the transaction commits (see the dispatcher). */
     public record NotificationQueued(UUID tenantId, UUID jobCardId) {
     }
+
+    private static final Logger log = LoggerFactory.getLogger(OutboxService.class);
 
     private final OutboxRepository outbox;
     private final WorkshopProperties properties;
@@ -98,7 +101,7 @@ public class OutboxService {
 
     @Transactional(readOnly = true)
     public List<OutboxMessage> pendingFor(UUID jobCardId) {
-        return outbox.findByJobCardIdAndProcessedAtIsNull(jobCardId);
+        return outbox.findByJobCardIdAndProcessedAtIsNullAndFailedAtIsNull(jobCardId);
     }
 
     @Transactional(readOnly = true)
@@ -130,7 +133,11 @@ public class OutboxService {
             return;
         }
         WorkshopProperties.Notifications settings = properties.getNotifications();
-        message.markFailed(error, clock.instant(), settings.getInitialBackoff(), settings.getMaxBackoff());
+        if (message.markFailed(error, clock.instant(), settings.getInitialBackoff(), settings.getMaxBackoff(),
+                settings.getMaxAttempts())) {
+            log.error("Gave up on outbox message {} ({}) after {} attempts: {}", message.getId(), message.getType(),
+                    message.getAttempts(), message.getLastError());
+        }
     }
 
     private static CurrentUser currentActor() {
