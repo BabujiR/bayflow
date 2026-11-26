@@ -83,6 +83,22 @@ public class Locations {
     }
 
     /**
+     * The organization's active locations (the public booking page); 503 when auth-service can't
+     * be asked.
+     */
+    public List<LocationSettings> active() {
+        UUID tenant = TenantContext.require();
+        return all(tenant).orElseThrow(() -> new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
+                "locations-unavailable", "Service Unavailable", "The locations could not be read. Try again shortly."))
+                .stream().filter(LocationSettings::active).toList();
+    }
+
+    /** A location's time zone as auth-service gives it (the fallback zone when it is invalid). */
+    public ZoneId zoneOf(LocationSettings location) {
+        return zone(location);
+    }
+
+    /**
      * Checks that {@code locationId} is an active location of this organization (400 otherwise;
      * 503 when auth-service can't be asked). For settings that name a location, not bookings.
      */

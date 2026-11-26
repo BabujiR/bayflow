@@ -161,7 +161,19 @@ public class AppointmentService {
 
     @Transactional
     public Appointment checkIn(UUID id, int mileage) {
+        return checkIn(id, mileage, null, null);
+    }
+
+    /**
+     * {@code vin} / {@code registration}: needed when the car came from an online booking that
+     * didn't give them (the job card needs both); ignored when they are known.
+     */
+    @Transactional
+    public Appointment checkIn(UUID id, int mileage, String vin, String registration) {
         Appointment appointment = find(id);
+        if (!appointment.getVehicle().isIdentified()) {
+            completeVehicle(appointment.getVehicle(), vin, registration);
+        }
         int recorded = appointment.getVehicle().getMileage();
         if (mileage < recorded) {
             throw ApiException.badRequest("mileage-decreased", "Mileage at check-in (" + mileage
@@ -224,6 +236,21 @@ public class AppointmentService {
             throw ApiException.notFound("Appointment");
         }
         return appointment;
+    }
+
+    private void completeVehicle(Vehicle vehicle, String vin, String registration) {
+        if (vehicle.getVin() == null && (vin == null || !Vehicle.VIN.matcher(Vehicle.normalizeVin(vin)).matches())) {
+            throw ApiException.badRequest("vehicle-details-required",
+                    "This car was booked online without its VIN: enter the 17-character VIN to check it in.");
+        }
+        if (vehicle.getRegistration() == null && (registration == null || registration.isBlank())) {
+            throw ApiException.badRequest("vehicle-details-required",
+                    "This car was booked online without its plate: enter the plate to check it in.");
+        }
+        if (vehicle.getVin() == null && vehicles.existsByVinAndIdNot(Vehicle.normalizeVin(vin), vehicle.getId())) {
+            throw ApiException.conflict("vin-taken", "Another vehicle of this shop already has that VIN.");
+        }
+        vehicle.complete(vin, registration, clock.instant());
     }
 
     private void requireFuture(Instant scheduledAt, Instant now) {

@@ -29,7 +29,13 @@ public class LocationsClient {
     /** One location with the settings that apply to it. */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record LocationSettings(UUID id, String code, String name, boolean active, String timeZone,
-            BigDecimal labourRate, String currency) {
+            BigDecimal labourRate, String currency, String address) {
+
+        /** Without an address (tests and older callers). */
+        public LocationSettings(UUID id, String code, String name, boolean active, String timeZone,
+                BigDecimal labourRate, String currency) {
+            this(id, code, name, active, timeZone, labourRate, currency, null);
+        }
     }
 
     private record Cached(List<LocationSettings> locations, Instant fetchedAt) {

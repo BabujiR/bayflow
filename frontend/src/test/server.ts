@@ -4,7 +4,9 @@ import { setupServer } from 'msw/node';
 import type {
   AppNotification,
   Appointment,
+  BookingHours,
   Branding,
+  PublicBookingOptions,
   PublicBranding,
   PublicWorkshop,
   Customer,
@@ -55,6 +57,9 @@ const defaults = [
   // Canned jobs: none yet (advisors see the picker only when there are some).
   http.get('*/api/v1/canned-jobs', () => HttpResponse.json([])),
   http.get('*/api/v1/booking-services', () => HttpResponse.json([])),
+  http.get('*/api/v1/booking-services/hours/:locationId', ({ params }) =>
+    HttpResponse.json(bookingHours({ locationId: String(params.locationId) })),
+  ),
   http.get('*/api/v1/auth/users', () => HttpResponse.json(pageOf([]))),
   // QuickBooks: not set up on the server.
   http.get('*/api/v1/quickbooks', () =>
@@ -100,6 +105,52 @@ const defaults = [
 
 /** MSW server shared by all tests. */
 export const server = setupServer(...defaults);
+
+/** A location's booking hours as the server sends them before they are first saved. */
+export function bookingHours(overrides: Partial<BookingHours> = {}): BookingHours {
+  const weekday = { opens: '08:00', closes: '17:00' };
+  const closed = { opens: null, closes: null };
+  return {
+    locationId: 'loc-1',
+    days: [weekday, weekday, weekday, weekday, weekday, closed, closed],
+    slotMinutes: 30,
+    carsPerSlot: 2,
+    minNoticeMinutes: 120,
+    maxDaysAhead: 30,
+    version: 0,
+    ...overrides,
+  };
+}
+
+/** What the public booking page offers: one location, two services. */
+export function bookingOptions(overrides: Partial<PublicBookingOptions> = {}): PublicBookingOptions {
+  return {
+    shopName: 'Demo Auto',
+    currency: 'USD',
+    locations: [{ code: 'main', name: 'Main', address: '1 Main St', timeZone: 'America/New_York' }],
+    services: [
+      {
+        code: 'oil-change',
+        name: 'Oil change',
+        description: 'Oil and filter',
+        priceKind: 'FROM',
+        price: 54,
+        durationMinutes: 45,
+        locations: null,
+      },
+      {
+        code: 'brakes',
+        name: 'Brake check',
+        description: null,
+        priceKind: 'FREE',
+        price: null,
+        durationMinutes: 30,
+        locations: null,
+      },
+    ],
+    ...overrides,
+  };
+}
 
 export function user(role: Role = 'CUSTOMER', username = 'customer1'): User {
   return {

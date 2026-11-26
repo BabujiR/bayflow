@@ -26,6 +26,8 @@ import type {
   CannedJob,
   CannedJobRequest,
   DemoRequest,
+  BookingHours,
+  BookingHoursRequest,
   BookingServiceItem,
   BookingServiceRequest,
   ConsoleDemoRequest,
@@ -76,6 +78,10 @@ import type {
   Vehicle,
   WorkLogRequest,
   Workshop,
+  PublicAvailability,
+  PublicBooked,
+  PublicBookingOptions,
+  PublicBookingRequest,
 } from './types';
 
 export interface Paging {
@@ -128,8 +134,9 @@ export const appointmentsApi = {
   book: (body: BookAppointmentRequest) => http.post<Appointment>('/api/v1/appointments', body),
   confirm: (id: string) => http.post<Appointment>(`/api/v1/appointments/${id}/confirm`),
   arrive: (id: string) => http.post<Appointment>(`/api/v1/appointments/${id}/arrive`),
-  checkIn: (id: string, mileage: number) =>
-    http.post<Appointment>(`/api/v1/appointments/${id}/check-in`, { mileage }),
+  /** `vehicle`: the VIN and plate when an online booking didn't give them (the job card needs both). */
+  checkIn: (id: string, mileage: number, vehicle?: { vin?: string; registration?: string }) =>
+    http.post<Appointment>(`/api/v1/appointments/${id}/check-in`, { mileage, ...vehicle }),
   noShow: (id: string) => http.post<Appointment>(`/api/v1/appointments/${id}/no-show`),
   cancel: (id: string) => http.post<Appointment>(`/api/v1/appointments/${id}/cancel`),
   reschedule: (id: string, body: RescheduleRequest) =>
@@ -192,6 +199,18 @@ export const bookingServicesApi = {
   update: (id: string, body: BookingServiceRequest) =>
     http.put<BookingServiceItem>(`/api/v1/booking-services/${id}`, body),
   reorder: (ids: string[]) => http.put<BookingServiceItem[]>('/api/v1/booking-services/order', { ids }),
+  /** A location's booking hours (defaults until saved). */
+  hours: (locationId: string) => http.get<BookingHours>(`/api/v1/booking-services/hours/${locationId}`),
+  setHours: (locationId: string, body: BookingHoursRequest) =>
+    http.put<BookingHours>(`/api/v1/booking-services/hours/${locationId}`, body),
+};
+
+/** The public booking page (/book): no sign-in; the workshop is the one at this address. */
+export const bookingApi = {
+  options: () => http.get<PublicBookingOptions>('/api/v1/booking/options'),
+  availability: (location: string, from: string, days = 7) =>
+    http.get<PublicAvailability>('/api/v1/booking/availability', { location, from, days }),
+  book: (body: PublicBookingRequest) => http.post<PublicBooked>('/api/v1/booking/appointments', body),
 };
 
 export const cannedJobsApi = {

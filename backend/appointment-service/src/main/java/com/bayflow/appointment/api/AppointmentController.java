@@ -110,7 +110,7 @@ public class AppointmentController {
                     + "check-in still succeeds, jobCardId stays empty, and the job card is created by a "
                     + "background retry.")
     public AppointmentResponse checkIn(@PathVariable UUID id, @Valid @RequestBody CheckInRequest request) {
-        appointments.checkIn(id, request.mileage());
+        appointments.checkIn(id, request.mileage(), request.vin(), request.registration());
         // After the check-in has committed: try to open the job card straight away.
         jobCardDispatcher.dispatchFor(id);
         return AppointmentResponse.from(appointments.reload(id));

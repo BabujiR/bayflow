@@ -15,6 +15,8 @@ import { useLocations } from '@/features/locations/use-locations';
 import { useWorkshop } from '@/features/workshop/use-workshop';
 import { useAction } from '@/lib/use-action';
 
+import { BookingHoursSection } from './BookingHoursSection';
+
 export const BOOKING_SERVICES_KEY = ['booking-services'] as const;
 
 const PRICE_KINDS: Record<PriceKind, string> = {
@@ -167,6 +169,7 @@ export function BookingServicesSection() {
           </Card>
         )}
       </QueryState>
+      <BookingHoursSection />
       {editing && (
         <ServiceDialog
           service={editing === 'new' ? null : editing}

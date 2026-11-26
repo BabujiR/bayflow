@@ -35,6 +35,8 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
                         .permitAll()
                         .requestMatchers("/error").permitAll()
+                        // The public booking page: no sign-in (the workshop comes from the address).
+                        .requestMatchers("/api/v1/booking/**").permitAll()
                         .anyRequest().authenticated());
         return http.build();
     }

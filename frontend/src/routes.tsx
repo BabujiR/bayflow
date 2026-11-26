@@ -6,6 +6,7 @@ import { AuthLayout } from '@/components/layout/AuthLayout';
 import { AppointmentsPage } from '@/features/appointments/AppointmentsPage';
 import { BookAppointmentPage } from '@/features/appointments/BookAppointmentPage';
 import { BoardPage } from '@/features/board/BoardPage';
+import { GuestBookingPage } from '@/features/booking/GuestBookingPage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { CannedJobsPage } from '@/features/cannedjobs/CannedJobsPage';
@@ -53,6 +54,8 @@ export const routes: RouteObject[] = [
       },
     ],
   },
+  // The public booking page (Google Maps / the shop's site link): no account needed.
+  { path: '/book', element: <GuestBookingPage /> },
   {
     // Signed in or not: the e-mailed link signs in whoever proves they read that mailbox.
     element: <AuthLayout />,

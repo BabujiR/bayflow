@@ -25,6 +25,9 @@ public interface CustomerRepository extends JpaRepository<Customer, UUID> {
 
     boolean existsByUserId(UUID userId);
 
+    /** The customer with this e-mail (stored in lower case), oldest first: online bookings reuse it. */
+    Optional<Customer> findFirstByEmailOrderByCreatedAtAsc(String email);
+
     /** {@code pattern} is a lower-case LIKE pattern, e.g. "%smith%". */
     @Query("""
             select c from Customer c

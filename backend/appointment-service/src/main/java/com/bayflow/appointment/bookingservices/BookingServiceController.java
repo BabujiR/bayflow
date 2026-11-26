@@ -2,6 +2,7 @@ package com.bayflow.appointment.bookingservices;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -68,10 +69,58 @@ public class BookingServiceController {
     public record OrderRequest(@NotEmpty List<@NotNull UUID> ids) {
     }
 
-    private final BookingCatalog catalog;
+    /** One weekday; {@code opens}/{@code closes} as "08:00", both null when closed. */
+    public record DayHoursDto(LocalTime opens, LocalTime closes) {
+    }
 
-    public BookingServiceController(BookingCatalog catalog) {
+    /** A location's online booking hours; {@code days} Monday first. */
+    public record HoursResponse(UUID locationId, List<DayHoursDto> days, int slotMinutes, int carsPerSlot,
+            int minNoticeMinutes, int maxDaysAhead, long version) {
+
+        static HoursResponse from(BookingSettings s) {
+            return new HoursResponse(s.getLocationId(), s.week().stream()
+                    .map(d -> d == null ? new DayHoursDto(null, null) : new DayHoursDto(d.opens(), d.closes()))
+                    .toList(), s.getSlotMinutes(), s.getCarsPerSlot(), s.getMinNoticeMinutes(), s.getMaxDaysAhead(),
+                    s.getVersion());
+        }
+    }
+
+    public record HoursRequest(@NotNull @Size(min = 7, max = 7) List<@NotNull DayHoursDto> days,
+            int slotMinutes, int carsPerSlot, int minNoticeMinutes, int maxDaysAhead, long version) {
+    }
+
+    private final BookingCatalog catalog;
+    private final BookingHours hours;
+
+    public BookingServiceController(BookingCatalog catalog, BookingHours hours) {
         this.catalog = catalog;
+        this.hours = hours;
+    }
+
+    @GetMapping("/hours/{locationId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "A location's online booking hours (defaults until saved: Mon-Fri 8-5)")
+    public HoursResponse hours(@PathVariable UUID locationId) {
+        return HoursResponse.from(hours.settingsFor(locationId));
+    }
+
+    @PutMapping("/hours/{locationId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Change a location's online booking hours; send the version read")
+    public HoursResponse updateHours(@PathVariable UUID locationId, @Valid @RequestBody HoursRequest request) {
+        List<BookingSettings.DayHours> week = new java.util.ArrayList<>();
+        for (DayHoursDto day : request.days()) {
+            if (day.opens() == null && day.closes() == null) {
+                week.add(null);
+            } else if (day.opens() == null || day.closes() == null || !day.closes().isAfter(day.opens())) {
+                throw com.bayflow.appointment.application.ApiException.badRequest("invalid-hours",
+                        "Each open day needs an opening time before its closing time.");
+            } else {
+                week.add(new BookingSettings.DayHours(day.opens(), day.closes()));
+            }
+        }
+        return HoursResponse.from(hours.update(locationId, request.version(), week, request.slotMinutes(),
+                request.carsPerSlot(), request.minNoticeMinutes(), request.maxDaysAhead()));
     }
 
     @GetMapping

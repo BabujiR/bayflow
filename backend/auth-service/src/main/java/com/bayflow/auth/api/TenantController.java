@@ -1,6 +1,7 @@
 package com.bayflow.auth.api;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
@@ -20,9 +21,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.bayflow.auth.application.ApiException;
 import com.bayflow.auth.application.TenantSettingsService;
 import com.bayflow.auth.application.TenantSettingsService.SettingsUpdate;
 import com.bayflow.auth.application.TenantSettingsService.WorkshopView;
+import com.bayflow.auth.domain.Platform;
+import com.bayflow.auth.domain.Tenant;
+import com.bayflow.auth.infrastructure.TenantRepository;
 import com.bayflow.security.TenantContext;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -61,10 +66,16 @@ public class TenantController {
             @NotNull Long version) {
     }
 
-    private final TenantSettingsService settings;
+    /** A workshop found by its address, for a public page served by another service. */
+    public record WorkshopByAddress(UUID id, String slug, String name, String displayName, boolean active) {
+    }
 
-    public TenantController(TenantSettingsService settings) {
+    private final TenantSettingsService settings;
+    private final TenantRepository tenants;
+
+    public TenantController(TenantSettingsService settings, TenantRepository tenants) {
         this.settings = settings;
+        this.tenants = tenants;
     }
 
     @GetMapping("/tenant")
@@ -90,5 +101,21 @@ public class TenantController {
     @Operation(summary = "A workshop's settings, for other Bayflow services (SYSTEM)")
     public WorkshopResponse forService(@PathVariable UUID tenantId) {
         return TenantContext.call(tenantId, () -> WorkshopResponse.from(settings.current()));
+    }
+
+    /**
+     * For appointment-service's public booking page (<slug>.<base domain>/book): which workshop an
+     * address names. 404 for unknown addresses and for the Ramplight console's organization.
+     */
+    @GetMapping("/internal/workshops/{slug}")
+    @PreAuthorize("hasRole('SYSTEM')")
+    @Operation(summary = "The workshop at an address (SYSTEM)")
+    public WorkshopByAddress byAddress(@PathVariable String slug) {
+        Tenant tenant = tenants.findBySlug(slug.toLowerCase(Locale.ROOT))
+                .filter(t -> !Platform.TENANT_ID.equals(t.getId()))
+                .orElseThrow(() -> ApiException.notFound("Workshop"));
+        String displayName = TenantContext.call(tenant.getId(), () -> settings.current().settings().getDisplayName());
+        return new WorkshopByAddress(tenant.getId(), tenant.getSlug(), tenant.getName(), displayName,
+                tenant.isActive());
     }
 }

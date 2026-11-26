@@ -21,4 +21,11 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
     boolean existsByVin(String vin);
 
     Page<Vehicle> findByOwnerId(UUID customerId, Pageable pageable);
+
+    boolean existsByVinAndIdNot(String vin, UUID id);
+
+    java.util.Optional<Vehicle> findByVin(String vin);
+
+    /** The customer's cars, for matching an online booking to one they booked before. */
+    java.util.List<Vehicle> findAllByOwnerId(UUID customerId);
 }

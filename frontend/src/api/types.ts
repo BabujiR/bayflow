@@ -112,6 +112,10 @@ export type Appointment = Present<
   vehicle: VehicleSummary;
   /** The location (shop) of the organization; hand-written until `pnpm api:update`. */
   locationId: string;
+  /** Booked by the customer on the public booking page (hand-written until `pnpm api:update`). */
+  bookedOnline?: boolean;
+  /** The service they picked online, e.g. "Oil change" or "Something else". */
+  serviceName?: string | null;
 };
 
 export type ProfileRequest = P['ProfileRequest'];
@@ -506,6 +510,79 @@ export interface BookingServiceRequest {
   locationId: string | null;
   active: boolean;
   version?: number;
+}
+
+/** One day's opening hours for online booking ("08:00"); both null: closed. */
+export interface DayHours {
+  opens: string | null;
+  closes: string | null;
+}
+
+/** Settings → Online booking: when a location takes online bookings. Days run Monday to Sunday. */
+export interface BookingHours {
+  locationId: string;
+  days: DayHours[];
+  slotMinutes: number;
+  carsPerSlot: number;
+  minNoticeMinutes: number;
+  maxDaysAhead: number;
+  /** 0 until first saved (the defaults are shown). */
+  version: number;
+}
+
+export type BookingHoursRequest = Omit<BookingHours, 'locationId'>;
+
+/** The public booking page (no sign-in): what the workshop at this address offers. */
+export interface PublicBookingOptions {
+  shopName: string;
+  currency: string;
+  locations: { code: string; name: string; address: string | null; timeZone: string }[];
+  services: {
+    code: string;
+    name: string;
+    description: string | null;
+    priceKind: PriceKind;
+    price: number | null;
+    durationMinutes: number | null;
+    /** Location codes offering it; null: all. */
+    locations: string[] | null;
+  }[];
+}
+
+export interface PublicAvailability {
+  location: string;
+  timeZone: string;
+  /** From the asked day; `slots` are start times (ISO instants), empty when closed or full. */
+  days: { date: string; slots: string[] }[];
+}
+
+export interface PublicBookingRequest {
+  location: string;
+  /** Null: "Something else" (then `description`). */
+  service: string | null;
+  description: string | null;
+  vin: string | null;
+  year: number | null;
+  make: string | null;
+  model: string | null;
+  startsAt: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  smsConsent: boolean;
+  /** Stays empty: only bots fill it in. */
+  website: string;
+}
+
+export interface PublicBooked {
+  startsAt: string;
+  timeZone: string;
+  locationName: string;
+  serviceName: string;
+  email: string;
+  /** A confirmation e-mail is on its way. */
+  emailed: boolean;
 }
 
 /** A setup invite as the console shows it (Pending turns Expired after 7 days). */

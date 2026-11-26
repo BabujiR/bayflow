@@ -240,7 +240,22 @@ none), the typical time, and for groups which location offers it; hide, show and
 A new shop starts with oil change, routine service, brakes, tires, inspection and diagnostic,
 without prices. "Something else" is always offered. Each active location has a **Copy booking
 link** under *Locations* (`<address>/book?location=<code>`) for its Google Business Profile and
-website. API: `/api/v1/booking-services` (appointment-service). The booking page itself comes in
+website. API: `/api/v1/booking-services` (appointment-service).
+
+**Booking hours** (same section, per location): weekly open and close times, slot length
+(15 min to 2 h), cars per slot, notice needed (default 2 hours) and how far ahead customers may
+book (default 30 days). A slot is offered while fewer than *cars per slot* bookings start in it.
+
+**The booking page** (`<address>/book`, no account needed): service → car (year, make and model,
+or the VIN) → time → first name, last name, email and optional phone. With a phone the customer
+can tick *text me about this visit*; the page says the number is never shared with or sold to
+third parties. `?location=<code>` preselects the location (groups otherwise pick from a list;
+one-location shops are never asked) and `?service=<code>` the service. The booking is confirmed
+at once and e-mailed; staff see it with an **Online** badge and are notified as usual. The
+customer is matched by e-mail (or added without a login) and the car by VIN or year/make/model.
+A car booked without VIN or plate gets them at check-in (the job card needs both). Bookings are
+limited to 10 an hour per address. Public API: `/api/v1/booking/options`, `/availability`,
+`/appointments` (send `X-Bayflow-Client`). Rescheduling and cancelling by the customer come in
 the next step.
 
 ### Canned jobs

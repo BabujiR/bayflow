@@ -36,4 +36,23 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID>,
     boolean existsOverlap(@Param("vehicleId") UUID vehicleId, @Param("excludeId") UUID excludeId,
             @Param("statuses") Collection<AppointmentStatus> statuses, @Param("start") Instant start,
             @Param("end") Instant end);
+
+    /** When each active booking at a location starts, in [from, to): fills the online booking slots. */
+    @Query("""
+            select a.scheduledAt from Appointment a
+            where a.locationId = :locationId
+              and a.status in :statuses
+              and a.scheduledAt >= :from
+              and a.scheduledAt < :to
+            """)
+    java.util.List<Instant> startsAt(@Param("locationId") UUID locationId,
+            @Param("statuses") java.util.Collection<AppointmentStatus> statuses, @Param("from") Instant from,
+            @Param("to") Instant to);
+
+    /**
+     * Holds back a second online booking for the same location and slot until this transaction
+     * ends, so two customers can't both take the last place.
+     */
+    @Query(value = "select 1 from (select pg_advisory_xact_lock(hashtextextended(:key, 0))) l", nativeQuery = true)
+    Integer lockSlot(@Param("key") String key);
 }

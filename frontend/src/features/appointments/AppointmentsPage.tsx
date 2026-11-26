@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { Pager } from '@/components/common/Pager';
 import { QueryState } from '@/components/common/QueryState';
 import { AppointmentStatusBadge } from '@/components/common/StatusBadge';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -182,9 +183,9 @@ export function AppointmentsPage() {
                       </TableCell>
                       {locations.hasSeveral && <TableCell>{locations.nameOf(a.locationId)}</TableCell>}
                       <TableCell>
-                        <span className="font-medium">{a.vehicle.registration}</span>
+                        <span className="font-medium">{a.vehicle.registration ?? 'No plate yet'}</span>
                         <span className="block text-xs text-muted-foreground">
-                          {a.vehicle.make} {a.vehicle.model}
+                          {a.vehicle.make ? `${a.vehicle.make} ${a.vehicle.model}` : `VIN ${a.vehicle.vin}`}
                         </span>
                       </TableCell>
                       {staff && (
@@ -194,7 +195,14 @@ export function AppointmentsPage() {
                           </Link>
                         </TableCell>
                       )}
-                      <TableCell>{SERVICE_TYPE_LABELS[a.serviceType]}</TableCell>
+                      <TableCell>
+                        {a.bookedOnline && a.serviceName ? a.serviceName : SERVICE_TYPE_LABELS[a.serviceType]}
+                        {a.bookedOnline && (
+                          <Badge variant="outline" className="ml-2">
+                            Online
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <AppointmentStatusBadge status={a.status} />
                       </TableCell>

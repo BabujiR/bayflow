@@ -94,6 +94,24 @@ public class Appointment {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** Booked by the customer on the public booking page (no sign-in). */
+    @Column(name = "booked_online", nullable = false)
+    private boolean bookedOnline;
+
+    /** The online booking's service as it was then (name, how the price showed, the amount). */
+    @Column(name = "service_name", length = 80)
+    private String serviceName;
+
+    @Column(name = "service_price_kind", length = 10)
+    private String servicePriceKind;
+
+    @Column(name = "service_price", precision = 10, scale = 2)
+    private java.math.BigDecimal servicePrice;
+
+    /** When the customer agreed to texts about this booking (null: no texts). */
+    @Column(name = "sms_consent_at")
+    private Instant smsConsentAt;
+
     @Version
     private Long version;
 
@@ -120,6 +138,15 @@ public class Appointment {
         appointment.createdAt = now;
         appointment.setSlot(scheduledAt, durationMinutes, now);
         return appointment;
+    }
+
+    /** Marks a booking made on the public booking page, keeping the service as it was offered. */
+    public void bookedOnline(String serviceName, String priceKind, java.math.BigDecimal price, Instant smsConsentAt) {
+        this.bookedOnline = true;
+        this.serviceName = serviceName;
+        this.servicePriceKind = priceKind;
+        this.servicePrice = price;
+        this.smsConsentAt = smsConsentAt;
     }
 
     // ---- state machine --------------------------------------------------------
@@ -222,4 +249,9 @@ public class Appointment {
     public UUID getJobCardId() { return jobCardId; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+    public boolean isBookedOnline() { return bookedOnline; }
+    public String getServiceName() { return serviceName; }
+    public String getServicePriceKind() { return servicePriceKind; }
+    public java.math.BigDecimal getServicePrice() { return servicePrice; }
+    public Instant getSmsConsentAt() { return smsConsentAt; }
 }
