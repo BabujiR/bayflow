@@ -2,12 +2,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
+import { useSearchParams } from 'react-router';
 import { z } from 'zod';
 
 import { workshopApi } from '@/api/endpoints';
 import { ApiError } from '@/api/errors';
 import type { Workshop } from '@/api/types';
 import { PageHeader } from '@/components/common/PageHeader';
+import { PageTabs, tabId } from '@/components/common/PageTabs';
 import { QueryState } from '@/components/common/QueryState';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,27 +50,66 @@ const settingsSchema = z.object({
 type SettingsInput = z.input<typeof settingsSchema>;
 type SettingsOutput = z.output<typeof settingsSchema>;
 
-/** The workshop ADMIN's settings: name, contact details, labour rate, currency and time zone. */
+/** The settings tabs, in order; the selected one is in the address (?tab=…) so it can be linked. */
+const SETTINGS_TABS = {
+  general: 'Workshop',
+  branding: 'Branding',
+  booking: 'Online booking',
+  reminders: 'Service reminders',
+  quickbooks: 'QuickBooks',
+} as const;
+type SettingsTab = keyof typeof SETTINGS_TABS;
+const TAB_KEYS = Object.keys(SETTINGS_TABS) as SettingsTab[];
+
+/**
+ * The workshop ADMIN's settings, one tab each: the workshop (name, contact details, labour
+ * rate, currency, time zone), branding, online booking, service reminders and QuickBooks.
+ */
 export function WorkshopSettingsPage() {
   const workshop = useWorkshop();
+  const [params, setParams] = useSearchParams();
+  const asked = params.get('tab') as SettingsTab | null;
+  // Back from QuickBooks' sign-in (?quickbooks=connected|error): its tab.
+  const tab: SettingsTab =
+    asked && TAB_KEYS.includes(asked) ? asked : params.has('quickbooks') ? 'quickbooks' : 'general';
+  const selectTab = (next: SettingsTab) =>
+    setParams(
+      (current) => {
+        const updated = new URLSearchParams(current);
+        updated.set('tab', next);
+        updated.delete('quickbooks');
+        return updated;
+      },
+      { replace: true },
+    );
+
   return (
     <>
       <PageHeader
         title="Workshop settings"
-        description="How your workshop appears to customers (name, contact details and branding), and the rate, currency and time zone it works in."
+        description="How your workshop appears to customers, how they book online, and the rate, currency and time zone it works in."
       />
-      <QueryState query={workshop}>{(w) => <SettingsForm key={w.version} workshop={w} />}</QueryState>
-      <div className="mt-12">
-        <BrandingSection />
-      </div>
-      <div className="mt-12">
-        <BookingServicesSection />
-      </div>
-      <div className="mt-12">
-        <ServiceIntervalsSection />
-      </div>
-      <div className="mt-12">
-        <QuickBooksSection />
+      <PageTabs
+        label="Settings"
+        idPrefix="settings"
+        tabs={SETTINGS_TABS}
+        selected={tab}
+        onSelect={selectTab}
+      />
+      <div
+        role="tabpanel"
+        id="settings-panel"
+        aria-labelledby={tabId('settings', tab)}
+        className="gb-step"
+        key={tab}
+      >
+        {tab === 'general' && (
+          <QueryState query={workshop}>{(w) => <SettingsForm key={w.version} workshop={w} />}</QueryState>
+        )}
+        {tab === 'branding' && <BrandingSection />}
+        {tab === 'booking' && <BookingServicesSection />}
+        {tab === 'reminders' && <ServiceIntervalsSection />}
+        {tab === 'quickbooks' && <QuickBooksSection />}
       </div>
     </>
   );

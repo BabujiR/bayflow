@@ -15,6 +15,7 @@ import type {
   TechnicianRow,
 } from '@/api/types';
 import { PageHeader } from '@/components/common/PageHeader';
+import { PageTabs, tabId } from '@/components/common/PageTabs';
 import { QueryState } from '@/components/common/QueryState';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -105,28 +106,8 @@ function Reports({ zone, currency }: { zone?: string; currency: string }) {
           </div>
         }
       />
-      <div role="tablist" aria-label="Reports" className="mb-6 flex flex-wrap gap-1 border-b">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            id={`report-tab-${t}`}
-            aria-selected={tab === t}
-            aria-controls="report-panel"
-            className={cn(
-              '-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors',
-              tab === t
-                ? 'border-primary text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground',
-            )}
-            onClick={() => selectTab(t)}
-          >
-            {REPORT_TABS[t]}
-          </button>
-        ))}
-      </div>
-      <div role="tabpanel" id="report-panel" aria-labelledby={`report-tab-${tab}`}>
+      <PageTabs label="Reports" idPrefix="report" tabs={REPORT_TABS} selected={tab} onSelect={selectTab} />
+      <div role="tabpanel" id="report-panel" aria-labelledby={tabId('report', tab)}>
         {tab === 'summary' && <SummaryReport period={period} currency={currency} />}
         {tab === 'sales' && <SalesReport period={period} zone={zone} currency={currency} />}
         {tab === 'advisors' && <AdvisorReport period={period} currency={currency} />}

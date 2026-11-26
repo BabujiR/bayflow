@@ -34,7 +34,7 @@ describe('QuickBooks Online (R2b)', () => {
         return HttpResponse.json({ status: 503, title: 'Service Unavailable' }, { status: 503 });
       }),
     );
-    renderApp('/settings');
+    renderApp('/settings?tab=quickbooks');
 
     await userEvent.click(await screen.findByRole('button', { name: 'Connect to QuickBooks' }));
 

@@ -55,7 +55,7 @@ describe('Settings → Online booking (admin)', () => {
         return HttpResponse.json([]);
       }),
     );
-    renderApp('/settings');
+    renderApp('/settings?tab=booking');
 
     const list = await screen.findByRole('list', { name: 'Bookable services' }, { timeout: 10_000 });
     expect(within(list).getByText('from $54 · about 45 min')).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('Settings → Online booking (admin)', () => {
         return HttpResponse.json(service({ id: 's9', name: 'Wheel alignment' }), { status: 201 });
       }),
     );
-    renderApp('/settings');
+    renderApp('/settings?tab=booking');
 
     await userEvent.click(await screen.findByRole('button', { name: 'Add service' }, { timeout: 10_000 }));
     const form = await screen.findByRole('form', { name: 'New service' });

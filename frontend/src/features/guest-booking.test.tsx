@@ -235,7 +235,7 @@ describe('Settings → Online booking: booking hours', () => {
         return HttpResponse.json(bookingHours({ locationId: String(params.locationId), version: 1 }));
       }),
     );
-    renderApp('/settings');
+    renderApp('/settings?tab=booking');
 
     const form = await screen.findByRole('form', { name: 'Booking hours' }, { timeout: 10_000 });
     expect(within(form).getByLabelText('Open on Saturday')).not.toBeChecked();

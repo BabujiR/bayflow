@@ -66,7 +66,7 @@ export function WelcomeChecklist() {
       key: 'logo',
       title: 'Add your logo',
       text: 'Your customers see it on the sign-in page, estimates and invoices.',
-      to: '/settings',
+      to: '/settings?tab=branding',
       done: branding.data ? branding.data.logoUrl != null : undefined,
     },
     {
@@ -87,7 +87,7 @@ export function WelcomeChecklist() {
       key: 'intervals',
       title: 'Choose service intervals',
       text: 'So customers are reminded when their car is due again.',
-      to: '/settings',
+      to: '/settings?tab=reminders',
       done: intervals.data ? intervals.data.length > 0 : undefined,
     },
     {

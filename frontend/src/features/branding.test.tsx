@@ -183,7 +183,7 @@ describe('branding settings (workshop ADMIN)', () => {
         return HttpResponse.json(branding({ primaryColor: '#be123c', version: 4 }));
       }),
     );
-    renderApp('/settings');
+    renderApp('/settings?tab=branding');
 
     const form = await brandingForm();
     await userEvent.click(within(form).getByLabelText("Use my workshop's colour"));
@@ -201,7 +201,7 @@ describe('branding settings (workshop ADMIN)', () => {
 
   it('warns about a colour that is hard to read and refuses an invalid one', async () => {
     server.use(sessionFor(user('ADMIN', 'admin')));
-    renderApp('/settings');
+    renderApp('/settings?tab=branding');
 
     const form = await brandingForm();
     await userEvent.click(within(form).getByLabelText("Use my workshop's colour"));
@@ -227,7 +227,7 @@ describe('branding settings (workshop ADMIN)', () => {
       return branding({ logoUrl: '/api/v1/tenants/current/logo?v=new' });
     });
     server.use(sessionFor(user('ADMIN', 'admin')));
-    renderApp('/settings');
+    renderApp('/settings?tab=branding');
     const person = userEvent.setup({ applyAccept: false });
 
     const logo = await screen.findByTestId('branding-logo');
@@ -263,7 +263,7 @@ describe('branding settings (workshop ADMIN)', () => {
 
   it('is not offered to staff', async () => {
     server.use(sessionFor(user('SERVICE_ADVISOR', 'advisor1')));
-    renderApp('/settings');
+    renderApp('/settings?tab=branding');
     expect(await screen.findByText('Not permitted')).toBeInTheDocument();
     expect(screen.queryByRole('form', { name: 'Branding' })).not.toBeInTheDocument();
   });
@@ -367,7 +367,7 @@ describe('dark-mode logo and icon (branding phase 2)', () => {
         ),
       );
     server.use(sessionFor(user('ADMIN', 'admin')));
-    renderApp('/settings');
+    renderApp('/settings?tab=branding');
     const person = userEvent.setup({ applyAccept: false });
     const png = () => new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'x.png', { type: 'image/png' });
 

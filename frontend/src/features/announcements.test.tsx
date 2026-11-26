@@ -46,7 +46,7 @@ describe('announcements (workshop ADMIN)', () => {
         ]),
       ),
     );
-    renderApp('/settings');
+    renderApp('/settings?tab=branding');
 
     const rows = await screen.findAllByTestId('announcement-row', undefined, SLOW_PAGE);
     expect(rows).toHaveLength(3);
@@ -65,7 +65,7 @@ describe('announcements (workshop ADMIN)', () => {
         return HttpResponse.json(announcement({ text: sent.text as string }), { status: 201 });
       }),
     );
-    renderApp('/settings');
+    renderApp('/settings?tab=branding');
     await userEvent.click(await addButton());
     const dialog = await screen.findByRole('dialog', { name: 'Add announcement' });
     await userEvent.type(within(dialog).getByLabelText('Message'), 'Holiday hours: closed 24–26 December');
@@ -90,7 +90,7 @@ describe('announcements (workshop ADMIN)', () => {
         problem(409, 'too-many-announcements', 'A workshop can keep at most 10 announcements.'),
       ),
     );
-    renderApp('/settings');
+    renderApp('/settings?tab=branding');
     await userEvent.click(await addButton());
     const dialog = await screen.findByRole('dialog', { name: 'Add announcement' });
     await userEvent.type(within(dialog).getByLabelText('Message'), 'Holiday');
@@ -123,7 +123,7 @@ describe('announcements (workshop ADMIN)', () => {
         return new HttpResponse(null, { status: 204 });
       }),
     );
-    renderApp('/settings');
+    renderApp('/settings?tab=branding');
 
     const rows = await screen.findAllByTestId('announcement-row', undefined, SLOW_PAGE);
     await userEvent.click(within(rows[0]).getByRole('button', { name: /^Edit/ }));

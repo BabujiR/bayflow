@@ -131,7 +131,7 @@ describe('maintenance reminders (R3b)', () => {
         return HttpResponse.json({ id: 'i9', ...created, version: 0 }, { status: 201 });
       }),
     );
-    renderApp('/settings');
+    renderApp('/settings?tab=reminders');
 
     const section = await screen.findByRole('region', { name: 'Service intervals' });
     await userEvent.click(within(section).getByRole('button', { name: 'Add interval' }));
