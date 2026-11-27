@@ -25,7 +25,6 @@ public class BrandingService {
 
     private static final Pattern COLOR = Pattern.compile("^#[0-9a-fA-F]{6}$");
 
-    /** Branding with the hashes of the images the workshop has (null when it has none). */
     /** The branding and the SHA-256 of each image the workshop has (null = none). */
     public record BrandingView(TenantBranding branding, String logoSha256, String logoDarkSha256,
             String iconSha256, String coverSha256) {
