@@ -243,7 +243,7 @@ services:
   # Scrapes /actuator/prometheus inside this network; nothing is published to the internet.
   # Open it through an SSH tunnel: gcloud compute ssh <vm> -- -L 9090:localhost:9090
   prometheus:
-    image: prom/prometheus:v3.13.5   # LTS line (supported to mid-2027)
+    image: prom/prometheus:v3.16.0   # LTS line (supported to mid-2027)
     profiles: [monitoring]
     restart: unless-stopped
     <<: *logging
