@@ -1389,6 +1389,38 @@
         ]
       }
     },
+    "/api/v1/booking/vin": {
+      "get": {
+        "tags": [
+          "Online booking (public)"
+        ],
+        "summary": "Year, make and model from a VIN, to fill in the booking form (NHTSA vPIC)",
+        "description": "Send the X-Bayflow-Client header like the web app. Limited per address; 404 vin-not-decoded and 503 vin-decoder-unavailable mean the details are typed by hand.",
+        "operationId": "vin",
+        "parameters": [
+          {
+            "name": "vin",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicVin"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/booking/options": {
       "get": {
         "tags": [
@@ -2563,6 +2595,27 @@
           "totalPages": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "PublicVin": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "make": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

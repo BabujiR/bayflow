@@ -472,6 +472,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/booking/vin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Year, make and model from a VIN, to fill in the booking form (NHTSA vPIC)
+         * @description Send the X-Bayflow-Client header like the web app. Limited per address; 404 vin-not-decoded and 503 vin-decoder-unavailable mean the details are typed by hand.
+         */
+        get: operations["vin"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/booking/options": {
         parameters: {
             query?: never;
@@ -875,6 +895,13 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+        };
+        PublicVin: {
+            /** Format: int32 */
+            year?: number;
+            make?: string;
+            model?: string;
+            warnings?: string[];
         };
         Options: {
             shopName?: string;
@@ -1732,6 +1759,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CustomerResponse"];
+                };
+            };
+        };
+    };
+    vin: {
+        parameters: {
+            query: {
+                vin: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicVin"];
                 };
             };
         };
