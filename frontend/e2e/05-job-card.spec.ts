@@ -133,10 +133,13 @@ test.describe('Job card', () => {
 
     await advisor.say('Reloads and records the second item on the customer’s behalf');
     await advisor.page.reload();
-    await expect(advisor.page.getByText(`by ${customer.username}`)).toBeVisible();
+    // Read on each item: the approval-link card also says who sent it ("… by advisor1").
+    const item = (description: string) =>
+      advisor.page.getByRole('listitem').filter({ hasText: description });
+    await expect(item(oil).getByText(`by ${customer.username}`)).toBeVisible();
     await advisor.page.getByRole('button', { name: `Approve ${tyres}` }).click();
     await expect(jobCardHeading(advisor)).toContainText('Approved');
-    await expect(advisor.page.getByText('by advisor1')).toBeVisible();
+    await expect(item(tyres).getByText('by advisor1')).toBeVisible();
     await advisor.check('Each decision shows who made it: the customer or the advisor');
 
     await c.page.reload();

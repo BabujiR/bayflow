@@ -1,6 +1,7 @@
 package com.bayflow.appointment.application;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bayflow.appointment.config.IntegrationProperties;
@@ -21,6 +23,7 @@ import com.bayflow.appointment.domain.OutboxMessage;
 import com.bayflow.appointment.infrastructure.AppointmentRepository;
 import com.bayflow.appointment.infrastructure.OutboxRepository;
 import com.bayflow.appointment.infrastructure.OutboxRepository.DueMessage;
+import com.bayflow.appointment.integration.MailClient;
 import com.bayflow.appointment.integration.NotificationPayload;
 import com.bayflow.appointment.integration.OpenJobCardPayload;
 import com.bayflow.security.CurrentUser;
@@ -31,6 +34,9 @@ import tools.jackson.databind.json.JsonMapper;
 /** Database side of the outbox: storing, finding and settling messages. */
 @Service
 public class OutboxService {
+
+    /** How long a claimed message is left to its sender (longer than any HTTP timeout here). */
+    static final Duration CLAIM_LEASE = Duration.ofMinutes(2);
 
     private static final Logger log = LoggerFactory.getLogger(OutboxService.class);
 
@@ -62,6 +68,37 @@ public class OutboxService {
                 json.writeValueAsString(payload), clock.instant()));
     }
 
+    /** An e-mail was queued; sent right after the transaction commits (see the dispatcher). */
+    public record MailQueued(UUID tenantId, UUID appointmentId) {
+    }
+
+    /**
+     * Queues an e-mail in the caller's transaction: it is sent (through auth-service) only if the
+     * change commits, after the commit, so no database lock waits on the mail service; failures
+     * are retried like any outbox message.
+     */
+    @Transactional
+    public void enqueueMail(UUID appointmentId, MailClient.Mail mail) {
+        UUID tenant = TenantContext.require();
+        outbox.save(OutboxMessage.create(appointmentId, OutboxMessage.SEND_MAIL, json.writeValueAsString(mail),
+                clock.instant()));
+        events.publishEvent(new MailQueued(tenant, appointmentId));
+    }
+
+    public MailClient.Mail mail(OutboxMessage message) {
+        return json.readValue(message.getPayload(), MailClient.Mail.class);
+    }
+
+    /** Settles a sent e-mail and forgets its content (it may hold a private link). */
+    @Transactional
+    public void markMailSent(UUID messageId) {
+        OutboxMessage message = outbox.findById(messageId).orElseThrow();
+        if (!message.isProcessed()) {
+            message.markDelivered(clock.instant());
+            message.forgetPayload();
+        }
+    }
+
     /** A notification event was queued; sent right after the transaction commits (see the dispatcher). */
     public record NotificationQueued(UUID tenantId, UUID appointmentId) {
     }
@@ -72,6 +109,16 @@ public class OutboxService {
      */
     @Transactional
     public void enqueueNotification(Appointment appointment, String type, Instant previousScheduledAt) {
+        enqueueNotification(appointment, type, previousScheduledAt, false);
+    }
+
+    /**
+     * {@code byCustomer}: the customer did it without signing in (the public booking page or
+     * their booking's private link), so the shop's desk is told.
+     */
+    @Transactional
+    public void enqueueNotification(Appointment appointment, String type, Instant previousScheduledAt,
+            boolean byCustomer) {
         if (!properties.getNotifications().isEnabled()) {
             return;
         }
@@ -79,7 +126,8 @@ public class OutboxService {
         UUID tenant = TenantContext.require();
         NotificationPayload payload = new NotificationPayload(null, tenant,
                 appointment.getLocationId(), type, actor == null ? null : parseId(actor.subject()),
-                actor != null && actor.isCustomer(), appointment.getCustomer().getUserId(), appointment.getId(),
+                byCustomer || actor != null && actor.isCustomer(), appointment.getCustomer().getUserId(),
+                appointment.getId(),
                 appointment.getVehicle().getRegistration(), appointment.getScheduledAt(), previousScheduledAt);
         outbox.save(OutboxMessage.create(appointment.getId(), OutboxMessage.NOTIFY,
                 json.writeValueAsString(payload), clock.instant()));
@@ -114,7 +162,7 @@ public class OutboxService {
 
     @Transactional(readOnly = true)
     public List<OutboxMessage> pendingFor(UUID appointmentId) {
-        return outbox.findByAppointmentIdAndProcessedAtIsNull(appointmentId);
+        return outbox.findByAppointmentIdAndProcessedAtIsNullAndFailedAtIsNull(appointmentId);
     }
 
     /**
@@ -127,6 +175,18 @@ public class OutboxService {
     }
 
     /** A message of the current workshop. */
+    /**
+     * Claims the message before sending it, so it goes out once even when the immediate send and
+     * the dispatcher (or two instances) reach it together. A claim lasts {@link #CLAIM_LEASE}: a
+     * sender that dies mid-send leaves the message to be retried after that. True when the caller
+     * may send it now.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean claim(UUID messageId) {
+        Instant now = clock.instant();
+        return outbox.claim(messageId, now, now.plus(CLAIM_LEASE)) == 1;
+    }
+
     @Transactional(readOnly = true)
     public Optional<OutboxMessage> find(UUID messageId) {
         return outbox.findById(messageId);
@@ -162,6 +222,10 @@ public class OutboxService {
             return;
         }
         IntegrationProperties.Dispatcher settings = properties.getDispatcher();
-        message.markFailed(error, clock.instant(), settings.getInitialBackoff(), settings.getMaxBackoff());
+        if (message.markFailed(error, clock.instant(), settings.getInitialBackoff(), settings.getMaxBackoff(),
+                settings.getMaxAttempts())) {
+            log.error("Gave up on outbox message {} ({}, appointment {}) after {} attempts: {}", message.getId(),
+                    message.getType(), message.getAppointmentId(), message.getAttempts(), message.getLastError());
+        }
     }
 }

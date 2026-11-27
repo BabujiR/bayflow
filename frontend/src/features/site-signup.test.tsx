@@ -116,10 +116,13 @@ describe('the public site (base domain)', () => {
     expect(within(form).getByLabelText('Workshop address')).toHaveValue('kiwi-motors');
     expect(await within(form).findByText('kiwi-motors.localhost is available')).toBeInTheDocument();
     await userEvent.selectOptions(within(form).getByLabelText('Currency'), 'NZD');
+    // The owner also works on cars.
+    await userEvent.click(within(form).getByRole('checkbox', { name: /I also work on cars/ }));
     await userEvent.click(within(form).getByRole('button', { name: 'Create workshop' }));
 
     await vi.waitFor(() =>
       expect(sent).toMatchObject({
+        ownerAlso: ['MECHANIC'],
         workshopName: 'Kiwi Motors',
         slug: 'kiwi-motors',
         currency: 'NZD',

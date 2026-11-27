@@ -40,6 +40,9 @@ final class BrandingImages {
     /** Square: anything else is centred on a transparent square, never cropped. */
     static final Rules ICON = new Rules(1024 * 1024, 512, 512, "image/png", "png");
 
+    /** A user's profile photo: cut to the centre square, kept at 256 px, JPEG. */
+    static final Rules AVATAR = new Rules(2 * 1024 * 1024, 256, 256, "image/jpeg", "jpeg");
+
     /** Refuse images whose header claims more pixels than this before decoding (decompression bombs). */
     static final long MAX_SOURCE_PIXELS = 40_000_000L;
 
@@ -64,10 +67,10 @@ final class BrandingImages {
             throw invalid("The file is empty.");
         }
         if (upload.length > rules.maxBytes()) {
-            throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "image-too-large", "Payload Too Large",
+            throw new ApiException(HttpStatus.CONTENT_TOO_LARGE, "image-too-large", "Content Too Large",
                     "The " + label(kind) + " may be at most " + (rules.maxBytes() / (1024 * 1024)) + " MB.");
         }
-        if (!isPng(upload) && !isJpeg(upload)) {
+        if (isNeitherPngNorJpeg(upload)) {
             throw new ApiException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported-image",
                     "Unsupported Media Type", "Upload a PNG or JPEG image.");
         }
@@ -80,7 +83,38 @@ final class BrandingImages {
         return new Processed(rules.contentType(), content, sha256(content), scaled.getWidth(), scaled.getHeight());
     }
 
-    static boolean isPng(byte[] b) {
+    /** A profile photo: checked like the branding images, cut to its centre square, 256 px JPEG. */
+    static Processed processAvatar(byte[] upload) {
+        Rules rules = AVATAR;
+        if (upload == null || upload.length == 0) {
+            throw invalid("The file is empty.");
+        }
+        if (upload.length > rules.maxBytes()) {
+            throw new ApiException(HttpStatus.CONTENT_TOO_LARGE, "image-too-large", "Content Too Large",
+                    "The photo may be at most 2 MB.");
+        }
+        if (isNeitherPngNorJpeg(upload)) {
+            throw new ApiException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported-image",
+                    "Unsupported Media Type", "Upload a PNG or JPEG photo.");
+        }
+        BufferedImage source = decode(upload);
+        BufferedImage scaled = scale(cropped(source), rules, false);
+        byte[] content = encode(scaled, rules);
+        return new Processed(rules.contentType(), content, sha256(content), scaled.getWidth(), scaled.getHeight());
+    }
+
+    /** The centre square of the image (a face in a portrait photo stays in). */
+    private static BufferedImage cropped(BufferedImage image) {
+        int side = Math.min(image.getWidth(), image.getHeight());
+        return image.getSubimage((image.getWidth() - side) / 2, (image.getHeight() - side) / 2, side, side);
+    }
+
+    /** Recognised by content (magic bytes), never by file name or declared type. */
+    private static boolean isNeitherPngNorJpeg(byte[] b) {
+        return !isPng(b) && !isJpeg(b);
+    }
+
+    private static boolean isPng(byte[] b) {
         return b.length >= 8 && (b[0] & 0xff) == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G'
                 && b[4] == 0x0d && b[5] == 0x0a && b[6] == 0x1a && b[7] == 0x0a;
     }

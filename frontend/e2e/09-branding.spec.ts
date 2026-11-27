@@ -38,7 +38,11 @@ test.describe('Workshop branding', () => {
     const owner = await cast.actor('Workshop owner', { at: workshopURL });
     await owner.signIn('owner', NEW_PASSWORD);
     await owner.page.goto(`${workshopURL}/settings`);
-    await owner.say('Opens Branding in the workshop settings');
+    await owner.page
+      .getByRole('tablist', { name: 'Settings' })
+      .getByRole('tab', { name: 'Branding' })
+      .click();
+    await owner.say('Opens the Branding tab in the workshop settings');
 
     const logo = owner.page.getByTestId('branding-logo');
     await expect(logo.getByText('Ramplight logo shown')).toBeVisible();

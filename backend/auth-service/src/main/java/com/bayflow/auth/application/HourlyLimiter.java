@@ -3,59 +3,56 @@ package com.bayflow.auth.application;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.bayflow.ops.InMemoryRateLimitStore;
+import com.bayflow.ops.RateLimitStore;
+
 /**
- * Counts events per key in fixed one-hour windows (in memory, per instance), e.g. password-reset
- * e-mails per address and requests per IP address.
+ * Counts events per key in fixed one-hour windows, e.g. password-reset e-mails per address and
+ * requests per IP address. Counted in the database ({@link RateLimitStore}), so the limits hold
+ * across instances of auth-service.
  */
 @Component
 public class HourlyLimiter {
 
     static final Duration WINDOW = Duration.ofHours(1);
-    private static final int CLEANUP_THRESHOLD = 10_000;
 
-    private record Window(Instant start, int count) {
-    }
-
-    private final ConcurrentHashMap<String, Window> windows = new ConcurrentHashMap<>();
     private final Clock clock;
+    private final RateLimitStore store;
 
-    public HourlyLimiter(Clock clock) {
+    @Autowired
+    public HourlyLimiter(Clock clock, RateLimitStore store) {
         this.clock = clock;
+        this.store = store;
     }
 
-    /** Counts one event for {@code key}; false once more than {@code limit} happened this hour. */
+    /* Counted in memory (unit tests). */
+    public HourlyLimiter(Clock clock) {
+        this(clock, new InMemoryRateLimitStore());
+    }
+
+    /* Counts one event for {@code key}; false once more than {@code limit} happened this hour. */
     public boolean tryAcquire(String key, int limit) {
-        return window(key).count() <= limit;
+        return hit(key, clock.instant()) <= limit;
     }
 
-    /** Counts one event for {@code key}; throws 429 once more than {@code limit} happened this hour. */
+    /* Counts one event for {@code key}; throws 429 once more than {@code limit} happened this hour. */
     public void check(String key, int limit) {
-        Window window = window(key);
-        if (window.count() > limit) {
-            Duration retryAfter = Duration.between(clock.instant(), window.start().plus(WINDOW));
-            throw new TooManyRequestsException(retryAfter.isNegative() || retryAfter.isZero()
-                    ? Duration.ofSeconds(1) : retryAfter);
-        }
-    }
-
-    /** Forgets every window (tests). */
-    public void reset() {
-        windows.clear();
-    }
-
-    private Window window(String key) {
         Instant now = clock.instant();
-        Window window = windows.compute(key, (k, current) ->
-                current == null || !now.isBefore(current.start().plus(WINDOW))
-                        ? new Window(now, 1)
-                        : new Window(current.start(), current.count() + 1));
-        if (windows.size() > CLEANUP_THRESHOLD) {
-            windows.entrySet().removeIf(e -> !now.isBefore(e.getValue().start().plus(WINDOW)));
+        if (hit(key, now) > limit) {
+            throw new TooManyRequestsException(RateLimits.retryAfter(now, WINDOW));
         }
-        return window;
+    }
+
+    /* Forgets every count (tests). */
+    public void reset() {
+        store.clear();
+    }
+
+    private int hit(String key, Instant now) {
+        return store.hit("hourly|" + key, now, WINDOW);
     }
 }

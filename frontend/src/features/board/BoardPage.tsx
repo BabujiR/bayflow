@@ -7,6 +7,7 @@ import type { Appointment, AppointmentStatus } from '@/api/types';
 import { PageHeader } from '@/components/common/PageHeader';
 import { QueryState } from '@/components/common/QueryState';
 import { AppointmentStatusBadge } from '@/components/common/StatusBadge';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -144,16 +145,21 @@ function BoardCard({ appointment: a, zone }: { appointment: Appointment; zone?: 
           <span className="text-xs text-muted-foreground">{a.durationMinutes} min</span>
         </div>
         <div>
-          <span className="font-medium">{a.vehicle.registration}</span>{' '}
+          <span className="font-medium">{a.vehicle.registration ?? 'No plate yet'}</span>{' '}
           <span className="text-muted-foreground">
-            {a.vehicle.make} {a.vehicle.model}
+            {a.vehicle.make ? `${a.vehicle.make} ${a.vehicle.model}` : `VIN ${a.vehicle.vin}`}
           </span>
+          {a.bookedOnline && (
+            <Badge variant="outline" className="ml-2">
+              Online
+            </Badge>
+          )}
         </div>
         <div className="text-muted-foreground">
           <Link to={`/customers/${a.customerId}`} className="hover:underline">
             {a.customerName}
           </Link>{' '}
-          · {SERVICE_TYPE_LABELS[a.serviceType]}
+          · {a.bookedOnline && a.serviceName ? a.serviceName : SERVICE_TYPE_LABELS[a.serviceType]}
         </div>
         {a.notes && <p className="rounded bg-muted px-2 py-1 text-xs">{a.notes}</p>}
         <AppointmentActions appointment={a} />

@@ -4,6 +4,275 @@
  */
 
 export interface paths {
+    "/api/v1/auth/users/{id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set everything a staff member does (one or more of ADMIN, MANAGER, SERVICE_ADVISOR, MECHANIC)
+         * @description Applies from the user's next token (within 15 minutes). 409 last-admin / cannot-remove-own-admin keep the workshop administrable.
+         */
+        put: operations["setRoles"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/users/{id}/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the locations a MANAGER, SERVICE_ADVISOR or MECHANIC works at
+         * @description Applies from the user's next token (within 15 minutes).
+         */
+        put: operations["setLocations"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/tenant/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change the workshop's settings (workshop ADMIN)
+         * @description Send the version you read; 409 if someone changed the settings meanwhile.
+         */
+        put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/tenant/branding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The workshop's branding (workshop ADMIN) */
+        get: operations["get"];
+        /**
+         * Change colour and 'Powered by Ramplight' (workshop ADMIN)
+         * @description Send the version you read; 409 if someone changed the branding meanwhile. Empty colour = Ramplight's colours.
+         */
+        put: operations["update_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/tenant/branding/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Upload the logo, dark-mode logo, icon or cover photo (workshop ADMIN)
+         * @description kind = logo or logo-dark (PNG/JPEG, up to 1 MB, kept up to 512 px), icon (PNG/JPEG, up to 1 MB, made square on a transparent background, up to 512 px) or cover (PNG/JPEG, up to 3 MB, kept up to 2000 px). The image is re-encoded; its metadata is removed.
+         */
+        put: operations["upload"];
+        post?: never;
+        /** Remove the logo, dark-mode logo, icon or cover photo (workshop ADMIN) */
+        delete: operations["remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/tenant/branding/announcements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change an announcement (workshop ADMIN)
+         * @description Send the version you read; 409 if someone changed it meanwhile.
+         */
+        put: operations["update_2"];
+        post?: never;
+        /** Delete an announcement (workshop ADMIN) */
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/platform/demo-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One demo request */
+        get: operations["demoRequest"];
+        /** Move a demo request on (status) and keep notes; send the version read */
+        put: operations["update_3"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Show me as my initials or a built-in character (removes my photo) */
+        put: operations["choose"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me/avatar/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Use my own photo (PNG or JPEG, up to 2 MB)
+         * @description Cut to its centre square, kept at 256 px as JPEG; its metadata (e.g. location) is removed.
+         */
+        put: operations["upload_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/locations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a location (ADMIN); send the version you read (409 if stale) */
+        put: operations["update_4"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/locations/{id}/billing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a location's tax rates, fees and invoice terms (ADMIN); send the version you read */
+        put: operations["updateBilling"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign up a new workshop with its first ADMIN, with a setup invite's token (public, rate-limited per IP)
+         * @description Send the X-Bayflow-Client header like the web app. The workshop is then at <slug>.<base domain>; sign in there. 400 invite-invalid / invite-expired / invite-used when the link doesn't work.
+         */
+        post: operations["signup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/invitations/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Whether a setup link works, and who it is for (400 invite-* when not) */
+        post: operations["checkInvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/demo-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for a demo (public, rate-limited per IP)
+         * @description Send the X-Bayflow-Client header like the web app.
+         */
+        post: operations["request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/users": {
         parameters: {
             query?: never;
@@ -12,13 +281,36 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List all accounts
+         * List accounts: the team (kind=staff), customers (kind=customer) or all (default)
          * @description Sort by username, email, createdAt or enabled, e.g. sort=createdAt,desc
          */
         get: operations["list"];
         put?: never;
-        /** Create a SERVICE_ADVISOR, MECHANIC or ADMIN account */
+        /**
+         * Create a MANAGER, SERVICE_ADVISOR, MECHANIC or ADMIN account
+         * @description MANAGER, SERVICE_ADVISOR and MECHANIC work at locationIds; without them, at the organization's only location (400 locations-required if it has several).
+         */
         post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/users/{id}/password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset a forgotten password (ADMIN: anyone else; MANAGER, SERVICE_ADVISOR: customers)
+         * @description Returns a temporary password, shown once. It must be replaced at the next sign-in, stops working after bayflow.auth.temporary-password-ttl (72 hours), and the account is unlocked and signed out everywhere.
+         */
+        post: operations["reset"];
         delete?: never;
         options?: never;
         head?: never;
@@ -42,6 +334,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/tenant/branding/announcements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** All the workshop's announcements, oldest first, with whether each is live, scheduled or ended (workshop ADMIN) */
+        get: operations["list_1"];
+        put?: never;
+        /** Add an announcement (workshop ADMIN; at most 10, 409 too-many-announcements) */
+        post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/register": {
         parameters: {
             query?: never;
@@ -51,7 +361,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Register a customer account */
+        /** Register a customer account in this workshop */
         post: operations["register"];
         delete?: never;
         options?: never;
@@ -70,6 +380,173 @@ export interface paths {
         put?: never;
         /** Rotate the refresh-token cookie and return a new access token */
         post: operations["refresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/platform/workshops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Workshops, newest first (status, test, q: name or address) */
+        get: operations["list_2"];
+        put?: never;
+        /** Create a test workshop (no invite; labelled Test) with its first ADMIN */
+        post: operations["createTest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/platform/workshops/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend a workshop: nobody can sign in at its address; its data is kept */
+        post: operations["suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/platform/workshops/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reactivate a suspended workshop */
+        post: operations["reactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/platform/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Setup invites, newest first (state, q: email, contact or shop) */
+        get: operations["list_3"];
+        put?: never;
+        /**
+         * Invite a workshop owner (e-mails the setup link when e-mail is set up)
+         * @description 409 already-invited when the address has an invite that still works.
+         */
+        post: operations["create_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/platform/invitations/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop an unused setup link from working */
+        post: operations["revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/platform/invitations/{id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a new setup link (the old one stops working) valid for another 7 days */
+        post: operations["resend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set a new password with the token from the reset e-mail; signs in
+         * @description The link works once, for 60 minutes. Ends every other session. 400 reset-link-invalid when it expired or was used.
+         */
+        post: operations["resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password/forgot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Forgot password: e-mail a reset link to this address, if it has an account
+         * @description Always 202, whether or not the address has an account. 503 when e-mail is not set up; 429 after too many requests from one IP address.
+         */
+        post: operations["forgotPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change your own password (also replaces a temporary one after a reset)
+         * @description Ends your other sessions; returns a new access token and refresh-token cookie.
+         */
+        post: operations["changePassword"];
         delete?: never;
         options?: never;
         head?: never;
@@ -102,8 +579,103 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Sign in; returns an access token and sets the refresh-token cookie */
+        /** Sign in with username or e-mail; returns an access token and sets the refresh-token cookie */
         post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The organization's locations, with their effective time zone and labour rate
+         * @description Customers see the active locations only.
+         */
+        get: operations["list_4"];
+        put?: never;
+        /** Add a location (ADMIN) */
+        post: operations["create_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/locations/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make an archived location active again (ADMIN) */
+        post: operations["reactivate_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/locations/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive a location (ADMIN): keeps its history, takes no new bookings or staff
+         * @description 409 for the last active location or one with upcoming appointments.
+         */
+        post: operations["archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/internal/tenants/{tenantId}/mail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Queue an e-mail for an organization (SYSTEM)
+         * @description Sent right away and retried if the mail server is down. 503 when e-mail is not set up.
+         */
+        post: operations["send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/customer-accounts/{userId}/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unlock a customer locked out after too many failed sign-ins */
+        post: operations["unlock"];
         delete?: never;
         options?: never;
         head?: never;
@@ -124,7 +696,133 @@ export interface paths {
         options?: never;
         head?: never;
         /** Enable or disable an account; disabling ends its sessions */
-        patch: operations["update"];
+        patch: operations["update_5"];
+        trace?: never;
+    };
+    "/api/v1/auth/customer-accounts/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A customer's online account: status for their page */
+        get: operations["get_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Disable or enable a customer's sign-in (MANAGER, ADMIN); disabling signs them out */
+        patch: operations["setEnabled"];
+        trace?: never;
+    };
+    "/api/v1/tenants/slug-availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether an address is free for a new workshop */
+        get: operations["availability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The workshop at this address, for its sign-in page (404 when there is none) */
+        get: operations["current"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/current/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The logo, dark-mode logo, icon or sign-in cover photo of the workshop at this address (404 when none)
+         * @description Cached by the browser: forever with the ?v= of /current, otherwise revalidated with the ETag.
+         */
+        get: operations["image"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/current/avatars/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A user's photo at this workshop's address (404 unless ?v= is its current version)
+         * @description Cached by the browser for good: a new photo has a new address.
+         */
+        get: operations["photo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/tenant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in user's workshop and its settings */
+        get: operations["current_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/platform/demo-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Demo requests, newest first (status, q: name, email, phone or shop) */
+        get: operations["demoRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/auth/me": {
@@ -136,6 +834,128 @@ export interface paths {
         };
         /** The signed-in user */
         get: operations["me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/internal/workshops/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The workshop at an address (SYSTEM) */
+        get: operations["byAddress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/internal/tenants/{tenantId}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A workshop's settings, for other Bayflow services (SYSTEM) */
+        get: operations["forService"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/internal/tenants/{tenantId}/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An organization's locations and their effective settings (SYSTEM) */
+        get: operations["forService_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/internal/tenants/{tenantId}/locations/{locationId}/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ids of the enabled staff with the given roles at a location (SYSTEM) */
+        get: operations["staffForService"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/internal/tenants/{tenantId}/locations/{locationId}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One location's effective settings (SYSTEM); 404 if it is not the organization's */
+        get: operations["settingsForService"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/customer-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Several customers' account status at once (ids=…, at most 100): the customer list */
+        get: operations["statuses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/audit-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The workshop's account changes, newest first (one account's with userId)
+         * @description Staff created, roles and locations changed, accounts enabled, disabled or unlocked, passwords reset, photos removed: who did it, and when.
+         */
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -161,17 +981,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/users/{id}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Put a user back to their initials (workshop ADMIN), e.g. for an unsuitable photo */
+        delete: operations["reset_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        CreateStaffRequest: {
-            username: string;
-            /** Format: email */
-            email: string;
-            password: string;
+        UpdateRolesRequest: {
+            roles: ("CUSTOMER" | "SERVICE_ADVISOR" | "MECHANIC" | "MANAGER" | "ADMIN" | "PLATFORM_ADMIN")[];
+            locationIds?: string[];
+        };
+        AvatarResponse: {
             /** @enum {string} */
-            role: "CUSTOMER" | "SERVICE_ADVISOR" | "MECHANIC" | "ADMIN";
+            kind?: "INITIALS" | "CHARACTER" | "PHOTO";
+            character?: string;
+            photoUrl?: string;
         };
         UserResponse: {
             /** Format: uuid */
@@ -182,6 +1021,232 @@ export interface components {
             enabled?: boolean;
             /** Format: date-time */
             createdAt?: string;
+            allLocations?: boolean;
+            locationIds?: string[];
+            mustChangePassword?: boolean;
+            avatar?: components["schemas"]["AvatarResponse"];
+        };
+        UpdateLocationsRequest: {
+            locationIds: string[];
+        };
+        UpdateSettingsRequest: {
+            displayName: string;
+            phone?: string;
+            /** Format: email */
+            email?: string;
+            address?: string;
+            labourRate: number;
+            currency: string;
+            timeZone: string;
+            /** Format: int64 */
+            version: number;
+        };
+        WorkshopResponse: {
+            /** Format: uuid */
+            id?: string;
+            slug?: string;
+            name?: string;
+            displayName?: string;
+            phone?: string;
+            email?: string;
+            address?: string;
+            labourRate?: number;
+            currency?: string;
+            timeZone?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        UpdateBrandingRequest: {
+            primaryColor?: string;
+            showPoweredBy: boolean;
+            /** Format: int64 */
+            version: number;
+        };
+        BrandingResponse: {
+            primaryColor?: string;
+            showPoweredBy?: boolean;
+            logoUrl?: string;
+            coverUrl?: string;
+            logoDarkUrl?: string;
+            iconUrl?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        UpdateAnnouncementRequest: {
+            text?: string;
+            /** @enum {string} */
+            style?: "INFO" | "IMPORTANT";
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AnnouncementResponse: {
+            /** Format: uuid */
+            id?: string;
+            text?: string;
+            /** @enum {string} */
+            style?: "INFO" | "IMPORTANT";
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            /** @enum {string} */
+            state?: "LIVE" | "SCHEDULED" | "ENDED";
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        UpdateDemoRequest: {
+            /** @enum {string} */
+            status: "NEW" | "CONTACTED" | "DEMO_SCHEDULED" | "DEMO_DONE" | "INVITED" | "ONBOARDED" | "DECLINED";
+            notes?: string;
+            /** Format: int64 */
+            version: number;
+        };
+        DemoRequestResponse: {
+            /** Format: uuid */
+            id?: string;
+            firstName?: string;
+            lastName?: string;
+            email?: string;
+            phone?: string;
+            shopName?: string;
+            shopType?: string;
+            locations?: string;
+            city?: string;
+            message?: string;
+            /** @enum {string} */
+            status?: "NEW" | "CONTACTED" | "DEMO_SCHEDULED" | "DEMO_DONE" | "INVITED" | "ONBOARDED" | "DECLINED";
+            notes?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy?: string;
+            /** Format: int64 */
+            version?: number;
+            /** Format: int32 */
+            repeatCount?: number;
+            /** Format: date-time */
+            lastRequestedAt?: string;
+        };
+        AvatarRequest: {
+            /** @enum {string} */
+            kind: "INITIALS" | "CHARACTER" | "PHOTO";
+            character?: string;
+        };
+        LocationRequest: {
+            code: string;
+            name: string;
+            phone?: string;
+            /** Format: email */
+            email?: string;
+            address?: string;
+            timeZone?: string;
+            labourRate?: number;
+            /** Format: int64 */
+            version?: number;
+        };
+        BillingSettings: {
+            partsTaxRate: number;
+            labourTaxRate: number;
+            feesTaxRate: number;
+            shopSuppliesPercent?: number;
+            shopSuppliesCap?: number;
+            disposalFee?: number;
+            /** Format: int32 */
+            paymentTermsDays?: number;
+            invoiceFooter?: string;
+        };
+        LocationResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            phone?: string;
+            email?: string;
+            address?: string;
+            status?: string;
+            timeZone?: string;
+            labourRate?: number;
+            currency?: string;
+            ownTimeZone?: string;
+            ownLabourRate?: number;
+            /** Format: int64 */
+            version?: number;
+            billing?: components["schemas"]["BillingSettings"];
+        };
+        BillingRequest: {
+            billing: components["schemas"]["BillingSettings"];
+            /** Format: int64 */
+            version: number;
+        };
+        SignupRequest: {
+            workshopName: string;
+            slug: string;
+            labourRate?: number;
+            currency?: string;
+            timeZone?: string;
+            adminUsername: string;
+            /** Format: email */
+            adminEmail: string;
+            adminPassword: string;
+            inviteToken: string;
+            ownerAlso?: ("CUSTOMER" | "SERVICE_ADVISOR" | "MECHANIC" | "MANAGER" | "ADMIN" | "PLATFORM_ADMIN")[];
+        };
+        SignupResponse: {
+            /** Format: uuid */
+            id?: string;
+            slug?: string;
+            name?: string;
+            adminUsername?: string;
+        };
+        InviteCheck: {
+            token: string;
+        };
+        InviteDetails: {
+            email?: string;
+            contactName?: string;
+            shopName?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+        };
+        DemoRequestBody: {
+            firstName: string;
+            lastName: string;
+            /** Format: email */
+            email: string;
+            phone: string;
+            shopName: string;
+            shopType?: string;
+            locations: string;
+            city?: string;
+            message?: string;
+        };
+        DemoResponse: {
+            received?: boolean;
+        };
+        CreateStaffRequest: {
+            username: string;
+            /** Format: email */
+            email: string;
+            password: string;
+            /** @enum {string} */
+            role?: "CUSTOMER" | "SERVICE_ADVISOR" | "MECHANIC" | "MANAGER" | "ADMIN" | "PLATFORM_ADMIN";
+            roles?: ("CUSTOMER" | "SERVICE_ADVISOR" | "MECHANIC" | "MANAGER" | "ADMIN" | "PLATFORM_ADMIN")[];
+            locationIds?: string[];
+        };
+        TemporaryPasswordResponse: {
+            /** Format: uuid */
+            userId?: string;
+            username?: string;
+            temporaryPassword?: string;
+            /** Format: date-time */
+            expiresAt?: string;
         };
         ClientTokenRequest: {
             clientId: string;
@@ -196,21 +1261,252 @@ export interface components {
             expiresAt?: string;
             user?: components["schemas"]["UserResponse"];
         };
+        AnnouncementRequest: {
+            text?: string;
+            /** @enum {string} */
+            style?: "INFO" | "IMPORTANT";
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string;
+        };
         RegisterRequest: {
             username: string;
             /** Format: email */
             email: string;
             password: string;
         };
+        TestWorkshopRequest: {
+            workshopName: string;
+            slug: string;
+            currency?: string;
+            timeZone?: string;
+            adminUsername: string;
+            /** Format: email */
+            adminEmail: string;
+            adminPassword: string;
+        };
+        ConsoleWorkshopResponse: {
+            /** Format: uuid */
+            id?: string;
+            slug?: string;
+            name?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "SUSPENDED";
+            test?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int32 */
+            staff?: number;
+            /** Format: int32 */
+            customers?: number;
+            /** Format: int32 */
+            locations?: number;
+            ownerUsername?: string;
+            ownerEmail?: string;
+            invitedEmail?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        CreateInvitation: {
+            /** Format: email */
+            email: string;
+            contactName?: string;
+            shopName?: string;
+            /** Format: uuid */
+            demoRequestId?: string;
+        };
+        InvitationResponse: {
+            /** Format: uuid */
+            id?: string;
+            email?: string;
+            contactName?: string;
+            shopName?: string;
+            /** Format: uuid */
+            demoRequestId?: string;
+            /** @enum {string} */
+            state?: "PENDING" | "EXPIRED" | "ACCEPTED" | "REVOKED";
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: int32 */
+            sentCount?: number;
+            /** Format: date-time */
+            lastSentAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            createdBy?: string;
+            /** Format: date-time */
+            acceptedAt?: string;
+            workshopSlug?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            revokedBy?: string;
+            expiringSoon?: boolean;
+            /** Format: date-time */
+            remindedAt?: string;
+        };
+        IssuedResponse: {
+            invitation?: components["schemas"]["InvitationResponse"];
+            setupUrl?: string;
+            emailed?: boolean;
+        };
+        ResetPasswordRequest: {
+            token: string;
+            newPassword: string;
+        };
+        ForgotPasswordRequest: {
+            /** Format: email */
+            email: string;
+        };
+        ChangePasswordRequest: {
+            currentPassword: string;
+            newPassword: string;
+        };
         LoginRequest: {
             username: string;
             password: string;
         };
+        ServiceMailRequest: {
+            /** Format: email */
+            to: string;
+            senderName: string;
+            /** Format: email */
+            replyTo?: string;
+            subject: string;
+            text: string;
+            html: string;
+        };
+        CustomerAccount: {
+            /** Format: uuid */
+            id?: string;
+            username?: string;
+            email?: string;
+            enabled?: boolean;
+            locked?: boolean;
+            /** Format: date-time */
+            lockedUntil?: string;
+            mustChangePassword?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+        };
         UpdateUserRequest: {
             enabled: boolean;
         };
+        EnabledRequest: {
+            enabled: boolean;
+        };
+        AvailabilityResponse: {
+            slug?: string;
+            available?: boolean;
+            reason?: string;
+        };
+        PublicAnnouncement: {
+            /** Format: uuid */
+            id?: string;
+            text?: string;
+            /** @enum {string} */
+            style?: "INFO" | "IMPORTANT";
+        };
+        PublicBranding: {
+            logoUrl?: string;
+            coverUrl?: string;
+            primaryColor?: string;
+            showPoweredBy?: boolean;
+            announcements?: components["schemas"]["PublicAnnouncement"][];
+            logoDarkUrl?: string;
+            iconUrl?: string;
+        };
+        PublicWorkshop: {
+            slug?: string;
+            name?: string;
+            displayName?: string;
+            active?: boolean;
+            branding?: components["schemas"]["PublicBranding"];
+            passwordResetByEmail?: boolean;
+        };
         PageResponseUserResponse: {
             content?: components["schemas"]["UserResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PageResponseConsoleWorkshopResponse: {
+            content?: components["schemas"]["ConsoleWorkshopResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PageResponseInvitationResponse: {
+            content?: components["schemas"]["InvitationResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PageResponseDemoRequestResponse: {
+            content?: components["schemas"]["DemoRequestResponse"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        WorkshopByAddress: {
+            /** Format: uuid */
+            id?: string;
+            slug?: string;
+            name?: string;
+            displayName?: string;
+            active?: boolean;
+        };
+        LocationSettingsResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            active?: boolean;
+            timeZone?: string;
+            labourRate?: number;
+            currency?: string;
+            phone?: string;
+            email?: string;
+            address?: string;
+            billing?: components["schemas"]["BillingSettings"];
+        };
+        AuditEventResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: date-time */
+            occurredAt?: string;
+            action?: string;
+            /** Format: uuid */
+            actorId?: string;
+            actorName?: string;
+            /** Format: uuid */
+            targetId?: string;
+            targetName?: string;
+            details?: string;
+            requestId?: string;
+        };
+        PageResponseAuditEventResponse: {
+            content?: components["schemas"]["AuditEventResponse"][];
             /** Format: int32 */
             page?: number;
             /** Format: int32 */
@@ -229,9 +1525,450 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    setRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRolesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    setLocations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLocationsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkshopResponse"];
+                };
+            };
+        };
+    };
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BrandingResponse"];
+                };
+            };
+        };
+    };
+    update_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateBrandingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BrandingResponse"];
+                };
+            };
+        };
+    };
+    upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BrandingResponse"];
+                };
+            };
+        };
+    };
+    remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BrandingResponse"];
+                };
+            };
+        };
+    };
+    update_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAnnouncementRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AnnouncementResponse"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    demoRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DemoRequestResponse"];
+                };
+            };
+        };
+    };
+    update_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDemoRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DemoRequestResponse"];
+                };
+            };
+        };
+    };
+    choose: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvatarRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    upload_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    update_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LocationResponse"];
+                };
+            };
+        };
+    };
+    updateBilling: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BillingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LocationResponse"];
+                };
+            };
+        };
+    };
+    signup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SignupResponse"];
+                };
+            };
+        };
+    };
+    checkInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteCheck"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InviteDetails"];
+                };
+            };
+        };
+    };
+    request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemoRequestBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DemoResponse"];
+                };
+            };
+        };
+    };
     list: {
         parameters: {
             query?: {
+                kind?: string;
                 /** @description Zero-based page index (0..N) */
                 page?: number;
                 /** @description The size of the page to be returned */
@@ -280,6 +2017,28 @@ export interface operations {
             };
         };
     };
+    reset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TemporaryPasswordResponse"];
+                };
+            };
+        };
+    };
     clientToken: {
         parameters: {
             query?: never;
@@ -300,6 +2059,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TokenResponse"];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AnnouncementResponse"][];
+                };
+            };
+        };
+    };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnnouncementRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AnnouncementResponse"];
                 };
             };
         };
@@ -336,6 +2139,259 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TokenResponse"];
+                };
+            };
+        };
+    };
+    list_2: {
+        parameters: {
+            query?: {
+                status?: "ACTIVE" | "SUSPENDED";
+                test?: boolean;
+                q?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseConsoleWorkshopResponse"];
+                };
+            };
+        };
+    };
+    createTest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestWorkshopRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ConsoleWorkshopResponse"];
+                };
+            };
+        };
+    };
+    suspend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reactivate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_3: {
+        parameters: {
+            query?: {
+                state?: "PENDING" | "EXPIRED" | "ACCEPTED" | "REVOKED";
+                q?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseInvitationResponse"];
+                };
+            };
+        };
+    };
+    create_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvitation"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssuedResponse"];
+                };
+            };
+        };
+    };
+    revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvitationResponse"];
+                };
+            };
+        };
+    };
+    resend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssuedResponse"];
+                };
+            };
+        };
+    };
+    resetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TokenResponse"];
+                };
+            };
+        };
+    };
+    forgotPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -390,7 +2446,141 @@ export interface operations {
             };
         };
     };
-    update: {
+    list_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LocationResponse"][];
+                };
+            };
+        };
+    };
+    create_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocationRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LocationResponse"];
+                };
+            };
+        };
+    };
+    reactivate_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LocationResponse"];
+                };
+            };
+        };
+    };
+    archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LocationResponse"];
+                };
+            };
+        };
+    };
+    send: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceMailRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    unlock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerAccount"];
+                };
+            };
+        };
+    };
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -416,6 +2606,189 @@ export interface operations {
             };
         };
     };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerAccount"];
+                };
+            };
+        };
+    };
+    setEnabled: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerAccount"];
+                };
+            };
+        };
+    };
+    availability: {
+        parameters: {
+            query: {
+                slug: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AvailabilityResponse"];
+                };
+            };
+        };
+    };
+    current: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicWorkshop"];
+                };
+            };
+        };
+    };
+    image: {
+        parameters: {
+            query?: {
+                v?: string;
+            };
+            header?: never;
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    photo: {
+        parameters: {
+            query?: {
+                v?: string;
+            };
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    current_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkshopResponse"];
+                };
+            };
+        };
+    };
+    demoRequests: {
+        parameters: {
+            query?: {
+                status?: "NEW" | "CONTACTED" | "DEMO_SCHEDULED" | "DEMO_DONE" | "INVITED" | "ONBOARDED" | "DECLINED";
+                q?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseDemoRequestResponse"];
+                };
+            };
+        };
+    };
     me: {
         parameters: {
             query?: never;
@@ -432,6 +2805,166 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    byAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkshopByAddress"];
+                };
+            };
+        };
+    };
+    forService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkshopResponse"];
+                };
+            };
+        };
+    };
+    forService_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LocationSettingsResponse"][];
+                };
+            };
+        };
+    };
+    staffForService: {
+        parameters: {
+            query: {
+                roles: string[];
+            };
+            header?: never;
+            path: {
+                tenantId: string;
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string[];
+                };
+            };
+        };
+    };
+    settingsForService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LocationSettingsResponse"];
+                };
+            };
+        };
+    };
+    statuses: {
+        parameters: {
+            query: {
+                ids: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerAccount"][];
+                };
+            };
+        };
+    };
+    list_5: {
+        parameters: {
+            query?: {
+                userId?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseAuditEventResponse"];
                 };
             };
         };
@@ -454,6 +2987,28 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    reset_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserResponse"];
                 };
             };
         };

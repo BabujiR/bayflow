@@ -112,7 +112,10 @@ public final class AppointmentDtos {
             @Min(Appointment.MIN_DURATION_MINUTES) @Max(Appointment.MAX_DURATION_MINUTES) Integer durationMinutes) {
     }
 
-    public record CheckInRequest(@NotNull @PositiveOrZero Integer mileage) {
+    /** {@code vin} and {@code registration}: only for a car booked online without them. */
+    public record CheckInRequest(@NotNull @PositiveOrZero Integer mileage,
+            @jakarta.validation.constraints.Size(max = 17) String vin,
+            @jakarta.validation.constraints.Size(max = 20) String registration) {
     }
 
     public record VehicleSummary(UUID id, String vin, String registration, String make, String model, int year) {
@@ -127,7 +130,9 @@ public final class AppointmentDtos {
             VehicleSummary vehicle,
             Instant scheduledAt, Instant endsAt, int durationMinutes, ServiceType serviceType, String notes,
             AppointmentStatus status, Integer arrivalMileage, Instant confirmedAt, Instant arrivedAt,
-            Instant checkedInAt, Instant cancelledAt, UUID jobCardId, Instant createdAt, Instant updatedAt) {
+            Instant checkedInAt, Instant cancelledAt, UUID jobCardId, Instant createdAt, Instant updatedAt,
+            boolean bookedOnline, String serviceName, boolean cancelledByCustomer, String cancelReason,
+            int customerReschedules) {
 
         public static AppointmentResponse from(Appointment a) {
             return new AppointmentResponse(a.getId(), a.getLocationId(), a.getCustomer().getId(),
@@ -135,7 +140,8 @@ public final class AppointmentDtos {
                     VehicleSummary.from(a.getVehicle()), a.getScheduledAt(), a.getEndsAt(), a.getDurationMinutes(),
                     a.getServiceType(), a.getNotes(), a.getStatus(), a.getArrivalMileage(), a.getConfirmedAt(),
                     a.getArrivedAt(), a.getCheckedInAt(), a.getCancelledAt(), a.getJobCardId(), a.getCreatedAt(),
-                    a.getUpdatedAt());
+                    a.getUpdatedAt(), a.isBookedOnline(), a.getServiceName(), a.isCancelledByCustomer(),
+                    a.getCancelReason(), a.getCustomerReschedules());
         }
     }
 

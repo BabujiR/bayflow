@@ -136,7 +136,7 @@ describe('role-based navigation', () => {
 
     const nav = await screen.findByRole('navigation', { name: 'Main' });
     expect(within(nav).getByRole('link', { name: 'My vehicles' })).toBeInTheDocument();
-    expect(within(nav).queryByRole('link', { name: 'User accounts' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Team' })).not.toBeInTheDocument();
     expect(within(nav).queryByRole('link', { name: "Today's board" })).not.toBeInTheDocument();
   });
 
@@ -145,7 +145,7 @@ describe('role-based navigation', () => {
     renderApp('/');
 
     const nav = await screen.findByRole('navigation', { name: 'Main' });
-    expect(within(nav).getByRole('link', { name: 'User accounts' })).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'Team' })).toBeInTheDocument();
     expect(within(nav).queryByRole('link', { name: 'My jobs' })).not.toBeInTheDocument();
   });
 

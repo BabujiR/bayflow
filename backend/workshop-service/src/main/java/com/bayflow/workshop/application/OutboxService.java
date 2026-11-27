@@ -1,16 +1,20 @@
 package com.bayflow.workshop.application;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bayflow.security.CurrentUser;
@@ -29,6 +33,9 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class OutboxService {
 
+    /** How long a claimed message is left to its sender (longer than any HTTP timeout here). */
+    static final Duration CLAIM_LEASE = Duration.ofMinutes(2);
+
     /** Event types for notification-service (names as it knows them). */
     public static final String ESTIMATE_READY = "ESTIMATE_READY";
     public static final String ESTIMATE_DECIDED = "ESTIMATE_DECIDED";
@@ -39,6 +46,8 @@ public class OutboxService {
     /** An event was queued; sent right after the transaction commits (see the dispatcher). */
     public record NotificationQueued(UUID tenantId, UUID jobCardId) {
     }
+
+    private static final Logger log = LoggerFactory.getLogger(OutboxService.class);
 
     private final OutboxRepository outbox;
     private final WorkshopProperties properties;
@@ -98,12 +107,24 @@ public class OutboxService {
 
     @Transactional(readOnly = true)
     public List<OutboxMessage> pendingFor(UUID jobCardId) {
-        return outbox.findByJobCardIdAndProcessedAtIsNull(jobCardId);
+        return outbox.findByJobCardIdAndProcessedAtIsNullAndFailedAtIsNull(jobCardId);
     }
 
     @Transactional(readOnly = true)
     public List<DueMessage> due() {
         return outbox.findDueAcrossTenants(clock.instant(), properties.getNotifications().getBatchSize());
+    }
+
+    /**
+     * Claims the message before sending it, so it goes out once even when the immediate send and
+     * the dispatcher (or two instances) reach it together. A claim lasts {@link #CLAIM_LEASE}: a
+     * sender that dies mid-send leaves the message to be retried after that. True when the caller
+     * may send it now.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean claim(UUID messageId) {
+        Instant now = clock.instant();
+        return outbox.claim(messageId, now, now.plus(CLAIM_LEASE)) == 1;
     }
 
     @Transactional(readOnly = true)
@@ -130,7 +151,11 @@ public class OutboxService {
             return;
         }
         WorkshopProperties.Notifications settings = properties.getNotifications();
-        message.markFailed(error, clock.instant(), settings.getInitialBackoff(), settings.getMaxBackoff());
+        if (message.markFailed(error, clock.instant(), settings.getInitialBackoff(), settings.getMaxBackoff(),
+                settings.getMaxAttempts())) {
+            log.error("Gave up on outbox message {} ({}) after {} attempts: {}", message.getId(), message.getType(),
+                    message.getAttempts(), message.getLastError());
+        }
     }
 
     private static CurrentUser currentActor() {

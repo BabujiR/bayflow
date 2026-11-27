@@ -93,14 +93,14 @@ public class UserLocationService {
      * otherwise). Users that cover every location take no locations (400 not-location-scoped).
      */
     @Transactional
-    public LocationAccess assign(User user, Collection<UUID> requested) {
+    public void assign(User user, Collection<UUID> requested) {
         boolean none = requested == null || requested.isEmpty();
         if (!isLocationScoped(user)) {
             if (!none) {
                 throw ApiException.badRequest("not-location-scoped",
                         "Admins and customers work with every location; they take no location list.");
             }
-            return LocationAccess.ALL;
+            return;
         }
         Set<UUID> wanted = none ? defaultLocation() : new LinkedHashSet<>(requested);
         if (wanted.size() > LocationScope.MAX_LOCATIONS) {
@@ -117,7 +117,12 @@ public class UserLocationService {
         assignments.deleteByUserId(user.getId());
         var now = clock.instant();
         assignments.saveAllAndFlush(wanted.stream().map(id -> UserLocation.of(user.getId(), id, now)).toList());
-        return new LocationAccess(false, List.copyOf(wanted));
+    }
+
+    /** The user now works everywhere (e.g. made an ADMIN): their location list goes. */
+    @Transactional
+    public void clear(User user) {
+        assignments.deleteByUserId(user.getId());
     }
 
     private Set<UUID> defaultLocation() {
@@ -127,7 +132,7 @@ public class UserLocationService {
             throw ApiException.badRequest("locations-required",
                     "Choose the locations this person works at.");
         }
-        return Set.of(active.get(0).getId());
+        return Set.of(active.getFirst().getId());
     }
 
     /** Ids of the enabled users with one of {@code roles} at the location, in the current workshop. */

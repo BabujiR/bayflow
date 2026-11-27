@@ -20,12 +20,32 @@ const APPOINTMENT_KEYS = [['appointments'], ['appointment']];
 
 export const DURATIONS = [30, 60, 90, 120, 180, 240];
 
-const checkInSchema = z.object({
-  mileage: z.coerce.number<string>().int('Whole miles only').min(0, 'Cannot be negative'),
-});
+const VIN = /^[A-HJ-NPR-Z0-9]{17}$/i;
 
-/** Check-in records the odometer reading; the job card is then opened automatically. */
+/** VIN and plate are asked for only when the car (booked online) doesn't have them yet. */
+const checkInSchemaFor = (needsVin: boolean, needsPlate: boolean) =>
+  z.object({
+    mileage: z.coerce.number<string>().int('Whole miles only').min(0, 'Cannot be negative'),
+    vin: needsVin
+      ? z.string().trim().regex(VIN, 'A VIN has 17 letters and digits (no I, O or Q)')
+      : z.string().optional(),
+    registration: needsPlate ? z.string().trim().min(1, 'Enter the plate').max(20) : z.string().optional(),
+  });
+
+/** "8XYZ214 · Honda Civic"; a car booked online may not have a plate yet. */
+export function vehicleLabel(v: Appointment['vehicle']): string {
+  const name = [v.year || null, v.make, v.model].filter(Boolean).join(' ');
+  return [v.registration, name || (v.vin ? `VIN ${v.vin}` : null)].filter(Boolean).join(' · ');
+}
+
+/**
+ * Check-in records the odometer reading (and, for a car booked online, its VIN and plate); the
+ * job card is then opened automatically.
+ */
 export function CheckInDialog({ appointment }: { appointment: Appointment }) {
+  const needsVin = !appointment.vehicle.vin;
+  const needsPlate = !appointment.vehicle.registration;
+  const checkInSchema = useMemo(() => checkInSchemaFor(needsVin, needsPlate), [needsVin, needsPlate]);
   const [open, setOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const {
@@ -35,21 +55,34 @@ export function CheckInDialog({ appointment }: { appointment: Appointment }) {
     formState: { errors, isSubmitting },
   } = useForm<z.input<typeof checkInSchema>, unknown, z.output<typeof checkInSchema>>({
     resolver: zodResolver(checkInSchema),
-    defaultValues: { mileage: '' },
+    defaultValues: { mileage: '', vin: '', registration: '' },
   });
-  const checkIn = useAction((mileage: number) => appointmentsApi.checkIn(appointment.id, mileage), {
-    success: (a) =>
-      a.jobCardId ? 'Checked in. Job card opened.' : 'Checked in. The job card will open shortly.',
-    invalidate: APPOINTMENT_KEYS,
-    onSuccess: () => {
-      setOpen(false);
-      reset();
+  const checkIn = useAction(
+    (v: z.output<typeof checkInSchema>) =>
+      appointmentsApi.checkIn(
+        appointment.id,
+        v.mileage,
+        needsVin || needsPlate
+          ? {
+              vin: needsVin ? v.vin?.trim().toUpperCase() : undefined,
+              registration: needsPlate ? v.registration?.trim().toUpperCase() : undefined,
+            }
+          : undefined,
+      ),
+    {
+      success: (a) =>
+        a.jobCardId ? 'Checked in. Job card opened.' : 'Checked in. The job card will open shortly.',
+      invalidate: APPOINTMENT_KEYS,
+      onSuccess: () => {
+        setOpen(false);
+        reset();
+      },
+      onError: (error) => {
+        setServerError(errorMessage(error));
+        return true;
+      },
     },
-    onError: (error) => {
-      setServerError(errorMessage(error));
-      return true;
-    },
-  });
+  );
 
   return (
     <Dialog
@@ -62,22 +95,36 @@ export function CheckInDialog({ appointment }: { appointment: Appointment }) {
       <DialogTrigger asChild>
         <Button size="sm">Check in</Button>
       </DialogTrigger>
-      <DialogContent
-        title="Check in vehicle"
-        description={`${appointment.vehicle.registration} · ${appointment.vehicle.make} ${appointment.vehicle.model}`}
-      >
+      <DialogContent title="Check in vehicle" description={vehicleLabel(appointment.vehicle)}>
         <form
           noValidate
           className="grid gap-4"
-          onSubmit={handleSubmit(async ({ mileage }) => {
+          onSubmit={handleSubmit(async (values) => {
             setServerError(null);
-            await checkIn.mutateAsync(mileage).catch(() => undefined);
+            await checkIn.mutateAsync(values).catch(() => undefined);
           })}
         >
           {serverError && <Alert>{serverError}</Alert>}
           <Field label="Odometer reading (miles)" error={errors.mileage?.message}>
             <Input inputMode="numeric" autoFocus {...register('mileage')} />
           </Field>
+          {(needsVin || needsPlate) && (
+            <p className="text-sm text-muted-foreground">
+              Booked online without{' '}
+              {needsVin && needsPlate ? 'a VIN or plate' : needsVin ? 'a VIN' : 'a plate'}: the job card needs{' '}
+              {needsVin && needsPlate ? 'both' : 'it'}.
+            </p>
+          )}
+          {needsVin && (
+            <Field label="VIN" error={errors.vin?.message}>
+              <Input maxLength={17} className="font-mono uppercase" {...register('vin')} />
+            </Field>
+          )}
+          {needsPlate && (
+            <Field label="Plate" error={errors.registration?.message}>
+              <Input maxLength={20} className="uppercase" {...register('registration')} />
+            </Field>
+          )}
           <div className="flex justify-end gap-2">
             <DialogClose asChild>
               <Button type="button" variant="ghost">
@@ -204,7 +251,7 @@ export function CancelDialog({ appointment }: { appointment: Appointment }) {
       </DialogTrigger>
       <DialogContent
         title="Cancel this appointment?"
-        description={`${formatDateTime(appointment.scheduledAt, zone)} · ${appointment.vehicle.registration}. This can't be undone.`}
+        description={`${formatDateTime(appointment.scheduledAt, zone)} · ${vehicleLabel(appointment.vehicle)}. This can't be undone.`}
       >
         <div className="flex justify-end gap-2">
           <DialogClose asChild>

@@ -71,6 +71,13 @@ bayflow:
     client-id: workshop-service
     client-secret: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:dev-workshop-secret}
     settings-cache-ttl: 5m
+    # Estimate approval links: e-mailed on submit, 2 reminders a day apart, valid 14 days.
+    estimates:
+      send-on-submit: ${BAYFLOW_ESTIMATE_SEND_ON_SUBMIT:true}
+      link-lifetime: 14d
+      remind-every: 1d
+      max-reminders: 2
+      reminders-enabled: true
     # Estimate ready / decided / work complete → notification-service, through the outbox.
     notifications:
       enabled: true
@@ -83,11 +90,35 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        # prometheus: scraped from inside the network only (nginx never routes /actuator).
+        include: health,info,prometheus
   endpoint:
     health:
       probes:
         enabled: true
+  metrics:
+    distribution:
+      # Request latency percentiles (p95, p99) in Prometheus, for the latency alert.
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    # Share of requests traced. Trace and span ids are in every log line either way.
+    sampling:
+      probability: ${BAYFLOW_TRACING_SAMPLING:0.1}
+    export:
+      otlp:
+        # Off until there is a collector (Jaeger, Tempo, an OTel collector...).
+        enabled: ${BAYFLOW_TRACING_EXPORT:false}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${BAYFLOW_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+  otlp:
+    metrics:
+      export:
+        # Metrics are scraped by Prometheus instead.
+        enabled: false
 
 info:
   app:
@@ -100,5 +131,8 @@ springdoc:
     path: /swagger-ui.html
 
 logging:
+  pattern:
+    # Every line carries the service, trace, span and request id (X-Request-Id from nginx).
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-},%X{requestId:-}] "
   level:
     com.bayflow: INFO

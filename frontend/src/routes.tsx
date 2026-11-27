@@ -1,11 +1,15 @@
 import type { RouteObject } from 'react-router';
 
 import { CHANGE_PASSWORD_PATH, GuestOnly, RequireAuth, RequireRole } from '@/auth/guards';
+import { withErrorPage } from '@/components/common/RouteError';
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { AppointmentsPage } from '@/features/appointments/AppointmentsPage';
 import { BookAppointmentPage } from '@/features/appointments/BookAppointmentPage';
 import { BoardPage } from '@/features/board/BoardPage';
+import { GuestBookingPage } from '@/features/booking/GuestBookingPage';
+import { ManageBookingPage } from '@/features/booking/ManageBookingPage';
+import { EstimateApprovalPage } from '@/features/estimates/EstimateApprovalPage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { CannedJobsPage } from '@/features/cannedjobs/CannedJobsPage';
@@ -20,9 +24,11 @@ import { LocationsPage } from '@/features/locations/LocationsPage';
 import { JobCardsPage } from '@/features/jobcards/JobCardsPage';
 import { MyJobsPage } from '@/features/jobcards/MyJobsPage';
 import { NotificationsPage } from '@/features/notifications/NotificationsPage';
+import { ProfilePage } from '@/features/profile/ProfilePage';
 import { LandingPage } from '@/features/site/LandingPage';
 import { SignupPage } from '@/features/site/SignupPage';
 import { SiteLayout } from '@/features/site/SiteLayout';
+import { ActivityPage } from '@/features/users/ActivityPage';
 import { UsersPage } from '@/features/users/UsersPage';
 import { VehicleDetailPage } from '@/features/vehicles/VehicleDetailPage';
 import { VehiclesPage } from '@/features/vehicles/VehiclesPage';
@@ -39,7 +45,7 @@ import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
  * A workshop's app (`<slug>.localhost`). Role guards mirror the API's rules; the API remains the
  * real enforcement.
  */
-export const routes: RouteObject[] = [
+export const routes: RouteObject[] = withErrorPage([
   {
     element: <GuestOnly />,
     children: [
@@ -53,6 +59,12 @@ export const routes: RouteObject[] = [
       },
     ],
   },
+  // The public booking page (Google Maps / the shop's site link): no account needed.
+  { path: '/book', element: <GuestBookingPage /> },
+  // An online booking's private link (from its e-mails): change or cancel it.
+  { path: '/book/manage', element: <ManageBookingPage /> },
+  // The customer's estimate from its e-mailed link (approve, decline and sign without signing in).
+  { path: '/estimate', element: <EstimateApprovalPage /> },
   {
     // Signed in or not: the e-mailed link signs in whoever proves they read that mailbox.
     element: <AuthLayout />,
@@ -75,8 +87,9 @@ export const routes: RouteObject[] = [
         element: <AppShell />,
         children: [
           { index: true, element: <HomePage /> },
-          // Every signed-in user has their own notifications.
+          // Every signed-in user has their own notifications and profile (avatar).
           { path: '/notifications', element: <NotificationsPage /> },
+          { path: '/profile', element: <ProfilePage /> },
           {
             element: <RequireRole roles={['SERVICE_ADVISOR']} />,
             children: [{ path: '/board', element: <BoardPage /> }],
@@ -138,6 +151,7 @@ export const routes: RouteObject[] = [
             element: <RequireRole roles={['ADMIN']} />,
             children: [
               { path: '/users', element: <UsersPage /> },
+              { path: '/activity', element: <ActivityPage /> },
               { path: '/settings', element: <WorkshopSettingsPage /> },
               { path: '/locations', element: <LocationsPage /> },
             ],
@@ -147,10 +161,10 @@ export const routes: RouteObject[] = [
       },
     ],
   },
-];
+]);
 
 /** The public site at the base domain (`localhost:3000`): landing page and workshop sign-up. */
-export const publicRoutes: RouteObject[] = [
+export const publicRoutes: RouteObject[] = withErrorPage([
   {
     element: <SiteLayout />,
     children: [
@@ -160,4 +174,4 @@ export const publicRoutes: RouteObject[] = [
       { path: '*', element: <NotFoundPage /> },
     ],
   },
-];
+]);

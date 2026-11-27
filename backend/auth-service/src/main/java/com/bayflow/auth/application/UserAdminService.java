@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bayflow.auth.config.AuthProperties;
+import com.bayflow.auth.domain.AuditEvent.Action;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.User;
 import com.bayflow.auth.infrastructure.RefreshTokenRepository;
@@ -38,17 +39,19 @@ public class UserAdminService {
     private final UserLocationService userLocations;
     private final PasswordEncoder passwordEncoder;
     private final AuthProperties properties;
+    private final AuditLog audit;
     private final Clock clock;
 
     public UserAdminService(AuthService authService, UserRepository users, RefreshTokenRepository refreshTokens,
             UserLocationService userLocations, PasswordEncoder passwordEncoder, AuthProperties properties,
-            Clock clock) {
+            AuditLog audit, Clock clock) {
         this.authService = authService;
         this.users = users;
         this.refreshTokens = refreshTokens;
         this.userLocations = userLocations;
         this.passwordEncoder = passwordEncoder;
         this.properties = properties;
+        this.audit = audit;
         this.clock = clock;
     }
 
@@ -75,20 +78,70 @@ public class UserAdminService {
         user.resetPassword(passwordEncoder.encode(password), expiresAt, now);
         users.saveAndFlush(user);
         refreshTokens.revokeAllForUser(userId);
+        audit.record(Action.PASSWORD_RESET, user, null);
         log.info("Password of account {} reset by {}", userId, actorId);
         return new TemporaryPassword(user, password, expiresAt);
     }
 
-    /** A staff account with its locations (MANAGER, SERVICE_ADVISOR, MECHANIC) in one transaction. */
+    /**
+     * A staff account with one or more roles (e.g. ADMIN + MECHANIC) and, when they work at
+     * particular locations, those locations, in one transaction.
+     */
     @Transactional
-    public User createStaff(String username, String email, String password, Role role, List<UUID> locationIds) {
-        if (role == null || !role.isStaff()) {
-            throw ApiException.badRequest("invalid-role",
-                    "Staff accounts must have role MANAGER, SERVICE_ADVISOR, MECHANIC or ADMIN.");
-        }
-        User user = authService.createUser(username, email, password, Set.of(role));
+    public User createStaff(String username, String email, String password, Set<Role> roles,
+            List<UUID> locationIds) {
+        requireStaffRoles(roles);
+        User user = authService.createUser(username, email, password, roles);
         userLocations.assign(user, locationIds);
+        audit.record(Action.STAFF_CREATED, user,
+                AuditLog.describe(roles) + " at " + audit.describe(userLocations.accessOf(user)));
         return user;
+    }
+
+    /**
+     * Changes everything a staff member does. The workshop keeps at least one admin, and an admin
+     * can't take their own admin role away (another admin can). Locations follow the roles:
+     * without ADMIN, a MANAGER, SERVICE_ADVISOR or MECHANIC works at {@code locationIds} (or the
+     * locations they had; or the only location); with ADMIN, everywhere. From their next token.
+     */
+    @Transactional
+    public User setRoles(UUID userId, Set<Role> roles, List<UUID> locationIds, UUID actingUserId) {
+        requireStaffRoles(roles);
+        User user = users.findById(userId).orElseThrow(() -> ApiException.notFound("User"));
+        if (!user.getRoles().stream().allMatch(Role::isStaff)) {
+            throw ApiException.badRequest("not-staff", "Customers' accounts have no staff roles.");
+        }
+        boolean losesAdmin = user.getRoles().contains(Role.ADMIN) && !roles.contains(Role.ADMIN);
+        if (losesAdmin && userId.equals(actingUserId)) {
+            throw ApiException.conflict("cannot-remove-own-admin",
+                    "You can't remove your own admin role. Another admin can.");
+        }
+        if (losesAdmin && users.countOtherEnabledWithRole(Role.ADMIN, userId) == 0) {
+            throw ApiException.conflict("last-admin", "The workshop needs at least one admin.");
+        }
+        Set<Role> before = Set.copyOf(user.getRoles());
+        boolean wasScoped = UserLocationService.isLocationScoped(user);
+        List<UUID> keep = locationIds == null || locationIds.isEmpty()
+                ? (wasScoped ? userLocations.accessOf(user).locationIds() : List.of())
+                : locationIds;
+        user.setRoles(roles, clock.instant());
+        users.saveAndFlush(user);
+        if (UserLocationService.isLocationScoped(user)) {
+            userLocations.assign(user, keep);
+        } else {
+            userLocations.clear(user);
+        }
+        audit.record(Action.ROLES_CHANGED, user, AuditLog.describe(roles) + " at "
+                + audit.describe(userLocations.accessOf(user)) + " (was " + AuditLog.describe(before) + ")");
+        log.info("Roles of account {} set to {} by {}", userId, roles, actingUserId);
+        return user;
+    }
+
+    private static void requireStaffRoles(Set<Role> roles) {
+        if (roles == null || roles.isEmpty() || !roles.stream().allMatch(Role::isStaff)) {
+            throw ApiException.badRequest("invalid-role",
+                    "Staff accounts have one or more of the roles ADMIN, MANAGER, SERVICE_ADVISOR and MECHANIC.");
+        }
     }
 
     /** Changes where a staff member works; applies to their next token (within 15 minutes). */
@@ -100,6 +153,7 @@ public class UserAdminService {
                     "Admins and customers work with every location; they take no location list.");
         }
         userLocations.assign(user, locationIds);
+        audit.record(Action.LOCATIONS_CHANGED, user, audit.describe(userLocations.accessOf(user)));
         return user;
     }
 
@@ -111,9 +165,16 @@ public class UserAdminService {
         return userLocations.accessOf(list);
     }
 
+    /** Which accounts a list shows: the team (staff), customers, or everyone. */
+    public enum Kind { STAFF, CUSTOMER, ALL }
+
     @Transactional(readOnly = true)
-    public Page<User> list(Pageable pageable) {
-        return users.findAll(pageable);
+    public Page<User> list(Kind kind, Pageable pageable) {
+        return switch (kind) {
+            case STAFF -> users.findWithoutRole(Role.CUSTOMER, pageable);
+            case CUSTOMER -> users.findWithRole(Role.CUSTOMER, pageable);
+            case ALL -> users.findAll(pageable);
+        };
     }
 
     /** Enables or disables an account. Disabling also ends all of the user's sessions. */
@@ -128,6 +189,7 @@ public class UserAdminService {
         if (!enabled) {
             refreshTokens.revokeAllForUser(userId);
         }
+        audit.record(enabled ? Action.ACCOUNT_ENABLED : Action.ACCOUNT_DISABLED, user, null);
         return user;
     }
 

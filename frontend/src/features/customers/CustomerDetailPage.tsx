@@ -13,15 +13,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDateTime, formatMileage, SERVICE_TYPE_LABELS } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
-import { ResetPasswordButton } from '../users/ResetPasswordButton';
 import { isVehicleFieldError, VehicleForm } from '../vehicles/VehicleForm';
+import { OnlineAccountCard } from './OnlineAccountCard';
 
 export function CustomerDetailPage() {
   const { id = '' } = useParams();
   const { hasRole } = useAuth();
   const advisor = hasRole('SERVICE_ADVISOR');
-  // Staff who serve customers can reset a customer's forgotten password (if they have an account).
-  const canResetPassword = hasRole('SERVICE_ADVISOR', 'MANAGER', 'ADMIN');
+  // Staff who serve customers see their online account: reset password, unlock (and, managers
+  // and admins, disable sign-in).
+  const canManageAccount = hasRole('SERVICE_ADVISOR', 'MANAGER', 'ADMIN');
   const [addingVehicle, setAddingVehicle] = useState(false);
   const customer = useQuery({ queryKey: ['customer', id], queryFn: () => customersApi.get(id) });
   const vehicles = useQuery({
@@ -58,7 +59,6 @@ export function CustomerDetailPage() {
             description={[c.email, c.phone].filter(Boolean).join(' · ')}
             actions={
               <>
-                {canResetPassword && c.userId && <ResetPasswordButton userId={c.userId} name={c.name} />}
                 {advisor && (
                   <Button asChild>
                     <Link to={`/appointments/new?customerId=${c.id}`}>Book a service</Link>
@@ -67,6 +67,7 @@ export function CustomerDetailPage() {
               </>
             }
           />
+          {canManageAccount && <OnlineAccountCard userId={c.userId ?? null} name={c.name} />}
           <Card>
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle>Vehicles</CardTitle>

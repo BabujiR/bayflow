@@ -11,9 +11,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.bayflow.appointment.application.OutboxService;
+import com.bayflow.appointment.application.OutboxService.MailQueued;
 import com.bayflow.appointment.application.OutboxService.NotificationQueued;
 import com.bayflow.appointment.config.IntegrationProperties;
 import com.bayflow.appointment.domain.OutboxMessage;
@@ -34,15 +38,24 @@ public class JobCardDispatcher {
     private final OutboxService outbox;
     private final WorkshopClient workshop;
     private final NotificationClient notifications;
+    private final MailClient mail;
     private final IntegrationProperties properties;
+    /**
+     * Own transactions for e-mail bookkeeping: right after a commit the finished transaction's
+     * resources are still bound, and a joined write there would never be committed.
+     */
+    private final TransactionTemplate fresh;
     /** Sends notification events off the request thread, so a slow receiver never slows a booking. */
     private final ExecutorService background = Executors.newVirtualThreadPerTaskExecutor();
 
     public JobCardDispatcher(OutboxService outbox, WorkshopClient workshop, NotificationClient notifications,
-            IntegrationProperties properties) {
+            MailClient mail, IntegrationProperties properties, PlatformTransactionManager transactions) {
+        this.fresh = new TransactionTemplate(transactions);
+        this.fresh.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         this.outbox = outbox;
         this.workshop = workshop;
         this.notifications = notifications;
+        this.mail = mail;
         this.properties = properties;
     }
 
@@ -70,6 +83,22 @@ public class JobCardDispatcher {
     }
 
     /**
+     * Right after a change with an e-mail commits: send it now, on this thread (outside the
+     * transaction, so no lock waits on auth-service). A failure stays in the outbox and is retried.
+     */
+    @TransactionalEventListener
+    public void onMailQueued(MailQueued queued) {
+        try {
+            TenantContext.run(queued.tenantId(), () -> fresh.execute(s -> outbox.pendingFor(queued.appointmentId()))
+                    .stream()
+                    .filter(m -> OutboxMessage.SEND_MAIL.equals(m.getType()))
+                    .forEach(this::deliver));
+        } catch (RuntimeException e) {
+            log.warn("Could not send e-mails for appointment {}: {}", queued.appointmentId(), e.getMessage());
+        }
+    }
+
+    /**
      * Retries every message whose next attempt is due, in all workshops. Finding them is the one
      * cross-workshop read (ids and workshops only); each message is then loaded and delivered
      * inside its own workshop. Returns how many were tried.
@@ -87,11 +116,32 @@ public class JobCardDispatcher {
         background.shutdown();
     }
 
+    /** Sends one message, if no other sender has claimed it (see {@link OutboxService#claim}). */
     private void deliver(OutboxMessage message) {
-        if (OutboxMessage.NOTIFY.equals(message.getType())) {
-            deliverNotification(message);
-        } else {
-            deliverJobCard(message);
+        if (!outbox.claim(message.getId())) {
+            log.debug("Message {} is being sent elsewhere", message.getId());
+            return;
+        }
+        switch (message.getType()) {
+            case OutboxMessage.NOTIFY -> deliverNotification(message);
+            case OutboxMessage.SEND_MAIL -> deliverMail(message);
+            default -> deliverJobCard(message);
+        }
+    }
+
+    private void deliverMail(OutboxMessage message) {
+        try {
+            mail.send(message.getTenantId(), outbox.mail(message));
+        } catch (RuntimeException e) {
+            log.warn("Could not send e-mail {} for appointment {} (attempt {}): {}", message.getId(),
+                    message.getAppointmentId(), message.getAttempts() + 1, e.getMessage());
+            fresh.executeWithoutResult(s -> settleFailure(message, e));
+            return;
+        }
+        try {
+            fresh.executeWithoutResult(s -> outbox.markMailSent(message.getId()));
+        } catch (ObjectOptimisticLockingFailureException e) {
+            log.debug("Message {} was settled concurrently", message.getId());
         }
     }
 

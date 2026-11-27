@@ -76,6 +76,21 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** How the user shows in the app: their initials (default), a built-in character, or a photo. */
+    public enum AvatarKind { INITIALS, CHARACTER, PHOTO }
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "avatar_kind", nullable = false, length = 10)
+    private AvatarKind avatarKind = AvatarKind.INITIALS;
+
+    /** The built-in character's code (CHARACTER only). */
+    @Column(name = "avatar_character", length = 20)
+    private String avatarCharacter;
+
+    /** The photo's SHA-256 (PHOTO only): its address changes with it, so browsers cache it for good. */
+    @Column(name = "avatar_sha256", length = 64)
+    private String avatarSha256;
+
     @Version
     private Long version;
 
@@ -184,12 +199,48 @@ public class User {
         return mustChangePassword && temporaryPasswordExpiresAt != null && !temporaryPasswordExpiresAt.isAfter(now);
     }
 
+    /** Lifts a lockout after too many failed sign-ins (the password stays). */
+    public void unlock(Instant now) {
+        this.lockedUntil = null;
+        this.failedAttempts = 0;
+        this.updatedAt = now;
+    }
+
+    /** Everything the user does (one or more roles); checked by the caller. */
+    public void setRoles(Set<Role> roles, Instant now) {
+        if (roles == null || roles.isEmpty()) {
+            throw new IllegalArgumentException("At least one role");
+        }
+        this.roles.clear();
+        this.roles.addAll(roles);
+        this.updatedAt = now;
+    }
+
     public void setEnabled(boolean enabled, Instant now) {
         this.enabled = enabled;
         this.updatedAt = now;
     }
 
     // ---- getters ----------------------------------------------------------
+
+    public void useInitials(Instant now) {
+        setAvatar(AvatarKind.INITIALS, null, null, now);
+    }
+
+    public void useCharacter(String character, Instant now) {
+        setAvatar(AvatarKind.CHARACTER, Objects.requireNonNull(character), null, now);
+    }
+
+    public void usePhoto(String sha256, Instant now) {
+        setAvatar(AvatarKind.PHOTO, null, Objects.requireNonNull(sha256), now);
+    }
+
+    private void setAvatar(AvatarKind kind, String character, String sha256, Instant now) {
+        this.avatarKind = kind;
+        this.avatarCharacter = character;
+        this.avatarSha256 = sha256;
+        this.updatedAt = now;
+    }
 
     public UUID getId() { return id; }
     public UUID getTenantId() { return tenantId; }
@@ -205,4 +256,7 @@ public class User {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Long getVersion() { return version; }
+    public AvatarKind getAvatarKind() { return avatarKind; }
+    public String getAvatarCharacter() { return avatarCharacter; }
+    public String getAvatarSha256() { return avatarSha256; }
 }

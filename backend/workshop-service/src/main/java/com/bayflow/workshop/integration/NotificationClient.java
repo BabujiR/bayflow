@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
+import com.bayflow.ops.RequestIds;
 import com.bayflow.workshop.config.WorkshopProperties;
 
 /** Delivers notification events to notification-service with a SYSTEM token. */
@@ -16,7 +17,9 @@ public class NotificationClient {
     private final SystemTokenProvider tokens;
 
     public NotificationClient(WorkshopProperties properties, SystemTokenProvider tokens) {
-        this.notifications = RestClient.builder().baseUrl(properties.getNotifications().getUrl())
+        this.notifications = RestClient.builder()
+                .requestInterceptor(RequestIds.propagate())
+                .baseUrl(properties.getNotifications().getUrl())
                 .requestFactory(SystemTokenProvider.factory(properties)).build();
         this.tokens = tokens;
     }

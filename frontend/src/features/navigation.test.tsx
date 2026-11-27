@@ -15,28 +15,33 @@ afterEach(() => {
 });
 
 describe('staff sidebar', () => {
-  it("groups an admin's links into Workshop, Insights and Admin", async () => {
+  it("groups an admin's links into Front desk, Workshop, Insights and Admin", async () => {
     server.use(sessionFor(user('ADMIN', 'admin1')));
     renderApp('/dashboard');
 
     const nav = await screen.findByRole('navigation', { name: 'Main' });
     const sections = within(nav).getAllByRole('group');
-    expect(sections.map((s) => s.getAttribute('aria-label'))).toEqual(['Workshop', 'Insights', 'Admin']);
+    expect(sections.map((s) => s.getAttribute('aria-label'))).toEqual([
+      'Front desk',
+      'Workshop',
+      'Insights',
+      'Admin',
+    ]);
     expect(
       within(sections[0])
         .getAllByRole('link')
         .map((l) => l.textContent),
-    ).toEqual(['Dashboard', 'Appointments', 'Job cards', 'Invoices', 'Customers', 'Due soon']);
-    expect(within(sections[0]).getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
+    ).toEqual(['Appointments', 'Invoices', 'Customers', 'Due soon']);
+    expect(within(sections[2]).getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
       'aria-current',
       'page',
     );
-    expect(within(sections[1]).getByRole('link', { name: 'Reports' })).not.toHaveAttribute('aria-current');
+    expect(within(sections[2]).getByRole('link', { name: 'Reports' })).not.toHaveAttribute('aria-current');
     expect(
-      within(sections[2])
+      within(sections[3])
         .getAllByRole('link')
         .map((l) => l.textContent),
-    ).toEqual(['User accounts', 'Locations', 'Canned jobs', 'Workshop settings']);
+    ).toEqual(['Team', 'Locations', 'Activity', 'Canned jobs', 'Workshop settings']);
   });
 
   it('collapses to icons, keeps the names for screen readers, and remembers it', async () => {
@@ -73,10 +78,21 @@ describe('staff sidebar', () => {
   it('gives each role only its own sections', () => {
     expect(navGroupsFor(['MECHANIC']).map((s) => s.group)).toEqual(['work']);
     expect(navGroupsFor(['MANAGER', 'SERVICE_ADVISOR']).map((s) => s.group)).toEqual([
+      'desk',
       'work',
       'insights',
       'admin',
     ]);
+  });
+
+  it('gives an owner who also runs the desk and fixes cars every section, each link once', () => {
+    const sections = navGroupsFor(['ADMIN', 'SERVICE_ADVISOR', 'MECHANIC']);
+    expect(sections.map((s) => s.group)).toEqual(['desk', 'work', 'insights', 'admin']);
+    const links = sections.flatMap((s) => s.items.map((i) => i.to));
+    expect(links).toContain('/board');
+    expect(links).toContain('/my-jobs');
+    expect(links).toContain('/users');
+    expect(new Set(links).size).toBe(links.length);
   });
 });
 

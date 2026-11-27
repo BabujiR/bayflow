@@ -4,7 +4,8 @@
  *
  * The generated response types mark every field optional. {@link Present} marks the fields
  * the backend always sends as required, so only genuinely optional fields (like a
- * job card id before check-in) need checks in the UI.
+ * job card id before check-in) need checks in the UI. Types still written by hand are checked
+ * against the generated ones in ./schema-drift.ts: a field the API drops fails type-checking.
  */
 import type { components as AppointmentApi } from './schema/appointment';
 import type { components as AuthApi } from './schema/auth';
@@ -27,20 +28,44 @@ export interface PageResponse<T> {
 
 // ---- auth --------------------------------------------------------------------------
 
-/** MANAGER (phase L2) is hand-written until `pnpm api:update`. */
-export type Role = A['CreateStaffRequest']['role'] | 'MANAGER' | 'PLATFORM_ADMIN';
+export type Role = NonNullable<A['CreateStaffRequest']['role']>;
 
+/**
+ * `allLocations`: works with every location (ADMIN, CUSTOMER), otherwise at `locationIds`.
+ * `mustChangePassword`: signed in with a temporary password from a staff reset.
+ */
 export type User = Present<
-  Omit<A['UserResponse'], 'roles'>,
+  Omit<A['UserResponse'], 'roles' | 'avatar'>,
   'id' | 'username' | 'email' | 'enabled' | 'createdAt'
 > & {
+  /** The schema says string[]; they are always roles. */
   roles: Role[];
-  /** Works with every location (ADMIN, CUSTOMER); otherwise at locationIds. Hand-written (L2). */
-  allLocations?: boolean;
-  locationIds?: string[];
-  /** Signed in with a temporary password from a staff reset: must choose a new one first. */
-  mustChangePassword?: boolean;
+  /** How they show in the app (initials when missing). */
+  avatar?: Avatar;
 };
+
+/** A customer's online account as staff see it on the customer's page. */
+export interface CustomerAccount {
+  id: string;
+  username: string;
+  email: string;
+  enabled: boolean;
+  /** Too many failed sign-ins: locked until `lockedUntil` (or until unlocked). */
+  locked: boolean;
+  lockedUntil: string | null;
+  /** Has a temporary password from a reset, not yet replaced. */
+  mustChangePassword: boolean;
+  createdAt: string;
+}
+
+export type AvatarKind = 'INITIALS' | 'CHARACTER' | 'PHOTO';
+
+/** INITIALS (from the username), a built-in CHARACTER (`character`), or their PHOTO (`photoUrl`). */
+export interface Avatar {
+  kind: AvatarKind;
+  character: string | null;
+  photoUrl: string | null;
+}
 
 /** A staff password reset's result: shown once, then gone. */
 export interface TemporaryPassword {
@@ -73,8 +98,9 @@ export type TokenResponse = Present<
 
 export type LoginRequest = A['LoginRequest'];
 export type RegisterRequest = A['RegisterRequest'];
-export type CreateStaffRequest = Omit<A['CreateStaffRequest'], 'role'> & {
-  role: Role;
+export type CreateStaffRequest = Omit<A['CreateStaffRequest'], 'role' | 'roles'> & {
+  /** Everything they do, e.g. ['ADMIN', 'MECHANIC'] (the API also takes a single `role`). */
+  roles: Role[];
   /** For MANAGER, SERVICE_ADVISOR and MECHANIC; none = the organization's only location. */
   locationIds?: string[];
 };
@@ -97,8 +123,9 @@ export type VehicleSummary = Present<
 >;
 
 export type Appointment = Present<
-  Omit<P['AppointmentResponse'], 'vehicle'>,
+  Omit<P['AppointmentResponse'], 'vehicle' | 'serviceName' | 'cancelReason'>,
   | 'id'
+  | 'locationId'
   | 'customerId'
   | 'customerName'
   | 'scheduledAt'
@@ -110,18 +137,18 @@ export type Appointment = Present<
   | 'updatedAt'
 > & {
   vehicle: VehicleSummary;
-  /** The location (shop) of the organization; hand-written until `pnpm api:update`. */
-  locationId: string;
+  /** The service they picked online (`bookedOnline`), e.g. "Oil change" or "Something else". */
+  serviceName?: string | null;
+  /** The customer's reason, when they cancelled from their booking's private link. */
+  cancelReason?: string | null;
 };
 
 export type ProfileRequest = P['ProfileRequest'];
 export type CreateCustomerRequest = P['CreateCustomerRequest'];
 export type CreateVehicleRequest = P['CreateVehicleRequest'];
 export type UpdateVehicleRequest = P['UpdateVehicleRequest'];
-export type BookAppointmentRequest = P['BookAppointmentRequest'] & {
-  /** Optional while the organization has one location; hand-written until `pnpm api:update`. */
-  locationId?: string;
-};
+/** `locationId`: optional while the organization has one location. */
+export type BookAppointmentRequest = P['BookAppointmentRequest'];
 export type RescheduleRequest = P['RescheduleRequest'];
 
 // ---- workshop -----------------------------------------------------------------------
@@ -165,6 +192,7 @@ export type JobCard = Present<
   Omit<W['JobCardResponse'], 'findings' | 'recommendations' | 'workLogs' | 'parts' | 'labour'>,
   | 'id'
   | 'appointmentId'
+  | 'locationId'
   | 'vehicleId'
   | 'vin'
   | 'registration'
@@ -183,8 +211,6 @@ export type JobCard = Present<
   workLogs: WorkLog[];
   parts: Part[];
   labour: Labour[];
-  /** The location (shop) where the work is done; hand-written until `pnpm api:update`. */
-  locationId: string;
 };
 
 export type JobCardSummary = Present<
@@ -199,10 +225,7 @@ export type JobCardSummary = Present<
   | 'status'
   | 'createdAt'
   | 'updatedAt'
-> & {
-  /** Hand-written until `pnpm api:update`. */
-  locationId?: string;
-};
+>;
 
 export type ServiceRecord = W['ServiceRecord'];
 
@@ -219,10 +242,7 @@ export type ServiceHistoryEntry = Present<
   | 'labourTotal'
   | 'totalCost'
   | 'currency'
-> & {
-  /** Where the work was done; hand-written until `pnpm api:update`. */
-  locationId?: string;
-};
+>;
 
 export type FindingRequest = W['FindingRequest'];
 export type RecommendationRequest = W['RecommendationRequest'];
@@ -231,7 +251,7 @@ export type PartRequest = W['PartRequest'];
 export type LabourRequest = W['LabourRequest'];
 
 // ---- canned jobs (R3a) ---------------------------------------------------------------------
-// Written by hand until the schema is regenerated with `pnpm api:update`.
+// Hand-written (stricter than the generated types); schema-drift.ts checks them against the API.
 
 export interface CannedJobPart {
   id: string;
@@ -331,7 +351,7 @@ export interface WorkRequest {
 }
 
 // ---- workshop settings (auth-service, SaaS phase 3) --------------------------------------
-// Written by hand until the schema is regenerated with `pnpm api:update`.
+// Hand-written (stricter than the generated types); schema-drift.ts checks them against the API.
 
 /** The signed-in user's workshop and its settings. */
 export interface Workshop {
@@ -470,6 +490,139 @@ export interface ConsoleDemoRequest {
   lastRequestedAt: string | null;
 }
 
+/** How a bookable service's price shows: "from $54", "$79", "Free", "Ask for a quote", or nothing. */
+export type PriceKind = 'NONE' | 'FROM' | 'FIXED' | 'FREE' | 'QUOTE';
+
+/** A service customers can book online (Settings → Online booking). */
+export interface BookingServiceItem {
+  id: string;
+  /** Stable link name, e.g. "oil-change" (/book?service=oil-change). */
+  code: string;
+  name: string;
+  description: string | null;
+  priceKind: PriceKind;
+  price: number | null;
+  durationMinutes: number | null;
+  /** Null: every location. */
+  locationId: string | null;
+  active: boolean;
+  sortOrder: number;
+  updatedAt: string;
+  version: number;
+}
+
+export interface BookingServiceRequest {
+  name: string;
+  description: string | null;
+  priceKind: PriceKind;
+  price: number | null;
+  durationMinutes: number | null;
+  locationId: string | null;
+  active: boolean;
+  version?: number;
+}
+
+/** One day's opening hours for online booking ("08:00"); both null: closed. */
+export interface DayHours {
+  opens: string | null;
+  closes: string | null;
+}
+
+/** Settings → Online booking: when a location takes online bookings. Days run Monday to Sunday. */
+export interface BookingHours {
+  locationId: string;
+  days: DayHours[];
+  slotMinutes: number;
+  carsPerSlot: number;
+  minNoticeMinutes: number;
+  maxDaysAhead: number;
+  /** 0 until first saved (the defaults are shown). */
+  version: number;
+}
+
+export type BookingHoursRequest = Omit<BookingHours, 'locationId'>;
+
+/** The public booking page (no sign-in): what the workshop at this address offers. */
+export interface PublicBookingOptions {
+  shopName: string;
+  currency: string;
+  locations: { code: string; name: string; address: string | null; timeZone: string }[];
+  services: {
+    code: string;
+    name: string;
+    description: string | null;
+    priceKind: PriceKind;
+    price: number | null;
+    durationMinutes: number | null;
+    /** Location codes offering it; null: all. */
+    locations: string[] | null;
+  }[];
+}
+
+export interface PublicAvailability {
+  location: string;
+  timeZone: string;
+  /** From the asked day; `slots` are start times (ISO instants), empty when closed or full. */
+  days: { date: string; slots: string[] }[];
+}
+
+export interface PublicBookingRequest {
+  location: string;
+  /** Null: "Something else" (then `description`). */
+  service: string | null;
+  description: string | null;
+  vin: string | null;
+  year: number | null;
+  make: string | null;
+  model: string | null;
+  startsAt: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  smsConsent: boolean;
+  /** Stays empty: only bots fill it in. */
+  website: string;
+}
+
+export interface PublicBooked {
+  startsAt: string;
+  timeZone: string;
+  locationName: string;
+  serviceName: string;
+  email: string;
+  /** A confirmation e-mail is on its way. */
+  emailed: boolean;
+  /** The private "change or cancel" link's token (null for a request the server ignored). */
+  manageToken: string | null;
+}
+
+/** Why an online booking can't be changed from its link (NONE: it can). */
+export type ManageBlocked = 'NONE' | 'CANCELLED' | 'ARRIVED' | 'PAST' | 'TOO_LATE' | 'LOCATION_CLOSED';
+
+/** An online booking as its private link shows it (/book/manage?token=…). */
+export interface ManagedBooking {
+  status: AppointmentStatus;
+  startsAt: string;
+  timeZone: string;
+  durationMinutes: number;
+  locationCode: string | null;
+  locationName: string | null;
+  address: string | null;
+  manyLocations: boolean;
+  serviceName: string;
+  car: string;
+  shopName: string;
+  firstName: string;
+  canChange: boolean;
+  blocked: ManageBlocked;
+  noticeMinutes: number;
+  reschedulesLeft: number;
+  cancelledByCustomer: boolean;
+  /** Already in a customer account. */
+  hasAccount: boolean;
+}
+
 /** A setup invite as the console shows it (Pending turns Expired after 7 days). */
 export type InvitationState = 'PENDING' | 'EXPIRED' | 'ACCEPTED' | 'REVOKED';
 
@@ -557,6 +710,8 @@ export interface SignupRequest {
   adminPassword: string;
   /** From the setup link (<site>/setup?invite=…); sign-up is by invite only. */
   inviteToken: string;
+  /** What else the owner does besides running it: the front desk and/or working on cars. */
+  ownerAlso?: Role[];
 }
 
 /** Who a setup link is for (POST /api/v1/tenants/invitations/check). */
@@ -659,7 +814,8 @@ export interface AppNotification {
 }
 
 // ---- reports (workshop-service, phase R1) -----------------------------------------------
-// Hand-written until `pnpm api:update`. Money is in the workshop's currency; ratios are 0–1.
+// Hand-written; schema-drift.ts checks them against the API. Money is in the workshop's currency;
+// ratios are 0–1.
 
 export interface PeriodMetrics {
   carCount: number;
@@ -852,7 +1008,7 @@ export interface ReportRows<T> {
 }
 
 // ---- invoices (workshop-service, phase R2a) ----------------------------------------------
-// Hand-written until `pnpm api:update`. Money is in the invoice's currency.
+// Hand-written; schema-drift.ts checks them against the API. Money is in the invoice's currency.
 
 export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PARTIALLY_PAID' | 'PAID' | 'VOID';
 export type InvoiceLineType = 'PART' | 'LABOUR' | 'FEE' | 'DISCOUNT';
@@ -1076,4 +1232,89 @@ export interface PaymentRequest {
   /** Negative = refund (managers and admins). */
   amount: number;
   reference?: string;
+}
+
+/** Admin > Activity: what was done (the schema says string). */
+export type AuditAction =
+  | 'STAFF_CREATED'
+  | 'ROLES_CHANGED'
+  | 'LOCATIONS_CHANGED'
+  | 'ACCOUNT_ENABLED'
+  | 'ACCOUNT_DISABLED'
+  | 'ACCOUNT_UNLOCKED'
+  | 'PASSWORD_RESET'
+  | 'AVATAR_RESET';
+
+/** One change to an account. Names are as they were at the time; null when not known. */
+export interface AuditEvent {
+  id: string;
+  occurredAt: string;
+  action: AuditAction;
+  actorId?: string | null;
+  actorName?: string | null;
+  targetId?: string | null;
+  targetName?: string | null;
+  details?: string | null;
+  requestId?: string | null;
+}
+
+// ---- estimate approval links ------------------------------------------------------------
+// Hand-written until `pnpm api:update` (then add them to schema-drift.ts).
+
+/** The approval link e-mailed for a job card's estimate, as staff see it. */
+export interface EstimateLinkStatus {
+  sentTo: string;
+  sentBy: string;
+  /** The first e-mail; `lastSentAt` the latest reminder. */
+  sentAt: string;
+  lastSentAt: string;
+  expiresAt: string;
+  firstViewedAt: string | null;
+  remindersSent: number;
+  nextReminderAt: string | null;
+  decidedAt: string | null;
+  signerName: string | null;
+  signed: boolean;
+  /** The customer can still answer from the link. */
+  open: boolean;
+}
+
+export interface CustomerEstimateItem {
+  id: string;
+  description: string;
+  /** Parts plus labour, in the estimate's currency. */
+  price: number;
+  status: ApprovalStatus;
+}
+
+export interface CustomerEstimateFinding {
+  description: string;
+  severity: Severity;
+}
+
+/** What the customer sees from their link (no sign-in). */
+export interface CustomerEstimate {
+  shopName: string | null;
+  locationName: string | null;
+  shopPhone: string | null;
+  firstName: string | null;
+  vehicle: string;
+  status: JobCardStatus;
+  /** They can still approve or decline here. */
+  canDecide: boolean;
+  findings: CustomerEstimateFinding[];
+  items: CustomerEstimateItem[];
+  total: number;
+  currency: string;
+  expiresAt: string;
+  decidedAt: string | null;
+  signerName: string | null;
+}
+
+export interface EstimateDecisionRequest {
+  token: string;
+  decisions: { itemId: string; approve: boolean }[];
+  signerName: string;
+  /** The drawn signature, as a PNG data URL. */
+  signature: string;
 }

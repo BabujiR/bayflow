@@ -46,6 +46,25 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  dependencies:
+    name: Dependency vulnerabilities (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Maven and pnpm manifests: fails on a fixable HIGH or CRITICAL vulnerability.
+      - name: Scan dependencies
+        # v0.36.0 is an immutable release (its tag cannot be moved). Tags up to 0.34.2 were
+        # hijacked in the March 2026 Trivy supply-chain attack and have been removed.
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+
   compose:
     name: Compose config check
     runs-on: ubuntu-latest
@@ -77,6 +96,10 @@ jobs:
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      - name: Audit production dependencies
+        # Fails on a known HIGH or CRITICAL vulnerability in what ships to browsers.
+        run: pnpm audit --prod --audit-level high
 
       - name: Lint
         run: pnpm lint
@@ -119,6 +142,18 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm e2e:install
+
+      - name: API types match the services
+        # The TypeScript types in src/api/schema come from the running services' OpenAPI
+        # documents. If a backend change moved the API, this fails: run "pnpm api:update" with
+        # the stack up and commit the result.
+        working-directory: frontend
+        run: |
+          pnpm api:update
+          if ! git diff --exit-code --stat -- src/api/schema; then
+            echo "::error::src/api/schema is out of date. Run 'pnpm api:update' (stack running) and commit it."
+            exit 1
+          fi
 
       - name: Run end-to-end tests
         working-directory: frontend

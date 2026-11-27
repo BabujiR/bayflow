@@ -37,6 +37,17 @@
         <wiremock.version>3.13.2</wiremock.version>
         <jacoco.version>0.8.16</jacoco.version>
 
+        <!--
+          Security fixes ahead of Spring Boot: newer than what Boot 4.2.0 manages. Remove each line
+          once the Boot version above manages the same version or newer (Dependabot raises Boot).
+          - Tomcat 11.0.29: the November 2026 Tomcat CVEs (CVE-2026-116561, -118028, -116830, ...).
+          - pgjdbc 42.7.15: CVE-2026-134841 to -134848.
+          - commons-codec 1.23.0: CVE-2026-119078, -124077 (tests only, via Testcontainers).
+        -->
+        <tomcat.version>11.0.29</tomcat.version>
+        <postgresql.version>42.7.15</postgresql.version>
+        <commons-codec.version>1.23.0</commons-codec.version>
+
         <!-- Line coverage required on domain + application packages -->
         <bayflow.coverage.minimum>0.80</bayflow.coverage.minimum>
         <bayflow.coverage.skip>false</bayflow.coverage.skip>

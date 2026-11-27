@@ -131,6 +131,52 @@ Workshops join by invitation only.
 Nobody touches the database: the new workshop has its own users, settings and data, and a
 session from one workshop is refused at any other workshop's address.
 
+### One person, several roles
+
+A person can do several jobs with one sign-in, e.g. a shop owner who is **Admin + Service advisor
++ Mechanic**. Roles combine: they see every page each role gives (the sidebar groups them into
+*Front desk*, *Workshop*, *Insights* and *Admin*, each link once), and an admin who also advises
+or fixes cars gets "Your work today" (Today's board, My jobs) on Home and the desk's and
+mechanics' notifications at every location.
+
+- *User accounts*: tick the roles when creating an account, and **Roles** changes them later
+  (with locations when they work at chosen ones; an admin works everywhere). The workshop always
+  keeps an admin, and nobody removes their own admin role.
+- Sign-up asks the owner *Do you also work in the shop?*; an owner who is only an admin is asked
+  once on Home.
+- API: `POST /api/v1/auth/users` takes `roles` (or the older single `role`);
+  `PUT /api/v1/auth/users/{id}/roles` (ADMIN; 409 `last-admin`, `cannot-remove-own-admin`);
+  sign-up takes `ownerAlso` (`SERVICE_ADVISOR`, `MECHANIC`). Changes apply from the user's next
+  token (within 15 minutes; your own at once). No migration: accounts already hold a set of roles.
+
+### Team and customers' accounts
+
+*Team* (`/users`, admins) lists **staff only** (`GET /api/v1/auth/users?kind=staff`). Customers'
+online accounts are handled on each **customer's page**, in the *Online account* card: username,
+sign-in email, status (Active / Locked / Disabled), **Reset password** and **Unlock** (advisors,
+managers, admins), **Disable / Enable sign-in** (managers and admins; disabling signs them out
+everywhere). The customer list shows each online account's status. API:
+`/api/v1/auth/customer-accounts/{userId}` (GET, PATCH `{enabled}`, POST `/unlock`) and
+`GET /api/v1/auth/customer-accounts?ids=…` (up to 100); customers' accounts only (404 for staff).
+
+**Activity** (`/activity`, admins) is the workshop's audit trail: staff created, roles and
+locations changed, accounts enabled, disabled or unlocked, passwords reset and photos removed,
+with who did it and when (`GET /api/v1/auth/audit-events?userId=…`). Each event is written in
+the same transaction as the change; the services may add events but never edit or delete them
+(`auth_audit_events` has no UPDATE or DELETE grant).
+
+### Avatars (My profile)
+
+Everyone signed in has **My profile** (user menu, top right) and chooses how they show: their
+**initials** (the default, in a colour of their own), one of 12 built-in **characters** (they move
+gently on the profile page), or their own **photo** (JPEG, PNG or WebP; the page sends the middle
+square, the server re-checks it, cuts it square, keeps 256 px JPEG and drops metadata such as
+location). The avatar shows in the header and in *User accounts*, where an admin can **Remove
+photo** (back to initials) but never upload for someone. API: `PUT /api/v1/auth/me/avatar`,
+`PUT /api/v1/auth/me/avatar/photo` (multipart), `DELETE /api/v1/auth/users/{id}/avatar` (ADMIN);
+photos are served at `/api/v1/tenants/current/avatars/{userId}?v=…` (the version makes the address
+unguessable and cacheable for good). Migration: auth V21.
+
 ### Brand your workshop
 
 Sign in as the workshop's admin → *Workshop settings* → **Branding**:
@@ -232,6 +278,63 @@ and locations: **Suspend** stops every sign-in there (data kept) until **Reactiv
 **Create test workshop** makes one for internal testing without an invite, labelled **Test**.
 APIs: `/api/v1/auth/platform/**`.
 
+### Online booking (services and links)
+
+Admins keep the services customers can book under *Settings → Online booking*: name, a short
+description, the price customers see (**from $54**, **$79**, **Free**, **Ask for a quote**, or
+none), the typical time, and for groups which location offers it; hide, show and reorder them.
+A new shop starts with oil change, routine service, brakes, tires, inspection and diagnostic,
+without prices. "Something else" is always offered. Each active location has a **Copy booking
+link** under *Locations* (`<address>/book?location=<code>`) for its Google Business Profile and
+website. API: `/api/v1/booking-services` (appointment-service).
+
+**Booking hours** (same section, per location): weekly open and close times, slot length
+(15 min to 2 h), cars per slot, notice needed (default 2 hours) and how far ahead customers may
+book (default 30 days). A slot is offered while fewer than *cars per slot* bookings start in it.
+
+**The booking page** (`<address>/book`, no account needed): service → car (year, make and model,
+or the VIN) → time → first name, last name, email and optional phone. With a phone the customer
+can tick *text me about this visit*; the page says the number is never shared with or sold to
+third parties. `?location=<code>` preselects the location (groups otherwise pick from a list;
+one-location shops are never asked) and `?service=<code>` the service. The booking is confirmed
+at once and e-mailed; staff see it with an **Online** badge and are notified as usual. The
+customer is matched by e-mail (or added without a login) and the car by VIN or year/make/model.
+A car booked without VIN or plate gets them at check-in (the job card needs both). Bookings are
+limited to 10 an hour per address. Public API: `/api/v1/booking/options`, `/availability`,
+`/appointments` (send `X-Bayflow-Client`).
+
+**Change or cancel** (`<address>/book/manage?token=…`): every e-mail about an online booking
+carries a private link (only the token's SHA-256 is stored). The customer can move the booking
+to another free time (up to 3 times) or cancel it with an optional reason, until the location's
+notice before the visit; after that, or once the car has arrived, the page says to call the
+shop. The desk is notified of every customer change, and the appointments list shows "By the
+customer: <reason>" or "Moved by the customer". When staff move or cancel an online booking the
+customer is e-mailed; a moved booking gets a new link (the old one stops working). Links use
+`BAYFLOW_SITE_URL`. Public API: `POST /api/v1/booking/manage`, `/manage/reschedule`,
+`/manage/cancel` (token in the body).
+
+**Accounts**: the confirmation and manage pages offer *Create an account* / *sign in*. Once the
+customer is signed in, the booking is claimed with its token (`POST /api/v1/customers/me/claim`):
+with no profile yet, the online booker's record becomes theirs; otherwise its cars and bookings
+move to their profile. The page never tells anyone whether an e-mail has an account or a VIN is on file: an account's
+e-mail booked without signing in goes to a separate guest record (the confirmation goes to that
+address, whose owner can cancel it or add it to their account), and a VIN already on another
+customer's car is booked on a placeholder car reading "VIN …", with a note for the desk.
+
+### Estimate approval by link
+
+*Send to customer for approval* also e-mails the customer a private link (when they have an
+address). On `/estimate?token=…`, with no account, they see the findings and each recommended item
+with its price, approve or decline each one, type their name and sign; the job card moves on as
+if they had answered in the app, and the advisor and mechanics get *Estimate decided*. Two
+reminders go out a day apart while nothing is decided (a cross-instance job, 15-minute runs); the
+link works 14 days (`bayflow.workshop.estimates.*`). On the job card, advisors see *Customer
+approval link*: sent to, opened, reminders, then who signed and the signature; *Send again* (or
+to another address) replaces the link. Only the token's hash is stored, so each reminder carries
+a new link; earlier ones keep working until a new one is sent. API:
+`/api/v1/job-cards/{id}/estimate-link` (GET, POST, `/signature`) and the public
+`POST /api/v1/estimate-approval/view|decide`.
+
 ### Canned jobs
 
 Managers and admins keep the shop's everyday work under *Canned jobs* (e.g. "Synthetic oil
@@ -280,7 +383,8 @@ At http://demo.localhost:3000 (or the dev server on :5173):
 3. **mechanic1** — *My jobs* → the card under *Needs inspection* → add findings.
 4. **advisor1** — on the job card: add recommended work with estimates, then
    *Send to customer for approval*.
-5. **customer1** — *Job cards* → approve or decline each item.
+5. **customer1** — *Job cards* → approve or decline each item (or, from the e-mailed link,
+   approve, decline and sign without signing in; see *Estimate approval by link*).
 6. **mechanic1** — *Start work*, log work (plus parts and labour) for each
    approved item, then *Complete job*.
 7. **customer1** — *My vehicles* → the vehicle → its service history.
@@ -415,15 +519,46 @@ spaced out to stay under the 10-per-minute login limit.
 
 - **CI** (`.github/workflows/ci.yml`, every push and pull request):
   - *backend*: `mvn verify`, uploads test and coverage reports
-  - *frontend*: lint, type-check, unit tests, build
+  - *frontend*: `pnpm audit` (production dependencies, fails on HIGH/CRITICAL), lint, type-check,
+    unit tests, build
+  - *dependencies*: Trivy scans the Maven and pnpm manifests (fails on a fixable HIGH/CRITICAL)
   - *compose*: validates `docker-compose.yml`
+  - *e2e* also checks that `frontend/src/api/schema` matches the running services' OpenAPI
+    documents: after a backend API change, run `pnpm api:update` (stack up) and commit it
   - *e2e* (after backend and frontend pass): `docker compose up --build --wait`, runs
     Playwright, uploads the report and the scenario videos, prints service logs on failure
-- **CD** (`.github/workflows/cd.yml`, after CI succeeds on `main`): builds and pushes
-  `ghcr.io/<owner>/bayflow-auth`, `bayflow-appointment`, `bayflow-workshop` and
-  `bayflow-web`, tagged with the commit SHA and `latest`.
+- **CD** (`.github/workflows/cd.yml`, after CI succeeds on `main`): builds each image, scans it
+  with Trivy (a fixable HIGH/CRITICAL stops it), then pushes `ghcr.io/<owner>/bayflow-auth`,
+  `bayflow-appointment`, `bayflow-workshop`, `bayflow-notification` and `bayflow-web`, tagged with
+  the commit SHA and `latest`, with an SBOM and build provenance attached.
 - **Dependabot** keeps Maven, npm, Docker and GitHub Actions dependencies current.
   PostgreSQL, Java and Node major versions are upgraded deliberately, not by bot.
+
+## Outboxes: retries and giving up
+
+appointment-service and workshop-service send job cards, notification events and online-booking
+e-mails through outboxes (`apt_outbox`, `ws_outbox`): saved with the change, sent right after it
+commits (never while it holds a lock), retried with backoff. After `max-attempts` failures (50,
+about 4 hours; `bayflow.integration.dispatcher.max-attempts`,
+`bayflow.workshop.notifications.max-attempts`) a message is given up: `failed_at` is set and
+an ERROR "Gave up on outbox message …" is logged. To retry one by hand:
+`UPDATE apt_outbox SET failed_at = NULL, attempts = 0, next_attempt_at = now() WHERE id = '…'`.
+A sent e-mail's content is cleared from the outbox (it holds the private booking link).
+The outboxes are in the metrics (`bayflow_outbox_pending`, `bayflow_outbox_failed`,
+`bayflow_outbox_oldest_pending_seconds`) with alerts; see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md).
+
+## Several instances of a service
+
+Every service can run as two or more instances behind a load balancer:
+
+- **Scheduled jobs** (outbox dispatchers, reminders, retention, invite reminders) run on one
+  instance at a time, through a lock row in PostgreSQL (`<prefix>_job_locks`, `JobLock`). A lock
+  lasts at most a set time, so a crashed instance can't block a job; daily jobs keep theirs a few
+  minutes so an instance with a slightly late clock doesn't run them twice.
+- **Rate limits** (logins, sign-ups, password-reset e-mails, online bookings) are counted in
+  PostgreSQL (`auth_rate_limits`, `apt_rate_limits`) in fixed windows, so the limits hold across
+  instances. Keys are stored hashed (no e-mail addresses or IPs).
+- Sessions are tokens and the outboxes are in the database, so nothing else is per instance.
 
 ## Running outside local development
 
@@ -440,6 +575,9 @@ Caddy with a wildcard certificate, nightly backups). It applies everything below
 - Serve the web app over HTTPS (e.g. a load balancer in front of `bayflow-web`) and set
   `BAYFLOW_COOKIE_SECURE=true` so the refresh cookie is only sent over HTTPS.
 - Turn Swagger UI off if the APIs should not be browsable (`SPRINGDOC_SWAGGER_UI_ENABLED=false`).
+- Under the `prod` profile, auth-service refuses to start with a built-in development client
+  secret (`dev-…`).
+- Logs, metrics, tracing and alerts: [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md).
 
 ## Repository layout
 

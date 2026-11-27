@@ -1,8 +1,12 @@
-import { http, request } from './http';
+import { http, request, requestBlob } from './http';
 import type {
   AdvisorRow,
   Announcement,
   AnnouncementRequest,
+  AuditEvent,
+  CustomerEstimate,
+  EstimateDecisionRequest,
+  EstimateLinkStatus,
   AppNotification,
   Appointment,
   Branding,
@@ -26,6 +30,10 @@ import type {
   CannedJob,
   CannedJobRequest,
   DemoRequest,
+  BookingHours,
+  BookingHoursRequest,
+  BookingServiceItem,
+  BookingServiceRequest,
   ConsoleDemoRequest,
   ConsoleInvitation,
   ConsoleWorkshop,
@@ -74,6 +82,13 @@ import type {
   Vehicle,
   WorkLogRequest,
   Workshop,
+  CustomerAccount,
+  ManagedBooking,
+  PublicAvailability,
+  PublicBooked,
+  PublicBookingOptions,
+  PublicBookingRequest,
+  Role,
 } from './types';
 
 export interface Paging {
@@ -86,6 +101,8 @@ export interface Paging {
 export const customersApi = {
   me: () => http.get<Customer>('/api/v1/customers/me'),
   createMe: (body: ProfileRequest) => http.post<Customer>('/api/v1/customers/me', body),
+  /** Adds an online booking (by its private-link token) and that booker's cars to my account. */
+  claim: (token: string) => http.post<Customer>('/api/v1/customers/me/claim', { token }),
   updateMe: (body: ProfileRequest) => http.put<Customer>('/api/v1/customers/me', body),
   create: (body: CreateCustomerRequest) => http.post<Customer>('/api/v1/customers', body),
   list: (params: Paging & { q?: string }) =>
@@ -126,8 +143,9 @@ export const appointmentsApi = {
   book: (body: BookAppointmentRequest) => http.post<Appointment>('/api/v1/appointments', body),
   confirm: (id: string) => http.post<Appointment>(`/api/v1/appointments/${id}/confirm`),
   arrive: (id: string) => http.post<Appointment>(`/api/v1/appointments/${id}/arrive`),
-  checkIn: (id: string, mileage: number) =>
-    http.post<Appointment>(`/api/v1/appointments/${id}/check-in`, { mileage }),
+  /** `vehicle`: the VIN and plate when an online booking didn't give them (the job card needs both). */
+  checkIn: (id: string, mileage: number, vehicle?: { vin?: string; registration?: string }) =>
+    http.post<Appointment>(`/api/v1/appointments/${id}/check-in`, { mileage, ...vehicle }),
   noShow: (id: string) => http.post<Appointment>(`/api/v1/appointments/${id}/no-show`),
   cancel: (id: string) => http.post<Appointment>(`/api/v1/appointments/${id}/cancel`),
   reschedule: (id: string, body: RescheduleRequest) =>
@@ -158,6 +176,25 @@ export const jobCardsApi = {
   /** A canned job's usual parts and labour for one approved item, all at once (mechanics). */
   addWork: (id: string, itemId: string, body: WorkRequest) =>
     http.post<JobCard>(`/api/v1/job-cards/${id}/recommendations/${itemId}/work`, body),
+  /** The customer's approval link (undefined: none sent yet). */
+  estimateLink: (id: string) =>
+    http.get<EstimateLinkStatus | undefined>(`/api/v1/job-cards/${id}/estimate-link`),
+  /** E-mails the link (to `to`, or the customer's address), replacing an earlier one. */
+  sendEstimateLink: (id: string, to?: string) =>
+    http.post<EstimateLinkStatus>(`/api/v1/job-cards/${id}/estimate-link`, to ? { to } : {}),
+  estimateSignature: (id: string) => requestBlob(`/api/v1/job-cards/${id}/estimate-link/signature`),
+};
+
+/** The customer's estimate from its e-mailed link: no sign-in, the token is the key (in the body). */
+export const estimateApi = {
+  view: (token: string) =>
+    request<CustomerEstimate>('/api/v1/estimate-approval/view', {
+      method: 'POST',
+      body: { token },
+      auth: false,
+    }),
+  decide: (body: EstimateDecisionRequest) =>
+    request<CustomerEstimate>('/api/v1/estimate-approval/decide', { method: 'POST', body, auth: false }),
 };
 
 export const remindersApi = {
@@ -183,6 +220,33 @@ export const remindersApi = {
     http.get<DueService[]>(`/api/v1/service-due/vehicles/${vehicleId}`, { mileage }),
 };
 
+/** Settings → Online booking: the services customers can book (ADMIN edits; staff read). */
+export const bookingServicesApi = {
+  list: () => http.get<BookingServiceItem[]>('/api/v1/booking-services'),
+  create: (body: BookingServiceRequest) => http.post<BookingServiceItem>('/api/v1/booking-services', body),
+  update: (id: string, body: BookingServiceRequest) =>
+    http.put<BookingServiceItem>(`/api/v1/booking-services/${id}`, body),
+  reorder: (ids: string[]) => http.put<BookingServiceItem[]>('/api/v1/booking-services/order', { ids }),
+  /** A location's booking hours (defaults until saved). */
+  hours: (locationId: string) => http.get<BookingHours>(`/api/v1/booking-services/hours/${locationId}`),
+  setHours: (locationId: string, body: BookingHoursRequest) =>
+    http.put<BookingHours>(`/api/v1/booking-services/hours/${locationId}`, body),
+};
+
+/** The public booking page (/book): no sign-in; the workshop is the one at this address. */
+export const bookingApi = {
+  options: () => http.get<PublicBookingOptions>('/api/v1/booking/options'),
+  availability: (location: string, from: string, days = 7) =>
+    http.get<PublicAvailability>('/api/v1/booking/availability', { location, from, days }),
+  book: (body: PublicBookingRequest) => http.post<PublicBooked>('/api/v1/booking/appointments', body),
+  /** The booking's private link (the token goes in the body, out of server logs). */
+  manage: (token: string) => http.post<ManagedBooking>('/api/v1/booking/manage', { token }),
+  reschedule: (token: string, startsAt: string) =>
+    http.post<ManagedBooking>('/api/v1/booking/manage/reschedule', { token, startsAt }),
+  cancel: (token: string, reason: string | null) =>
+    http.post<ManagedBooking>('/api/v1/booking/manage/cancel', { token, reason }),
+};
+
 export const cannedJobsApi = {
   /** locationId: only those usable there; includeInactive: archived ones too (settings page). */
   list: (params: { locationId?: string; q?: string; includeInactive?: boolean } = {}) =>
@@ -203,16 +267,52 @@ export const historyApi = {
 
 // ---- auth-service ----------------------------------------------------------------------------
 
+/** The signed-in user's own avatar. */
+export const avatarApi = {
+  choose: (body: { kind: 'INITIALS' | 'CHARACTER'; character?: string }) =>
+    http.put<User>('/api/v1/auth/me/avatar', body),
+  /** PNG or JPEG up to 2 MB (the page sends a square 512 px JPEG); the server re-encodes it. */
+  upload: (file: Blob) => {
+    const form = new FormData();
+    form.append('file', file, 'avatar.jpg');
+    return http.put<User>('/api/v1/auth/me/avatar/photo', form);
+  },
+  /** Workshop ADMIN: back to initials (e.g. an unsuitable photo). */
+  reset: (userId: string) => http.delete<User>(`/api/v1/auth/users/${userId}/avatar`),
+};
+
+/** Customers' online accounts, from their page (advisors, managers, admins; customers' accounts only). */
+export const customerAccountsApi = {
+  get: (userId: string) => http.get<CustomerAccount>(`/api/v1/auth/customer-accounts/${userId}`),
+  /** Status of several at once (a page of the customer list, at most 100). */
+  statuses: (userIds: string[]) =>
+    http.get<CustomerAccount[]>('/api/v1/auth/customer-accounts', { ids: userIds.join(',') }),
+  /** Managers and admins: disabling signs them out everywhere. */
+  setEnabled: (userId: string, enabled: boolean) =>
+    http.patch<CustomerAccount>(`/api/v1/auth/customer-accounts/${userId}`, { enabled }),
+  unlock: (userId: string) => http.post<CustomerAccount>(`/api/v1/auth/customer-accounts/${userId}/unlock`),
+};
+
 export const usersApi = {
-  list: (params: Paging & { sort?: string }) =>
+  /** `kind`: staff (the Team page), customer, or all (default). */
+  list: (params: Paging & { sort?: string; kind?: 'staff' | 'customer' | 'all' }) =>
     http.get<PageResponse<User>>('/api/v1/auth/users', { ...params }),
   create: (body: CreateStaffRequest) => http.post<User>('/api/v1/auth/users', body),
   setEnabled: (id: string, enabled: boolean) => http.patch<User>(`/api/v1/auth/users/${id}`, { enabled }),
+  /** Everything a staff member does (ADMIN only); `locationIds` when they work at chosen locations. */
+  setRoles: (id: string, body: { roles: Role[]; locationIds?: string[] }) =>
+    http.put<User>(`/api/v1/auth/users/${id}/roles`, body),
   /** Where a MANAGER, SERVICE_ADVISOR or MECHANIC works (at least one location). */
   setLocations: (id: string, locationIds: string[]) =>
     http.put<User>(`/api/v1/auth/users/${id}/locations`, { locationIds }),
   /** ADMIN: anyone else; MANAGER and SERVICE_ADVISOR: customers. Returns the temporary password once. */
   resetPassword: (id: string) => http.post<TemporaryPassword>(`/api/v1/auth/users/${id}/password-reset`),
+};
+
+export const auditApi = {
+  /** ADMIN: account changes, newest first; one person's with `userId`. */
+  list: (params: Paging & { userId?: string }) =>
+    http.get<PageResponse<AuditEvent>>('/api/v1/auth/audit-events', { ...params }),
 };
 
 export const workshopApi = {

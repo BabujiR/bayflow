@@ -33,6 +33,7 @@ import com.bayflow.workshop.cannedjobs.CannedJob.Details;
 import com.bayflow.workshop.cannedjobs.CannedJob.PartDetails;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -43,6 +44,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Canned jobs")
 public class CannedJobController {
 
+    /** Own OpenAPI name: another API type is also called PartRequest. */
+    @Schema(name = "CannedJobPartRequest")
     public record PartRequest(
             @NotBlank @Size(max = 50) String partNumber,
             @NotBlank @Size(max = 200) String name,
@@ -70,6 +73,8 @@ public class CannedJobController {
     public record ActiveRequest(@NotNull Boolean active) {
     }
 
+    /** Own OpenAPI name: another API type is also called PartResponse. */
+    @Schema(name = "CannedJobPartResponse")
     public record PartResponse(UUID id, String partNumber, String name, int quantity, BigDecimal unitPrice,
             BigDecimal lineTotal) {
 

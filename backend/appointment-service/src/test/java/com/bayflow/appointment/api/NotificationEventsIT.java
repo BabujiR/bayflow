@@ -24,6 +24,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.bayflow.appointment.IntegrationTestBase;
+import com.bayflow.appointment.application.OutboxService;
 import com.bayflow.appointment.domain.OutboxMessage;
 import com.bayflow.appointment.infrastructure.OutboxRepository;
 import com.bayflow.appointment.integration.JobCardDispatcher;
@@ -68,6 +69,9 @@ class NotificationEventsIT extends IntegrationTestBase {
 
     @Autowired
     private OutboxRepository outbox;
+
+    @Autowired
+    private OutboxService outboxService;
 
     @Autowired
     private SystemTokenProvider tokens;
@@ -143,6 +147,29 @@ class NotificationEventsIT extends IntegrationTestBase {
         assertThat(events(id).get(0).isProcessed()).isTrue();
         WIREMOCK.verify(2, postRequestedFor(urlEqualTo(EVENTS))
                 .withRequestBody(matchingJsonPath("$.eventId", equalTo(pending.getId().toString()))));
+    }
+
+    @Test
+    void aClaimedMessageIsSentByItsSenderOnly() throws Exception {
+        String id = book();
+        OutboxMessage booked = events(id).get(0);
+
+        // One sender (the immediate send, say) has it...
+        assertThat(TenantContext.call(Tenants.DEFAULT_TENANT_ID, () -> outboxService.claim(booked.getId())))
+                .isTrue();
+        // ...so a second claim and the dispatcher (another instance) leave it alone.
+        assertThat(TenantContext.call(Tenants.DEFAULT_TENANT_ID, () -> outboxService.claim(booked.getId())))
+                .isFalse();
+        dispatcher.dispatchDue();
+        WIREMOCK.verify(0, postRequestedFor(urlEqualTo(EVENTS))
+                .withRequestBody(matchingJsonPath("$.eventId", equalTo(booked.getId().toString()))));
+
+        // A sender that died mid-send: the claim runs out and the dispatcher sends it.
+        clock.advance(Duration.ofMinutes(3));
+        dispatcher.dispatchDue();
+        assertThat(events(id).get(0).isProcessed()).isTrue();
+        WIREMOCK.verify(1, postRequestedFor(urlEqualTo(EVENTS))
+                .withRequestBody(matchingJsonPath("$.eventId", equalTo(booked.getId().toString()))));
     }
 
     @Test

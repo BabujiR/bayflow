@@ -8,6 +8,13 @@
 # ${AUTH_UPSTREAM}, ${APPOINTMENT_UPSTREAM}, ${WORKSHOP_UPSTREAM} and ${NOTIFICATION_UPSTREAM} are filled in from the
 # environment when the container starts (nginx image template support).
 
+# One id per request, passed to the services (X-Request-Id, snippets/proxy-pass.conf) and in
+# every log line they write about it. One sent by a proxy in front (Caddy) is kept.
+map $http_x_request_id $bayflow_request_id {
+    ""      $request_id;
+    default $http_x_request_id;
+}
+
 server {
     listen 8080;
     server_name _;
@@ -44,14 +51,21 @@ server {
         proxy_pass http://${AUTH_UPSTREAM};
     }
 
+    # A profile photo upload (up to 2 MB, plus multipart overhead); auth-service checks the image.
+    location = /api/v1/auth/me/avatar/photo {
+        client_max_body_size 3m;
+        include /etc/nginx/snippets/proxy.conf;
+        proxy_pass http://${AUTH_UPSTREAM};
+    }
+
     location /api/v1/auth/ {
         include /etc/nginx/snippets/proxy.conf;
         proxy_pass http://${AUTH_UPSTREAM};
     }
 
-    # A workshop's logos, icon and sign-in cover photo: public and cacheable (auth-service sets
-    # Cache-Control and ETag), unlike every other API response.
-    location ~ ^/api/v1/tenants/current/(logo|logo-dark|icon|cover)$ {
+    # A workshop's logos, icon and sign-in cover photo, and users' profile photos: cacheable
+    # (auth-service sets Cache-Control and ETag), unlike every other API response.
+    location ~ ^/api/v1/tenants/current/(logo|logo-dark|icon|cover|avatars/[0-9a-f-]+)$ {
         include /etc/nginx/snippets/proxy-pass.conf;
         include /etc/nginx/snippets/security-headers.conf;
         proxy_pass http://${AUTH_UPSTREAM};
@@ -68,12 +82,12 @@ server {
         proxy_pass http://${AUTH_UPSTREAM};
     }
 
-    location ~ ^/api/v1/(customers|vehicles|appointments)(/|$) {
+    location ~ ^/api/v1/(customers|vehicles|appointments|booking-services|booking)(/|$) {
         include /etc/nginx/snippets/proxy.conf;
         proxy_pass http://${APPOINTMENT_UPSTREAM};
     }
 
-    location ~ ^/api/v1/(job-cards|service-history|reports|invoices|quickbooks|canned-jobs|service-intervals|service-reminders|service-due)(/|$) {
+    location ~ ^/api/v1/(job-cards|service-history|reports|invoices|quickbooks|canned-jobs|service-intervals|service-reminders|service-due|estimate-approval)(/|$) {
         include /etc/nginx/snippets/proxy.conf;
         proxy_pass http://${WORKSHOP_UPSTREAM};
     }

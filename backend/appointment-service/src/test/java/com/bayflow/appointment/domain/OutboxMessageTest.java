@@ -49,6 +49,20 @@ class OutboxMessageTest {
     }
 
     @Test
+    void retriesAreGivenUpAfterTheLimit() {
+        OutboxMessage message = OutboxMessage.create(UUID.randomUUID(), OutboxMessage.CREATE_JOB_CARD, "{}", NOW);
+        assertThat(message.markFailed("down", NOW, INITIAL, MAX, 3)).isFalse();
+        assertThat(message.markFailed("down", NOW, INITIAL, MAX, 3)).isFalse();
+        assertThat(message.isGivenUp()).isFalse();
+        // The third failure gives up, once.
+        assertThat(message.markFailed("still down", NOW, INITIAL, MAX, 3)).isTrue();
+        assertThat(message.isGivenUp()).isTrue();
+        assertThat(message.getFailedAt()).isEqualTo(NOW);
+        assertThat(message.getLastError()).isEqualTo("still down");
+        assertThat(message.markFailed("down", NOW, INITIAL, MAX, 3)).isFalse();
+    }
+
+    @Test
     void deliveryClosesTheMessage() {
         OutboxMessage message = OutboxMessage.create(UUID.randomUUID(), OutboxMessage.CREATE_JOB_CARD, "{}", NOW);
         message.markFailed("down", NOW, INITIAL, MAX);

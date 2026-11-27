@@ -31,10 +31,13 @@ public class SecurityConfig {
             ProblemDetailsSecurityHandlers handlers, WorkshopHosts hosts) throws Exception {
         BayflowSecurity.statelessJwt(http, converter, handlers, hosts)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info",
+                                "/actuator/prometheus").permitAll()
                         .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
                         .permitAll()
                         .requestMatchers("/error").permitAll()
+                        // The public booking page: no sign-in (the workshop comes from the address).
+                        .requestMatchers("/api/v1/booking/**").permitAll()
                         .anyRequest().authenticated());
         return http.build();
     }

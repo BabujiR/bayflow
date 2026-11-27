@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import com.bayflow.auth.config.AuthProperties;
+import com.bayflow.ops.RequestIds;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
@@ -30,7 +31,9 @@ public class UpcomingAppointments {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(2));
         factory.setReadTimeout(Duration.ofSeconds(5));
-        this.appointments = RestClient.builder().baseUrl(properties.getAppointmentUrl()).requestFactory(factory)
+        this.appointments = RestClient.builder()
+                .requestInterceptor(RequestIds.propagate())
+                .baseUrl(properties.getAppointmentUrl()).requestFactory(factory)
                 .build();
         this.tokens = tokens;
     }

@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
 import { useAuth } from '@/auth/auth-context';
-import { ROLE_LABELS } from '@/auth/roles';
+import { ROLE_LABELS, rolesSummary } from '@/auth/roles';
+import { UserAvatar } from '@/components/common/UserAvatar';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -20,7 +21,7 @@ export function UserMenu() {
   if (!user) {
     return null;
   }
-  const roles = user.roles.map((role) => ROLE_LABELS[role]).join(', ');
+  const roles = rolesSummary(user.roles);
 
   const signOut = async () => {
     try {
@@ -36,9 +37,7 @@ export function UserMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="gap-2 px-2" aria-label={`Account menu for ${user.username}`}>
-          <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <UserIcon />
-          </span>
+          <UserAvatar name={user.username} avatar={user.avatar} />
           <span className="hidden text-left sm:block">
             <span className="block text-sm font-medium leading-tight">{user.username}</span>
             <span className="block text-xs text-muted-foreground">{roles}</span>
@@ -49,8 +48,14 @@ export function UserMenu() {
         <DropdownMenuLabel>
           <span className="block font-medium">{user.username}</span>
           <span className="block text-xs text-muted-foreground">{user.email}</span>
+          <span className="mt-1 block text-xs text-muted-foreground">
+            {user.roles.map((role) => ROLE_LABELS[role]).join(', ')}
+          </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => navigate('/profile')}>
+          <UserIcon className="size-4" /> My profile
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => navigate('/change-password')}>
           <KeyIcon className="size-4" /> Change password
         </DropdownMenuItem>

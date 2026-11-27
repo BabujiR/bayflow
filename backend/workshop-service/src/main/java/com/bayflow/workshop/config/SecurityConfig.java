@@ -31,10 +31,14 @@ public class SecurityConfig {
             ProblemDetailsSecurityHandlers handlers, WorkshopHosts hosts) throws Exception {
         BayflowSecurity.statelessJwt(http, converter, handlers, hosts)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info",
+                                "/actuator/prometheus").permitAll()
                         .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
                         .permitAll()
                         .requestMatchers("/error").permitAll()
+                        // The customer's estimate page: the e-mailed link's token is the key.
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/estimate-approval/view",
+                                "/api/v1/estimate-approval/decide").permitAll()
                         // Intuit sends the browser back here; the one-time state names the organization.
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/quickbooks/callback")
                         .permitAll()

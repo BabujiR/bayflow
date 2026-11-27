@@ -38,6 +38,7 @@ import com.bayflow.security.CurrentUser;
 import com.bayflow.security.TenantContext;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -52,6 +53,8 @@ public class ConsoleWorkshopsController {
     private static final int MAX_PAGE_SIZE = 100;
 
     /** {@code invitedEmail}: the setup invite it came from (null for test and older workshops). */
+    /** Own OpenAPI name: another API type is also called WorkshopResponse. */
+    @Schema(name = "ConsoleWorkshopResponse")
     public record WorkshopResponse(UUID id, String slug, String name, Tenant.Status status, boolean test,
             Instant createdAt, int staff, int customers, int locations, String ownerUsername, String ownerEmail,
             String invitedEmail, long version) {
@@ -109,7 +112,7 @@ public class ConsoleWorkshopsController {
         UUID id = UUID.randomUUID();
         Created created = TenantContext.call(id, () -> signups.createTest(id, new SignupService.Signup(
                 request.workshopName(), request.slug(), null, request.currency(), request.timeZone(),
-                request.adminUsername(), request.adminEmail(), request.adminPassword(), null)));
+                request.adminUsername(), request.adminEmail(), request.adminPassword(), null, null)));
         log.info("Test workshop '{}' created by {}", created.tenant().getSlug(), CurrentUser.from(auth).username());
         return new WorkshopResponse(created.tenant().getId(), created.tenant().getSlug(), created.tenant().getName(),
                 created.tenant().getStatus(), true, created.tenant().getCreatedAt(), 1, 0, 1,

@@ -123,3 +123,27 @@ describe('workshop settings (SaaS phase 3)', () => {
     expect(screen.getByText(/at €120\.00\/h/)).toBeInTheDocument();
   });
 });
+
+describe('settings tabs', () => {
+  it('shows one section at a time and keeps the tab in the address', async () => {
+    server.use(sessionFor(user('ADMIN', 'admin1')));
+    renderApp('/settings');
+
+    const tabs = await screen.findByRole('tablist', { name: 'Settings' }, { timeout: 10_000 });
+    expect(within(tabs).getByRole('tab', { name: 'Workshop' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByLabelText('Workshop name')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Online booking' })).not.toBeInTheDocument();
+
+    await userEvent.click(within(tabs).getByRole('tab', { name: 'Online booking' }));
+    expect(await screen.findByRole('heading', { name: 'Online booking' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Workshop name')).not.toBeInTheDocument();
+  });
+
+  it('opens on the QuickBooks tab when coming back from QuickBooks', async () => {
+    server.use(sessionFor(user('ADMIN', 'admin1')));
+    renderApp('/settings?quickbooks=connected');
+
+    const tabs = await screen.findByRole('tablist', { name: 'Settings' }, { timeout: 10_000 });
+    expect(within(tabs).getByRole('tab', { name: 'QuickBooks' })).toHaveAttribute('aria-selected', 'true');
+  });
+});

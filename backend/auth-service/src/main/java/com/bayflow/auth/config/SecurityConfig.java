@@ -43,7 +43,7 @@ public class SecurityConfig {
     /** Public workshop lookups (sign-in page name, sign-up address check). */
     static final String[] PUBLIC_WORKSHOP_GETS = { "/api/v1/tenants/current", "/api/v1/tenants/slug-availability",
         "/api/v1/tenants/current/logo", "/api/v1/tenants/current/logo-dark", "/api/v1/tenants/current/icon",
-        "/api/v1/tenants/current/cover" };
+        "/api/v1/tenants/current/cover", "/api/v1/tenants/current/avatars/*" };
 
     @Bean
     Clock clock() {
@@ -73,7 +73,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, PUBLIC_POST_PATHS.toArray(String[]::new)).permitAll()
                         .requestMatchers(HttpMethod.GET, "/.well-known/jwks.json").permitAll()
                         .requestMatchers(HttpMethod.GET, PUBLIC_WORKSHOP_GETS).permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info",
+                                "/actuator/prometheus").permitAll()
                         .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
                         .permitAll()
                         .requestMatchers("/error").permitAll()

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
+import com.bayflow.ops.RequestIds;
 import com.bayflow.workshop.config.WorkshopProperties;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -26,7 +27,9 @@ public class BillingContactClient {
     private final SystemTokenProvider tokens;
 
     public BillingContactClient(WorkshopProperties properties, SystemTokenProvider tokens) {
-        this.appointments = RestClient.builder().baseUrl(properties.getAppointmentUrl())
+        this.appointments = RestClient.builder()
+                .requestInterceptor(RequestIds.propagate())
+                .baseUrl(properties.getAppointmentUrl())
                 .requestFactory(SystemTokenProvider.factory(properties)).build();
         this.tokens = tokens;
     }

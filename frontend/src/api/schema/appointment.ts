@@ -41,6 +41,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/booking-services/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a service, or hide / show it (active); send the version read */
+        put: operations["update_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/booking-services/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put the services in a new order (every id once, first to last) */
+        put: operations["reorder"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/booking-services/hours/{locationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A location's online booking hours (defaults until saved: Mon-Fri 8-5) */
+        get: operations["hours"];
+        /** Change a location's online booking hours; send the version read */
+        put: operations["updateHours"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/vehicles": {
         parameters: {
             query?: never;
@@ -77,6 +129,115 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/customers/me/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add an online booking (and its customer's cars and bookings) to my account
+         * @description The token from the booking's private link proves the e-mail is mine.
+         */
+        post: operations["claim"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/booking/manage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The booking a private link names */
+        post: operations["view"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/booking/manage/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move it to another free time (at most 3 times; not inside the shop's notice) */
+        post: operations["reschedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/booking/manage/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel it (not inside the shop's notice); the reason is shown to the shop */
+        post: operations["cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/booking/appointments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Book without signing in (confirmed at once; rate-limited per address)
+         * @description Send the X-Bayflow-Client header like the web app.
+         */
+        post: operations["book"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/booking-services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The shop's bookable services in its order, hidden ones too (a new shop gets a starting list) */
+        get: operations["list_2"];
+        put?: never;
+        /** Add a service (goes to the end of the list) */
+        post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/appointments": {
         parameters: {
             query?: never;
@@ -86,12 +247,12 @@ export interface paths {
         };
         /**
          * List appointments
-         * @description Customers see their own; mechanics see today's checked-in vehicles; advisors and admins see all. date is a workshop-local day (YYYY-MM-DD).
+         * @description Customers see their own; mechanics see today's checked-in vehicles; advisors and admins see all. date is a day (YYYY-MM-DD) at locationId, or at the organization's default location; locationId also limits the list to that location. sort: upcoming (not finished yet, soonest first, then the past, latest first), latest, earliest or recent (most recently booked first); default earliest with a date, else upcoming.
          */
-        get: operations["list_2"];
+        get: operations["list_3"];
         put?: never;
         /** Book a service appointment */
-        post: operations["book"];
+        post: operations["book_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -162,7 +323,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** BOOKED/CONFIRMED → CANCELLED */
-        post: operations["cancel"];
+        post: operations["cancel_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -200,7 +361,41 @@ export interface paths {
         options?: never;
         head?: never;
         /** Move a BOOKED/CONFIRMED appointment to a new time (status unchanged) */
-        patch: operations["reschedule"];
+        patch: operations["reschedule_1"];
+        trace?: never;
+    };
+    "/api/v1/internal/tenants/{tenantId}/locations/{locationId}/upcoming": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Upcoming appointments at a location (SYSTEM) */
+        get: operations["upcoming"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/internal/tenants/{tenantId}/appointments/{appointmentId}/billing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The customer and vehicle to put on the appointment's invoice (SYSTEM) */
+        get: operations["billing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/customers/{id}": {
@@ -212,6 +407,40 @@ export interface paths {
         };
         /** A customer (customers can only read their own) */
         get: operations["get_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/booking/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What this workshop offers online: its locations and services */
+        get: operations["options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/booking/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Free start times at a location, from a day, for up to 14 days */
+        get: operations["availability"];
         put?: never;
         post?: never;
         delete?: never;
@@ -283,6 +512,78 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
+        BookingServiceRequest: {
+            name: string;
+            description?: string;
+            /** @enum {string} */
+            priceKind: "NONE" | "FROM" | "FIXED" | "FREE" | "QUOTE";
+            price?: number;
+            /** Format: int32 */
+            durationMinutes?: number;
+            /** Format: uuid */
+            locationId?: string;
+            active?: boolean;
+            /** Format: int64 */
+            version?: number;
+        };
+        BookingServiceResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            description?: string;
+            /** @enum {string} */
+            priceKind?: "NONE" | "FROM" | "FIXED" | "FREE" | "QUOTE";
+            price?: number;
+            /** Format: int32 */
+            durationMinutes?: number;
+            /** Format: uuid */
+            locationId?: string;
+            active?: boolean;
+            /** Format: int32 */
+            sortOrder?: number;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        OrderRequest: {
+            ids: string[];
+        };
+        DayHoursDto: {
+            /** Format: time-local */
+            opens?: string;
+            /** Format: time-local */
+            closes?: string;
+        };
+        HoursRequest: {
+            days: components["schemas"]["DayHoursDto"][];
+            /** Format: int32 */
+            slotMinutes?: number;
+            /** Format: int32 */
+            carsPerSlot?: number;
+            /** Format: int32 */
+            minNoticeMinutes?: number;
+            /** Format: int32 */
+            maxDaysAhead?: number;
+            /** Format: int64 */
+            version?: number;
+        };
+        HoursResponse: {
+            /** Format: uuid */
+            locationId?: string;
+            days?: components["schemas"]["DayHoursDto"][];
+            /** Format: int32 */
+            slotMinutes?: number;
+            /** Format: int32 */
+            carsPerSlot?: number;
+            /** Format: int32 */
+            minNoticeMinutes?: number;
+            /** Format: int32 */
+            maxDaysAhead?: number;
+            /** Format: int64 */
+            version?: number;
+        };
         CreateVehicleRequest: {
             /** Format: uuid */
             customerId?: string;
@@ -303,9 +604,81 @@ export interface components {
             email: string;
             phone?: string;
         };
+        ClaimRequest: {
+            token: string;
+        };
+        TokenRequest: {
+            token: string;
+        };
+        ManagedBooking: {
+            /** @enum {string} */
+            status?: "BOOKED" | "CONFIRMED" | "ARRIVED" | "CHECKED_IN" | "CANCELLED" | "NO_SHOW";
+            /** Format: date-time */
+            startsAt?: string;
+            timeZone?: string;
+            /** Format: int32 */
+            durationMinutes?: number;
+            locationCode?: string;
+            locationName?: string;
+            address?: string;
+            manyLocations?: boolean;
+            serviceName?: string;
+            car?: string;
+            shopName?: string;
+            firstName?: string;
+            canChange?: boolean;
+            /** @enum {string} */
+            blocked?: "NONE" | "CANCELLED" | "ARRIVED" | "PAST" | "TOO_LATE" | "LOCATION_CLOSED";
+            /** Format: int32 */
+            noticeMinutes?: number;
+            /** Format: int32 */
+            reschedulesLeft?: number;
+            cancelledByCustomer?: boolean;
+            hasAccount?: boolean;
+        };
+        ManageRescheduleRequest: {
+            token: string;
+            /** Format: date-time */
+            startsAt: string;
+        };
+        CancelRequest: {
+            token: string;
+            reason?: string;
+        };
+        BookingRequest: {
+            location: string;
+            service?: string;
+            description?: string;
+            vin?: string;
+            /** Format: int32 */
+            year?: number;
+            make?: string;
+            model?: string;
+            /** Format: date-time */
+            startsAt: string;
+            firstName: string;
+            lastName: string;
+            /** Format: email */
+            email: string;
+            phone?: string;
+            smsConsent?: boolean;
+            website?: string;
+        };
+        Booked: {
+            /** Format: date-time */
+            startsAt?: string;
+            timeZone?: string;
+            locationName?: string;
+            serviceName?: string;
+            email?: string;
+            emailed?: boolean;
+            manageToken?: string;
+        };
         BookAppointmentRequest: {
             /** Format: uuid */
             vehicleId: string;
+            /** Format: uuid */
+            locationId?: string;
             /** Format: date-time */
             scheduledAt: string;
             /** Format: int32 */
@@ -317,6 +690,8 @@ export interface components {
         AppointmentResponse: {
             /** Format: uuid */
             id?: string;
+            /** Format: uuid */
+            locationId?: string;
             /** Format: uuid */
             customerId?: string;
             customerName?: string;
@@ -348,6 +723,12 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            bookedOnline?: boolean;
+            serviceName?: string;
+            cancelledByCustomer?: boolean;
+            cancelReason?: string;
+            /** Format: int32 */
+            customerReschedules?: number;
         };
         VehicleSummary: {
             /** Format: uuid */
@@ -362,6 +743,8 @@ export interface components {
         CheckInRequest: {
             /** Format: int32 */
             mileage: number;
+            vin?: string;
+            registration?: string;
         };
         RescheduleRequest: {
             /** Format: date-time */
@@ -380,6 +763,21 @@ export interface components {
             /** Format: int32 */
             totalPages?: number;
         };
+        Upcoming: {
+            /** Format: int64 */
+            count?: number;
+        };
+        BillingContact: {
+            /** Format: uuid */
+            customerId?: string;
+            name?: string;
+            email?: string;
+            phone?: string;
+            vehicleMake?: string;
+            vehicleModel?: string;
+            /** Format: int32 */
+            vehicleYear?: number;
+        };
         PageResponseCustomerResponse: {
             content?: components["schemas"]["CustomerResponse"][];
             /** Format: int32 */
@@ -390,6 +788,39 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+        };
+        Options: {
+            shopName?: string;
+            currency?: string;
+            locations?: components["schemas"]["PublicLocation"][];
+            services?: components["schemas"]["PublicService"][];
+        };
+        PublicLocation: {
+            code?: string;
+            name?: string;
+            address?: string;
+            timeZone?: string;
+        };
+        PublicService: {
+            code?: string;
+            name?: string;
+            description?: string;
+            /** @enum {string} */
+            priceKind?: "NONE" | "FROM" | "FIXED" | "FREE" | "QUOTE";
+            price?: number;
+            /** Format: int32 */
+            durationMinutes?: number;
+            locations?: string[];
+        };
+        Availability: {
+            location?: string;
+            timeZone?: string;
+            days?: components["schemas"]["AvailabilityDay"][];
+        };
+        AvailabilityDay: {
+            /** Format: date */
+            date?: string;
+            slots?: string[];
         };
         PageResponseAppointmentResponse: {
             content?: components["schemas"]["AppointmentResponse"][];
@@ -527,6 +958,104 @@ export interface operations {
             };
         };
     };
+    update_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingServiceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BookingServiceResponse"];
+                };
+            };
+        };
+    };
+    reorder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BookingServiceResponse"][];
+                };
+            };
+        };
+    };
+    hours: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HoursResponse"];
+                };
+            };
+        };
+    };
+    updateHours: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HoursRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HoursResponse"];
+                };
+            };
+        };
+    };
     list: {
         parameters: {
             query?: {
@@ -623,13 +1152,179 @@ export interface operations {
             };
         };
     };
+    claim: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerResponse"];
+                };
+            };
+        };
+    };
+    view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ManagedBooking"];
+                };
+            };
+        };
+    };
+    reschedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManageRescheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ManagedBooking"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ManagedBooking"];
+                };
+            };
+        };
+    };
+    book: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Booked"];
+                };
+            };
+        };
+    };
     list_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BookingServiceResponse"][];
+                };
+            };
+        };
+    };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingServiceRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BookingServiceResponse"];
+                };
+            };
+        };
+    };
+    list_3: {
         parameters: {
             query?: {
                 date?: string;
                 status?: "BOOKED" | "CONFIRMED" | "ARRIVED" | "CHECKED_IN" | "CANCELLED" | "NO_SHOW";
                 vehicleId?: string;
                 customerId?: string;
+                locationId?: string;
+                sort?: string;
                 page?: number;
                 size?: number;
             };
@@ -650,7 +1345,7 @@ export interface operations {
             };
         };
     };
-    book: {
+    book_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -744,7 +1439,7 @@ export interface operations {
             };
         };
     };
-    cancel: {
+    cancel_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -788,7 +1483,7 @@ export interface operations {
             };
         };
     };
-    reschedule: {
+    reschedule_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -814,6 +1509,52 @@ export interface operations {
             };
         };
     };
+    upcoming: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Upcoming"];
+                };
+            };
+        };
+    };
+    billing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+                appointmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BillingContact"];
+                };
+            };
+        };
+    };
     get_1: {
         parameters: {
             query?: never;
@@ -832,6 +1573,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CustomerResponse"];
+                };
+            };
+        };
+    };
+    options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Options"];
+                };
+            };
+        };
+    };
+    availability: {
+        parameters: {
+            query: {
+                location: string;
+                from: string;
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Availability"];
                 };
             };
         };

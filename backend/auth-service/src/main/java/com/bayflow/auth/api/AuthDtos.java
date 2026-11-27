@@ -15,7 +15,9 @@ import org.springframework.data.domain.Page;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import com.bayflow.auth.application.AvatarService;
 import com.bayflow.auth.application.LocationAccess;
+import com.bayflow.auth.domain.AuditEvent;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.auth.domain.User;
 
@@ -66,8 +68,27 @@ public final class AuthDtos {
             String username,
             @NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(min = 8, max = 100) String password,
-            @NotNull Role role,
+            /* One role (older clients); or {@code roles}, several (e.g. ADMIN + MECHANIC). */
+            Role role,
+            @Size(max = 4) List<@NotNull Role> roles,
             /* For MANAGER, SERVICE_ADVISOR and MECHANIC; none = the organization's only location. */
+            @Size(max = 200) List<UUID> locationIds) {
+
+        /** {@code roles} when given, else {@code role}. */
+        public java.util.Set<Role> roleSet() {
+            if (roles != null && !roles.isEmpty()) {
+                return java.util.EnumSet.copyOf(roles);
+            }
+            return role == null ? java.util.Set.of() : java.util.EnumSet.of(role);
+        }
+    }
+
+    /**
+     * Everything a staff member does, e.g. ADMIN + SERVICE_ADVISOR + MECHANIC for an owner who also
+     * runs the desk and works on cars. {@code locationIds}: where they work when that matters
+     * (MANAGER, SERVICE_ADVISOR, MECHANIC without ADMIN); none = the organization's only location.
+     */
+    public record UpdateRolesRequest(@NotNull @Size(min = 1, max = 4) List<@NotNull Role> roles,
             @Size(max = 200) List<UUID> locationIds) {
     }
 
@@ -84,13 +105,30 @@ public final class AuthDtos {
      * signed in with a temporary password from a reset, which they must replace first.
      */
     public record UserResponse(UUID id, String username, String email, List<String> roles, boolean enabled,
-            Instant createdAt, boolean allLocations, List<UUID> locationIds, boolean mustChangePassword) {
+            Instant createdAt, boolean allLocations, List<UUID> locationIds, boolean mustChangePassword,
+            AvatarResponse avatar) {
 
         public static UserResponse from(User user, LocationAccess access) {
             List<String> roles = user.getRoles().stream().map(Role::name).sorted().toList();
             return new UserResponse(user.getId(), user.getUsername(), user.getEmail(), roles, user.isEnabled(),
-                    user.getCreatedAt(), access.all(), access.locationIds(), user.isMustChangePassword());
+                    user.getCreatedAt(), access.all(), access.locationIds(), user.isMustChangePassword(),
+                    AvatarResponse.from(user));
         }
+    }
+
+    /**
+     * How the user shows: {@code kind} INITIALS (drawn from the username), CHARACTER
+     * ({@code character}: a built-in one's code) or PHOTO ({@code photoUrl}).
+     */
+    public record AvatarResponse(User.AvatarKind kind, String character, String photoUrl) {
+
+        static AvatarResponse from(User user) {
+            return new AvatarResponse(user.getAvatarKind(), user.getAvatarCharacter(), AvatarService.photoUrl(user));
+        }
+    }
+
+    /** {@code kind} INITIALS or CHARACTER (with {@code character}); photos are uploaded instead. */
+    public record AvatarRequest(@NotNull User.AvatarKind kind, @Size(max = 20) String character) {
     }
 
     /** Access token response. {@code user} is omitted for service-client tokens. */
@@ -104,6 +142,17 @@ public final class AuthDtos {
         public static <S, T> PageResponse<T> from(Page<S> page, Function<S, T> mapper) {
             return new PageResponse<>(page.getContent().stream().map(mapper).toList(), page.getNumber(),
                     page.getSize(), page.getTotalElements(), page.getTotalPages());
+        }
+    }
+
+    /** One change to an account, for Admin > Activity. Names are as they were at the time. */
+    public record AuditEventResponse(UUID id, Instant occurredAt, String action, UUID actorId, String actorName,
+            UUID targetId, String targetName, String details, String requestId) {
+
+        public static AuditEventResponse from(AuditEvent event) {
+            return new AuditEventResponse(event.getId(), event.getOccurredAt(), event.getAction().name(),
+                    event.getActorId(), event.getActorName(), event.getTargetId(), event.getTargetName(),
+                    event.getDetails(), event.getRequestId());
         }
     }
 }

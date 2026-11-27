@@ -1,1 +1,2 @@
 com.bayflow.security.BayflowSecurityAutoConfiguration
+com.bayflow.ops.ObservabilityAutoConfiguration

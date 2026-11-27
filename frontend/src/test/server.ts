@@ -4,10 +4,13 @@ import { setupServer } from 'msw/node';
 import type {
   AppNotification,
   Appointment,
+  BookingHours,
   Branding,
+  PublicBookingOptions,
   PublicBranding,
   PublicWorkshop,
   Customer,
+  CustomerAccount,
   JobCard,
   PageResponse,
   PeriodMetrics,
@@ -37,9 +40,16 @@ const defaults = [
   http.get('*/api/v1/notifications/unread-count', () => HttpResponse.json({ count: 0 })),
   http.get('*/api/v1/notifications', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/customers/me', () => HttpResponse.json(customer())),
+  // Customers' online accounts (their page, the customer list): active.
+  http.get('*/api/v1/auth/customer-accounts/:id', ({ params }) =>
+    HttpResponse.json(customerAccount({ id: String(params.id) })),
+  ),
+  http.get('*/api/v1/auth/customer-accounts', () => HttpResponse.json([])),
   http.get('*/api/v1/vehicles', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/appointments', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/job-cards', () => HttpResponse.json(pageOf([]))),
+  // No approval link sent yet (204).
+  http.get('*/api/v1/job-cards/:id/estimate-link', () => new HttpResponse(null, { status: 204 })),
   // A completed job card asks for its invoice: none by default.
   http.get('*/api/v1/job-cards/:id/invoice', () =>
     HttpResponse.json({ status: 404, title: 'Not Found', detail: 'Invoice was not found.' }, { status: 404 }),
@@ -54,7 +64,12 @@ const defaults = [
   ),
   // Canned jobs: none yet (advisors see the picker only when there are some).
   http.get('*/api/v1/canned-jobs', () => HttpResponse.json([])),
+  http.get('*/api/v1/booking-services', () => HttpResponse.json([])),
+  http.get('*/api/v1/booking-services/hours/:locationId', ({ params }) =>
+    HttpResponse.json(bookingHours({ locationId: String(params.locationId) })),
+  ),
   http.get('*/api/v1/auth/users', () => HttpResponse.json(pageOf([]))),
+  http.get('*/api/v1/auth/audit-events', () => HttpResponse.json(pageOf([]))),
   // QuickBooks: not set up on the server.
   http.get('*/api/v1/quickbooks', () =>
     HttpResponse.json({
@@ -99,6 +114,67 @@ const defaults = [
 
 /** MSW server shared by all tests. */
 export const server = setupServer(...defaults);
+
+/** A customer's online account as staff see it. */
+export function customerAccount(overrides: Partial<CustomerAccount> = {}): CustomerAccount {
+  return {
+    id: '00000000-0000-0000-0000-000000000001',
+    username: 'jane',
+    email: 'jane@example.com',
+    enabled: true,
+    locked: false,
+    lockedUntil: null,
+    mustChangePassword: false,
+    createdAt: '2026-11-01T10:00:00Z',
+    ...overrides,
+  };
+}
+
+/** A location's booking hours as the server sends them before they are first saved. */
+export function bookingHours(overrides: Partial<BookingHours> = {}): BookingHours {
+  const weekday = { opens: '08:00', closes: '17:00' };
+  const closed = { opens: null, closes: null };
+  return {
+    locationId: 'loc-1',
+    days: [weekday, weekday, weekday, weekday, weekday, closed, closed],
+    slotMinutes: 30,
+    carsPerSlot: 2,
+    minNoticeMinutes: 120,
+    maxDaysAhead: 30,
+    version: 0,
+    ...overrides,
+  };
+}
+
+/** What the public booking page offers: one location, two services. */
+export function bookingOptions(overrides: Partial<PublicBookingOptions> = {}): PublicBookingOptions {
+  return {
+    shopName: 'Demo Auto',
+    currency: 'USD',
+    locations: [{ code: 'main', name: 'Main', address: '1 Main St', timeZone: 'America/New_York' }],
+    services: [
+      {
+        code: 'oil-change',
+        name: 'Oil change',
+        description: 'Oil and filter',
+        priceKind: 'FROM',
+        price: 54,
+        durationMinutes: 45,
+        locations: null,
+      },
+      {
+        code: 'brakes',
+        name: 'Brake check',
+        description: null,
+        priceKind: 'FREE',
+        price: null,
+        durationMinutes: 30,
+        locations: null,
+      },
+    ],
+    ...overrides,
+  };
+}
 
 export function user(role: Role = 'CUSTOMER', username = 'customer1'): User {
   return {

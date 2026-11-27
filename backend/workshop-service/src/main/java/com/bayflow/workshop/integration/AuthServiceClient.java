@@ -10,6 +10,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 
+import com.bayflow.ops.RequestIds;
 import com.bayflow.workshop.config.WorkshopProperties;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -52,7 +53,9 @@ public class AuthServiceClient {
     private final SystemTokenProvider tokens;
 
     public AuthServiceClient(WorkshopProperties properties, SystemTokenProvider tokens) {
-        this.auth = RestClient.builder().baseUrl(properties.getAuthUrl())
+        this.auth = RestClient.builder()
+                .requestInterceptor(RequestIds.propagate())
+                .baseUrl(properties.getAuthUrl())
                 .requestFactory(SystemTokenProvider.factory(properties)).build();
         this.tokens = tokens;
     }

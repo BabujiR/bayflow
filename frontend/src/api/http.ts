@@ -77,6 +77,23 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   return parse<T>(response);
 }
 
+/** A file the API returns (an image, say), with the same sign-in handling as {@link request}. */
+export async function requestBlob(path: string): Promise<Blob> {
+  const options: RequestOptions = { headers: { Accept: '*/*' } };
+  let response = await send(path, options);
+  if (response.status === 401) {
+    if (await refreshSession()) {
+      response = await send(path, options);
+    } else {
+      sessionExpiredHandler?.();
+    }
+  }
+  if (!response.ok) {
+    throw await toApiError(response);
+  }
+  return response.blob();
+}
+
 async function send(path: string, options: RequestOptions): Promise<Response> {
   const url = new URL(path, window.location.origin);
   for (const [key, value] of Object.entries(options.query ?? {})) {
@@ -87,10 +104,10 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
   // X-Bayflow-Client: auth-service's CSRF check for the cookie endpoints (/refresh, /logout).
   // A cross-site page cannot add custom headers without a CORS preflight, which Bayflow refuses.
   const headers: Record<string, string> = {
-    ...options.headers,
     Accept: 'application/json',
     // "console": auth-service signs in to the Ramplight console's organization (base domain only).
     'X-Bayflow-Client': isConsole() ? 'console' : 'web',
+    ...options.headers,
   };
   // FormData (file uploads) sets its own multipart Content-Type with the boundary.
   const isForm = options.body instanceof FormData;

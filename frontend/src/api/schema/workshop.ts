@@ -4,6 +4,192 @@
  */
 
 export interface paths {
+    "/api/v1/service-reminders/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reminders on or off, how many days before, and the miles a day assumed */
+        get: operations["settings"];
+        /** Change the reminder settings (ADMIN) */
+        put: operations["updateSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-reminders/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the signed-in customer gets service reminders */
+        get: operations["mine"];
+        /** Turn service reminders on or off for the signed-in customer */
+        put: operations["setMine"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-intervals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a service interval (ADMIN; send the version read) */
+        put: operations["update"];
+        post?: never;
+        /** Delete a service interval and what was recorded for it (ADMIN) */
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quickbooks/mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Which product/service parts, labour and fees are booked to, and the deposit account (ADMIN) */
+        put: operations["mapping"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One invoice with its lines, taxes and payments */
+        get: operations["get"];
+        /**
+         * Edit a draft: reprice lines, enter part costs, add or remove fees and discounts
+         * @description Send every line in order; parts and labour from the job card can't be removed. Send the version you read (409 if stale).
+         */
+        put: operations["update_1"];
+        post?: never;
+        /** Discard a draft (issued invoices are voided instead) */
+        delete: operations["discard"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/canned-jobs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One canned job with its usual parts */
+        get: operations["get_1"];
+        /** Change a canned job (send the version you read; 409 if stale) */
+        put: operations["update_2"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/canned-jobs/{id}/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Archive (false) or restore (true) a canned job */
+        put: operations["setActive"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-intervals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The shop's service intervals (a starter list the first time) */
+        get: operations["intervals"];
+        put?: never;
+        /** Add a service interval (ADMIN) */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-due/vehicles/{vehicleId}/remind": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send the customer a reminder now for the vehicle's services due within 60 days
+         * @description 409 when the customer has no account or turned reminders off.
+         */
+        post: operations["remind"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quickbooks/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start connecting the organization's QuickBooks company (ADMIN)
+         * @description Returns Intuit's sign-in address; the browser goes there and comes back to returnUrl with ?quickbooks=connected, cancelled, expired or failed.
+         */
+        post: operations["connect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/job-cards": {
         parameters: {
             query?: never;
@@ -19,6 +205,27 @@ export interface paths {
          * @description Idempotent on appointmentId: 201 when created, 200 with the existing card on a repeat.
          */
         post: operations["open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/job-cards/{jobCardId}/invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The job card's invoice (404 when it has none, or a customer's is still a draft) */
+        get: operations["forJobCard"];
+        put?: never;
+        /**
+         * Draft the invoice of a completed job card
+         * @description Lines from its parts and labour plus the location's fees, with the location's tax rates. 409 if the job already has an invoice that isn't void.
+         */
+        post: operations["create_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -51,7 +258,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** INSPECTED → AWAITING_APPROVAL (or DECLINED when nothing is recommended) */
+        /**
+         * INSPECTED → AWAITING_APPROVAL (or DECLINED when nothing is recommended)
+         * @description Also e-mails the customer a link to approve or decline and sign, when they have an e-mail address (see /estimate-link).
+         */
         post: operations["submit"];
         delete?: never;
         options?: never;
@@ -87,6 +297,26 @@ export interface paths {
         put?: never;
         /** Recommend work with a parts and labour estimate (OPEN/INSPECTED) */
         post: operations["addRecommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/job-cards/{id}/recommendations/{itemId}/work": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record several parts and the labour for an approved item at once (IN_PROGRESS)
+         * @description For a canned job's usual parts and hours, as ticked by the mechanic. Labour is at the card's rate. All or nothing.
+         */
+        post: operations["addWork"];
         delete?: never;
         options?: never;
         head?: never;
@@ -181,6 +411,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/job-cards/{id}/estimate-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The approval link e-mailed to the customer: sent, viewed, reminded, signed (204: none) */
+        get: operations["status"];
+        put?: never;
+        /**
+         * E-mail the customer a link to approve or decline and sign (replaces an earlier link)
+         * @description Only while the estimate awaits approval. 400 no-email-address when the customer has none and no 'to' is given; 503 when e-mail is not set up.
+         */
+        post: operations["send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/job-cards/{id}/complete": {
         parameters: {
             query?: never;
@@ -192,6 +443,155 @@ export interface paths {
         put?: never;
         /** IN_PROGRESS/DECLINED → COMPLETED; calculates totals and writes the service history */
         post: operations["complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Void an issued invoice with nothing paid on it; it keeps its number */
+        post: operations["voidInvoice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/quickbooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send an issued invoice to QuickBooks, with the payments not sent yet (and its void)
+         * @description A QuickBooks error is kept on the invoice and returned in quickbooks.error.
+         */
+        post: operations["send_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a payment taken at the counter (negative = refund, managers and admins)
+         * @description Send an Idempotency-Key header: the same key twice records the payment once.
+         */
+        post: operations["pay"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue a draft: it gets the next number, is locked, and the customer is told */
+        post: operations["issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * E-mail an issued invoice to the customer
+         * @description The whole invoice in the e-mail body, with a link to view it online when the customer has an account. to: blank = the customer's address. 503 when e-mail is not set up.
+         */
+        post: operations["email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/estimate-approval/view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The estimate a link names (404 unknown, 410 replaced or expired) */
+        post: operations["view"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/estimate-approval/decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve or decline every pending item and sign (409 estimate-decided when already answered) */
+        post: operations["decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/canned-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Canned jobs by category and name
+         * @description locationId: only those usable there; q: in name, category or description; includeInactive: archived ones too (for the settings page).
+         */
+        get: operations["list_1"];
+        put?: never;
+        /** Add a canned job (managers and admins) */
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -218,6 +618,281 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service-due": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vehicles with a service due within `days` (or overdue), soonest first
+         * @description Only vehicles last serviced at the caller's locations; locationId narrows to one.
+         */
+        get: operations["dueSoon"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-due/vehicles/{vehicleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A vehicle's services due within 30 days or 500 miles of `mileage` (at check-in) */
+        get: operations["forVehicle_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/unpaid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Issued invoices still owed, oldest first, with ageing (now, not for a period) */
+        get: operations["unpaid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/technicians": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hours and labour value per mechanic, by the time the hours were logged */
+        get: operations["technicians"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/tax": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tax on the invoices issued in the period, per category and rate */
+        get: operations["tax"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Car count, sales, ARO, hours, close ratio for the period and the one before; open work now */
+        get: operations["summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payments and refunds received in the period (up to 1000), with totals per method */
+        get: operations["payments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Parts fitted in the period (up to 1000) */
+        get: operations["parts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Completed sales per location */
+        get: operations["locations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/declined": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recommendations declined in the period (up to 1000), for follow-up */
+        get: operations["declined"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/daily": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Completed sales per day in the given time zone */
+        get: operations["daily"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/advisors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Estimates sent, approved and declined value, close ratio and sales per advisor */
+        get: operations["advisors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quickbooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether QuickBooks is set up on the server, connected and ready to take invoices */
+        get: operations["status_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quickbooks/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The company's active products and services (ADMIN) */
+        get: operations["items"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quickbooks/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Intuit sends the browser back here after connecting (no sign-in) */
+        get: operations["callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quickbooks/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Accounts payments can be deposited to: bank and other current assets (ADMIN) */
+        get: operations["accounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/job-cards/{id}": {
         parameters: {
             query?: never;
@@ -226,7 +901,24 @@ export interface paths {
             cookie?: never;
         };
         /** A job card with findings, recommendations and estimates */
-        get: operations["get"];
+        get: operations["get_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/job-cards/{id}/estimate-link/signature": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The customer's signature, once they signed the estimate online (404 before) */
+        get: operations["signature"];
         put?: never;
         post?: never;
         delete?: never;
@@ -252,10 +944,327 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Invoices, newest first
+         * @description status: DRAFT, ISSUED, PARTIALLY_PAID, PAID, VOID or UNPAID (issued or partly paid); from/to: issue time (creation time for drafts); q: number, customer or registration. Customers get their own issued invoices.
+         */
+        get: operations["list_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Invoices issued and payments received in [from, to), for CSV export
+         * @description Voided invoices and drafts are left out. At most 366 days; 400 when the period holds more than 5,000 invoices.
+         */
+        get: operations["export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quickbooks/connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Disconnect QuickBooks (ADMIN); invoices already sent stay in QuickBooks */
+        delete: operations["disconnect"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SettingsRequest: {
+            enabled: boolean;
+            /** Format: int32 */
+            remindDaysBefore: number;
+            /** Format: int32 */
+            milesPerDay: number;
+            /** Format: int64 */
+            version: number;
+        };
+        SettingsResponse: {
+            enabled?: boolean;
+            /** Format: int32 */
+            remindDaysBefore?: number;
+            /** Format: int32 */
+            milesPerDay?: number;
+            /** Format: int64 */
+            version?: number;
+        };
+        MyReminders: {
+            enabled: boolean;
+        };
+        IntervalRequest: {
+            name: string;
+            /** Format: int32 */
+            miles?: number;
+            /** Format: int32 */
+            months?: number;
+            keywords?: string[];
+            cannedJobIds?: string[];
+            active?: boolean;
+            /** Format: int64 */
+            version?: number;
+        };
+        IntervalResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** Format: int32 */
+            miles?: number;
+            /** Format: int32 */
+            months?: number;
+            keywords?: string[];
+            cannedJobIds?: string[];
+            active?: boolean;
+            /** Format: int64 */
+            version?: number;
+        };
+        MappingRequest: {
+            partsItemId: string;
+            partsItemName?: string;
+            labourItemId: string;
+            labourItemName?: string;
+            feesItemId: string;
+            feesItemName?: string;
+            depositAccountId?: string;
+            depositAccountName?: string;
+        };
+        Mapping: {
+            partsItemId?: string;
+            partsItemName?: string;
+            labourItemId?: string;
+            labourItemName?: string;
+            feesItemId?: string;
+            feesItemName?: string;
+            depositAccountId?: string;
+            depositAccountName?: string;
+        };
+        Status: {
+            available?: boolean;
+            connected?: boolean;
+            ready?: boolean;
+            environment?: string;
+            companyName?: string;
+            country?: string;
+            /** Format: date-time */
+            connectedAt?: string;
+            connectedBy?: string;
+            mapping?: components["schemas"]["Mapping"];
+        };
+        LineRequest: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            type?: "PART" | "LABOUR" | "FEE" | "DISCOUNT";
+            description: string;
+            partNumber?: string;
+            quantity: number;
+            unitPrice: number;
+            unitCost?: number;
+            taxable?: boolean;
+            /** @enum {string} */
+            taxCategory?: "PARTS" | "LABOUR" | "FEES";
+        };
+        UpdateInvoiceRequest: {
+            lines: components["schemas"]["LineRequest"][];
+            notes?: string;
+            /** Format: int64 */
+            version: number;
+        };
+        InvoiceResponse: {
+            /** Format: uuid */
+            id?: string;
+            number?: string;
+            /** @enum {string} */
+            status?: "DRAFT" | "ISSUED" | "PARTIALLY_PAID" | "PAID" | "VOID";
+            /** Format: uuid */
+            jobCardId?: string;
+            /** Format: uuid */
+            locationId?: string;
+            /** Format: uuid */
+            customerUserId?: string;
+            customerName?: string;
+            customerEmail?: string;
+            customerPhone?: string;
+            registration?: string;
+            vin?: string;
+            /** Format: int32 */
+            mileage?: number;
+            vehicleDescription?: string;
+            currency?: string;
+            lines?: components["schemas"]["LineResponse"][];
+            partsTotal?: number;
+            labourTotal?: number;
+            feesTotal?: number;
+            discountTotal?: number;
+            subtotal?: number;
+            taxes?: components["schemas"]["TaxResponse"][];
+            taxTotal?: number;
+            total?: number;
+            amountPaid?: number;
+            balanceDue?: number;
+            payments?: components["schemas"]["PaymentResponse"][];
+            notes?: string;
+            footer?: string;
+            /** Format: int32 */
+            paymentTermsDays?: number;
+            /** Format: date-time */
+            issuedAt?: string;
+            issuedBy?: string;
+            /** Format: date-time */
+            dueAt?: string;
+            /** Format: date-time */
+            voidedAt?: string;
+            voidedBy?: string;
+            voidReason?: string;
+            /** Format: date-time */
+            emailedAt?: string;
+            emailedTo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            createdBy?: string;
+            partsProfit?: components["schemas"]["PartsProfit"];
+            quickbooks?: components["schemas"]["QuickBooksState"];
+            /** Format: int64 */
+            version?: number;
+        };
+        LineResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            type?: "PART" | "LABOUR" | "FEE" | "DISCOUNT";
+            feeCode?: string;
+            description?: string;
+            partNumber?: string;
+            quantity?: number;
+            unitPrice?: number;
+            unitCost?: number;
+            lineTotal?: number;
+            taxable?: boolean;
+            /** @enum {string} */
+            taxCategory?: "PARTS" | "LABOUR" | "FEES";
+            fromJobCard?: boolean;
+        };
+        PartsProfit: {
+            partsWithCost?: number;
+            partsCost?: number;
+            profit?: number;
+        };
+        PaymentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            method?: "CASH" | "CARD" | "CHECK" | "BANK_TRANSFER" | "OTHER";
+            amount?: number;
+            reference?: string;
+            /** Format: date-time */
+            receivedAt?: string;
+            receivedBy?: string;
+        };
+        QuickBooksState: {
+            status?: string;
+            invoiceId?: string;
+            /** Format: date-time */
+            syncedAt?: string;
+            error?: string;
+            /** Format: int32 */
+            paymentsToSend?: number;
+            /** Format: int32 */
+            refundsByHand?: number;
+        };
+        TaxResponse: {
+            /** @enum {string} */
+            category?: "PARTS" | "LABOUR" | "FEES";
+            rate?: number;
+            tax?: number;
+        };
+        CannedJobPartRequest: {
+            partNumber: string;
+            name: string;
+            /** Format: int32 */
+            quantity: number;
+            unitPrice: number;
+        };
+        CannedJobRequest: {
+            /** Format: uuid */
+            locationId?: string;
+            name: string;
+            category?: string;
+            description: string;
+            labourHours: number;
+            parts: components["schemas"]["CannedJobPartRequest"][];
+            /** Format: int64 */
+            version?: number;
+        };
+        CannedJobPartResponse: {
+            /** Format: uuid */
+            id?: string;
+            partNumber?: string;
+            name?: string;
+            /** Format: int32 */
+            quantity?: number;
+            unitPrice?: number;
+            lineTotal?: number;
+        };
+        CannedJobResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            locationId?: string;
+            name?: string;
+            category?: string;
+            description?: string;
+            labourHours?: number;
+            parts?: components["schemas"]["CannedJobPartResponse"][];
+            partsTotal?: number;
+            active?: boolean;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        ActiveRequest: {
+            active: boolean;
+        };
+        ConnectRequest: {
+            returnUrl: string;
+        };
+        ConnectResponse: {
+            authorizeUrl?: string;
+        };
         OpenJobCardRequest: {
             /** Format: uuid */
             appointmentId: string;
@@ -268,6 +1277,10 @@ export interface components {
             customerName: string;
             /** Format: int32 */
             mileage: number;
+            /** Format: uuid */
+            tenantId?: string;
+            /** Format: uuid */
+            locationId?: string;
         };
         FindingResponse: {
             /** Format: uuid */
@@ -284,6 +1297,8 @@ export interface components {
             id?: string;
             /** Format: uuid */
             appointmentId?: string;
+            /** Format: uuid */
+            locationId?: string;
             /** Format: uuid */
             vehicleId?: string;
             vin?: string;
@@ -309,6 +1324,7 @@ export interface components {
             grandTotal?: number;
             /** Format: date-time */
             submittedAt?: string;
+            submittedBy?: string;
             /** Format: date-time */
             decidedAt?: string;
             /** Format: date-time */
@@ -381,6 +1397,17 @@ export interface components {
             /** Format: uuid */
             cannedJobId?: string;
         };
+        WorkPartRequest: {
+            partNumber: string;
+            name: string;
+            /** Format: int32 */
+            quantity: number;
+            unitPrice: number;
+        };
+        WorkRequest: {
+            parts: components["schemas"]["WorkPartRequest"][];
+            hours?: number;
+        };
         PartRequest: {
             /** Format: uuid */
             recommendationId: string;
@@ -400,6 +1427,96 @@ export interface components {
             description: string;
             /** @enum {string} */
             severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+        };
+        SendEstimateLinkRequest: {
+            /** Format: email */
+            to?: string;
+        };
+        EstimateLinkStatus: {
+            sentTo?: string;
+            sentBy?: string;
+            /** Format: date-time */
+            sentAt?: string;
+            /** Format: date-time */
+            lastSentAt?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            firstViewedAt?: string;
+            /** Format: int32 */
+            remindersSent?: number;
+            /** Format: date-time */
+            nextReminderAt?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            signerName?: string;
+            signed?: boolean;
+            open?: boolean;
+        };
+        VoidRequest: {
+            reason: string;
+        };
+        PaymentRequest: {
+            /** @enum {string} */
+            method: "CASH" | "CARD" | "CHECK" | "BANK_TRANSFER" | "OTHER";
+            amount: number;
+            reference?: string;
+            /** Format: date-time */
+            receivedAt?: string;
+        };
+        IssueRequest: {
+            /** Format: int64 */
+            version: number;
+        };
+        EmailRequest: {
+            /** Format: email */
+            to?: string;
+        };
+        EstimateTokenRequest: {
+            token: string;
+        };
+        CustomerEstimate: {
+            shopName?: string;
+            locationName?: string;
+            shopPhone?: string;
+            firstName?: string;
+            vehicle?: string;
+            /** @enum {string} */
+            status?: "OPEN" | "INSPECTED" | "AWAITING_APPROVAL" | "APPROVED" | "PARTIALLY_APPROVED" | "DECLINED" | "IN_PROGRESS" | "COMPLETED";
+            canDecide?: boolean;
+            findings?: components["schemas"]["CustomerEstimateFinding"][];
+            items?: components["schemas"]["CustomerEstimateItem"][];
+            total?: number;
+            currency?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            signerName?: string;
+        };
+        CustomerEstimateFinding: {
+            description?: string;
+            /** @enum {string} */
+            severity?: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+        };
+        CustomerEstimateItem: {
+            /** Format: uuid */
+            id?: string;
+            description?: string;
+            price?: number;
+            /** @enum {string} */
+            status?: "PENDING" | "APPROVED" | "DECLINED";
+        };
+        EstimateDecisionRequest: {
+            token: string;
+            decisions: components["schemas"]["ItemDecision"][];
+            signerName: string;
+            signature: string;
+        };
+        ItemDecision: {
+            /** Format: uuid */
+            itemId: string;
+            approve: boolean;
         };
         Finding: {
             description?: string;
@@ -436,6 +1553,8 @@ export interface components {
             /** Format: uuid */
             id?: string;
             /** Format: uuid */
+            locationId?: string;
+            /** Format: uuid */
             vehicleId?: string;
             /** Format: uuid */
             jobCardId?: string;
@@ -465,11 +1584,287 @@ export interface components {
             workPerformed?: string[];
             mechanics?: string[];
         };
+        DueService: {
+            /** Format: uuid */
+            intervalId?: string;
+            name?: string;
+            /** Format: date-time */
+            lastDoneAt?: string;
+            /** Format: int32 */
+            lastMileage?: number;
+            /** Format: int32 */
+            dueMileage?: number;
+            /** Format: date-time */
+            dueAt?: string;
+            overdue?: boolean;
+            /** Format: uuid */
+            cannedJobId?: string;
+        };
+        DueVehicle: {
+            /** Format: uuid */
+            vehicleId?: string;
+            registration?: string;
+            customerName?: string;
+            /** Format: uuid */
+            customerUserId?: string;
+            /** Format: uuid */
+            locationId?: string;
+            /** Format: date-time */
+            dueAt?: string;
+            /** Format: date-time */
+            remindedAt?: string;
+            services?: components["schemas"]["DueService"][];
+        };
+        AgeBucket: {
+            label?: string;
+            /** Format: int64 */
+            count?: number;
+            balance?: number;
+        };
+        UnpaidResponse: {
+            /** Format: date-time */
+            asOf?: string;
+            rows?: components["schemas"]["UnpaidRow"][];
+            truncated?: boolean;
+            buckets?: components["schemas"]["AgeBucket"][];
+            totalBalance?: number;
+            overdueBalance?: number;
+        };
+        UnpaidRow: {
+            /** Format: uuid */
+            invoiceId?: string;
+            number?: string;
+            /** Format: uuid */
+            locationId?: string;
+            customerName?: string;
+            customerEmail?: string;
+            customerPhone?: string;
+            registration?: string;
+            /** Format: date-time */
+            issuedAt?: string;
+            /** Format: date-time */
+            dueAt?: string;
+            total?: number;
+            balanceDue?: number;
+            /** Format: int32 */
+            days?: number;
+            overdue?: boolean;
+        };
+        TechnicianRow: {
+            mechanic?: string;
+            hours?: number;
+            labourValue?: number;
+            /** Format: int64 */
+            jobCards?: number;
+            hoursOnCompleted?: number;
+        };
+        TaxReportResponse: {
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            rows?: components["schemas"]["TaxRow"][];
+            totalTax?: number;
+        };
+        TaxRow: {
+            category?: string;
+            rate?: number;
+            /** Format: int64 */
+            invoices?: number;
+            taxableAmount?: number;
+            tax?: number;
+        };
+        OpenWork: {
+            /** Format: int64 */
+            openCards?: number;
+            /** Format: int64 */
+            awaitingApproval?: number;
+            /** Format: int64 */
+            inWork?: number;
+            pendingValue?: number;
+            /** Format: int64 */
+            unpaidInvoices?: number;
+            unpaidBalance?: number;
+            overdueBalance?: number;
+        };
+        PeriodMetrics: {
+            /** Format: int64 */
+            carCount?: number;
+            sales?: number;
+            partsSales?: number;
+            labourSales?: number;
+            averageRepairOrder?: number;
+            labourHours?: number;
+            effectiveLabourRate?: number;
+            /** Format: int64 */
+            itemsApproved?: number;
+            /** Format: int64 */
+            itemsDeclined?: number;
+            approvedValue?: number;
+            declinedValue?: number;
+            hoursApproved?: number;
+            hoursDeclined?: number;
+            closeRatio?: number;
+            feesSales?: number;
+            discounts?: number;
+            collected?: number;
+        };
+        SummaryResponse: {
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            current?: components["schemas"]["PeriodMetrics"];
+            /** Format: date-time */
+            previousFrom?: string;
+            /** Format: date-time */
+            previousTo?: string;
+            previous?: components["schemas"]["PeriodMetrics"];
+            open?: components["schemas"]["OpenWork"];
+        };
+        MethodTotal: {
+            method?: string;
+            /** Format: int64 */
+            count?: number;
+            amount?: number;
+        };
+        PaymentRow: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            invoiceId?: string;
+            invoiceNumber?: string;
+            /** Format: uuid */
+            locationId?: string;
+            customerName?: string;
+            registration?: string;
+            method?: string;
+            amount?: number;
+            reference?: string;
+            /** Format: date-time */
+            receivedAt?: string;
+            receivedBy?: string;
+        };
+        PaymentsResponse: {
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            rows?: components["schemas"]["PaymentRow"][];
+            truncated?: boolean;
+            byMethod?: components["schemas"]["MethodTotal"][];
+            total?: number;
+        };
+        PartRow: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            jobCardId?: string;
+            /** Format: uuid */
+            locationId?: string;
+            partNumber?: string;
+            name?: string;
+            /** Format: int32 */
+            quantity?: number;
+            unitPrice?: number;
+            total?: number;
+            recordedBy?: string;
+            /** Format: date-time */
+            recordedAt?: string;
+            registration?: string;
+            customerName?: string;
+            recommendation?: string;
+        };
+        RowsResponsePartRow: {
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            rows?: components["schemas"]["PartRow"][];
+            truncated?: boolean;
+        };
+        LocationRow: {
+            /** Format: uuid */
+            locationId?: string;
+            /** Format: int64 */
+            carCount?: number;
+            sales?: number;
+            partsSales?: number;
+            labourSales?: number;
+            averageRepairOrder?: number;
+            labourHours?: number;
+        };
+        DeclinedRow: {
+            /** Format: uuid */
+            itemId?: string;
+            /** Format: uuid */
+            jobCardId?: string;
+            /** Format: uuid */
+            locationId?: string;
+            /** Format: uuid */
+            customerUserId?: string;
+            customerName?: string;
+            registration?: string;
+            vin?: string;
+            description?: string;
+            estimatedPartsCost?: number;
+            estimatedLabourHours?: number;
+            value?: number;
+            decidedBy?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            submittedBy?: string;
+        };
+        RowsResponseDeclinedRow: {
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            rows?: components["schemas"]["DeclinedRow"][];
+            truncated?: boolean;
+        };
+        DailyResponse: {
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            zone?: string;
+            days?: components["schemas"]["DailyRow"][];
+        };
+        DailyRow: {
+            /** Format: date */
+            day?: string;
+            /** Format: int64 */
+            carCount?: number;
+            sales?: number;
+            partsSales?: number;
+            labourSales?: number;
+        };
+        AdvisorRow: {
+            advisor?: string;
+            /** Format: int64 */
+            estimatesSent?: number;
+            presentedValue?: number;
+            approvedValue?: number;
+            declinedValue?: number;
+            closeRatio?: number;
+            /** Format: int64 */
+            completedCards?: number;
+            completedSales?: number;
+            averageRepairOrder?: number;
+        };
+        Choice: {
+            id?: string;
+            name?: string;
+            type?: string;
+        };
         JobCardSummary: {
             /** Format: uuid */
             id?: string;
             /** Format: uuid */
             appointmentId?: string;
+            /** Format: uuid */
+            locationId?: string;
             /** Format: uuid */
             vehicleId?: string;
             vin?: string;
@@ -495,6 +1890,105 @@ export interface components {
             /** Format: int32 */
             totalPages?: number;
         };
+        InvoiceSummary: {
+            /** Format: uuid */
+            id?: string;
+            number?: string;
+            /** @enum {string} */
+            status?: "DRAFT" | "ISSUED" | "PARTIALLY_PAID" | "PAID" | "VOID";
+            /** Format: uuid */
+            jobCardId?: string;
+            /** Format: uuid */
+            locationId?: string;
+            customerName?: string;
+            registration?: string;
+            currency?: string;
+            total?: number;
+            balanceDue?: number;
+            /** Format: date-time */
+            issuedAt?: string;
+            /** Format: date-time */
+            dueAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        PageResponseInvoiceSummary: {
+            content?: components["schemas"]["InvoiceSummary"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        ExportInvoice: {
+            /** Format: uuid */
+            id?: string;
+            number?: string;
+            /** @enum {string} */
+            status?: "DRAFT" | "ISSUED" | "PARTIALLY_PAID" | "PAID" | "VOID";
+            /** Format: uuid */
+            locationId?: string;
+            customerName?: string;
+            customerEmail?: string;
+            customerPhone?: string;
+            registration?: string;
+            vin?: string;
+            vehicleDescription?: string;
+            currency?: string;
+            /** Format: date-time */
+            issuedAt?: string;
+            /** Format: date-time */
+            dueAt?: string;
+            /** Format: int32 */
+            paymentTermsDays?: number;
+            lines?: components["schemas"]["ExportLine"][];
+            subtotal?: number;
+            taxTotal?: number;
+            total?: number;
+            amountPaid?: number;
+            balanceDue?: number;
+        };
+        ExportLine: {
+            /** @enum {string} */
+            type?: "PART" | "LABOUR" | "FEE" | "DISCOUNT";
+            description?: string;
+            partNumber?: string;
+            quantity?: number;
+            unitPrice?: number;
+            lineTotal?: number;
+            taxable?: boolean;
+            /** @enum {string} */
+            taxCategory?: "PARTS" | "LABOUR" | "FEES";
+        };
+        ExportPayment: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            invoiceId?: string;
+            invoiceNumber?: string;
+            /** Format: uuid */
+            locationId?: string;
+            customerName?: string;
+            currency?: string;
+            /** @enum {string} */
+            method?: "CASH" | "CARD" | "CHECK" | "BANK_TRANSFER" | "OTHER";
+            amount?: number;
+            reference?: string;
+            /** Format: date-time */
+            receivedAt?: string;
+            receivedBy?: string;
+        };
+        InvoiceExport: {
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            invoices?: components["schemas"]["ExportInvoice"][];
+            payments?: components["schemas"]["ExportPayment"][];
+        };
     };
     responses: never;
     parameters: never;
@@ -504,6 +1998,394 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SettingsResponse"];
+                };
+            };
+        };
+    };
+    updateSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SettingsResponse"];
+                };
+            };
+        };
+    };
+    mine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MyReminders"];
+                };
+            };
+        };
+    };
+    setMine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MyReminders"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MyReminders"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntervalRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IntervalResponse"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    mapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MappingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Status"];
+                };
+            };
+        };
+    };
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceResponse"];
+                };
+            };
+        };
+    };
+    update_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInvoiceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceResponse"];
+                };
+            };
+        };
+    };
+    discard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CannedJobResponse"];
+                };
+            };
+        };
+    };
+    update_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CannedJobRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CannedJobResponse"];
+                };
+            };
+        };
+    };
+    setActive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActiveRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CannedJobResponse"];
+                };
+            };
+        };
+    };
+    intervals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IntervalResponse"][];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntervalRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IntervalResponse"];
+                };
+            };
+        };
+    };
+    remind: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehicleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    connect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ConnectResponse"];
+                };
+            };
+        };
+    };
     list: {
         parameters: {
             query?: {
@@ -548,6 +2430,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["JobCardResponse"];
+                };
+            };
+        };
+    };
+    forJobCard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobCardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceResponse"];
+                };
+            };
+        };
+    };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobCardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceResponse"];
                 };
             };
         };
@@ -634,6 +2560,33 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RecommendationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["JobCardResponse"];
+                };
+            };
+        };
+    };
+    addWork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkRequest"];
             };
         };
         responses: {
@@ -772,6 +2725,54 @@ export interface operations {
             };
         };
     };
+    status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EstimateLinkStatus"];
+                };
+            };
+        };
+    };
+    send: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SendEstimateLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EstimateLinkStatus"];
+                };
+            };
+        };
+    };
     complete: {
         parameters: {
             query?: never;
@@ -790,6 +2791,230 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["JobCardResponse"];
+                };
+            };
+        };
+    };
+    voidInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoidRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceResponse"];
+                };
+            };
+        };
+    };
+    send_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceResponse"];
+                };
+            };
+        };
+    };
+    pay: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceResponse"];
+                };
+            };
+        };
+    };
+    issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceResponse"];
+                };
+            };
+        };
+    };
+    email: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["EmailRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceResponse"];
+                };
+            };
+        };
+    };
+    view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EstimateTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerEstimate"];
+                };
+            };
+        };
+    };
+    decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EstimateDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerEstimate"];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: {
+                locationId?: string;
+                q?: string;
+                includeInactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CannedJobResponse"][];
+                };
+            };
+        };
+    };
+    create_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CannedJobRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CannedJobResponse"];
                 };
             };
         };
@@ -819,7 +3044,365 @@ export interface operations {
             };
         };
     };
-    get: {
+    dueSoon: {
+        parameters: {
+            query?: {
+                days?: number;
+                locationId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DueVehicle"][];
+                };
+            };
+        };
+    };
+    forVehicle_1: {
+        parameters: {
+            query?: {
+                mileage?: number;
+            };
+            header?: never;
+            path: {
+                vehicleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DueService"][];
+                };
+            };
+        };
+    };
+    unpaid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UnpaidResponse"];
+                };
+            };
+        };
+    };
+    technicians: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TechnicianRow"][];
+                };
+            };
+        };
+    };
+    tax: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaxReportResponse"];
+                };
+            };
+        };
+    };
+    summary: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SummaryResponse"];
+                };
+            };
+        };
+    };
+    payments: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PaymentsResponse"];
+                };
+            };
+        };
+    };
+    parts: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RowsResponsePartRow"];
+                };
+            };
+        };
+    };
+    locations: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LocationRow"][];
+                };
+            };
+        };
+    };
+    declined: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RowsResponseDeclinedRow"];
+                };
+            };
+        };
+    };
+    daily: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                zone?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DailyResponse"];
+                };
+            };
+        };
+    };
+    advisors: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AdvisorRow"][];
+                };
+            };
+        };
+    };
+    status_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Status"];
+                };
+            };
+        };
+    };
+    items: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Choice"][];
+                };
+            };
+        };
+    };
+    callback: {
+        parameters: {
+            query?: {
+                code?: string;
+                state?: string;
+                realmId?: string;
+                error?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    accounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Choice"][];
+                };
+            };
+        };
+    };
+    get_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -837,6 +3420,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["JobCardResponse"];
+                };
+            };
+        };
+    };
+    signature: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": string;
                 };
             };
         };
@@ -860,6 +3465,74 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["JobCardResponse"];
                 };
+            };
+        };
+    };
+    list_2: {
+        parameters: {
+            query?: {
+                status?: string;
+                from?: string;
+                to?: string;
+                q?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseInvoiceSummary"];
+                };
+            };
+        };
+    };
+    export: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceExport"];
+                };
+            };
+        };
+    };
+    disconnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
