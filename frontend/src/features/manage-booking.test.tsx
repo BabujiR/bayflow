@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ManagedBooking } from '@/api/types';
@@ -50,6 +50,26 @@ function serveAvailability() {
 afterEach(() => sessionStorage.clear());
 
 describe("an online booking's private link (/book/manage)", () => {
+  it('still shows the booking when the "no sign-in" answer comes after it', async () => {
+    server.use(
+      // A visitor without a sign-in: the session check fails only after the booking has loaded.
+      http.post('*/api/v1/auth/refresh', async () => {
+        await delay(300);
+        return problem(401, 'invalid-refresh-token', 'Please sign in again.');
+      }),
+      http.post('*/api/v1/booking/manage', () => HttpResponse.json(managed())),
+    );
+    renderApp(`/book/manage?token=${TOKEN}`);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Your booking' }, { timeout: 10_000 }),
+    ).toBeInTheDocument();
+    // After the session check has failed, the booking is still there.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(screen.getByRole('heading', { name: 'Your booking' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+  });
+
   it('shows the booking and moves it to another free time', async () => {
     let sent: unknown;
     server.use(
