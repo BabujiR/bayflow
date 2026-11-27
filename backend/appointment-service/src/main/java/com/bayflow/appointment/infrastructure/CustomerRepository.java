@@ -28,6 +28,9 @@ public interface CustomerRepository extends JpaRepository<Customer, UUID> {
     /** The customer with this e-mail (stored in lower case), oldest first: online bookings reuse it. */
     Optional<Customer> findFirstByEmailOrderByCreatedAtAsc(String email);
 
+    /** The first guest (no account) with this e-mail: where online bookings without signing in go. */
+    Optional<Customer> findFirstByEmailAndUserIdIsNullOrderByCreatedAtAsc(String email);
+
     /** {@code pattern} is a lower-case LIKE pattern, e.g. "%smith%". */
     @Query("""
             select c from Customer c

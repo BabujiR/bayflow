@@ -316,7 +316,10 @@ customer is e-mailed; a moved booking gets a new link (the old one stops working
 **Accounts**: the confirmation and manage pages offer *Create an account* / *sign in*. Once the
 customer is signed in, the booking is claimed with its token (`POST /api/v1/customers/me/claim`):
 with no profile yet, the online booker's record becomes theirs; otherwise its cars and bookings
-move to their profile. An e-mail that belongs to an account can't book without signing in.
+move to their profile. The page never tells anyone whether an e-mail has an account or a VIN is on file: an account's
+e-mail booked without signing in goes to a separate guest record (the confirmation goes to that
+address, whose owner can cancel it or add it to their account), and a VIN already on another
+customer's car is booked on a placeholder car reading "VIN …", with a note for the desk.
 
 ### Canned jobs
 

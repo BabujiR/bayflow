@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,4 +41,16 @@ public interface OutboxRepository extends JpaRepository<OutboxMessage, UUID> {
     List<OutboxMessage> findByAppointmentIdAndProcessedAtIsNullAndFailedAtIsNull(UUID appointmentId);
 
     List<OutboxMessage> findByAppointmentId(UUID appointmentId);
+
+    /**
+     * Takes the message for one sending attempt: moves its next attempt to {@code leaseUntil}
+     * if it is still unsent, not given up and due. 1 when this caller got it, 0 when another
+     * sender (the other path, or another instance) already has it. Commits on its own, before the
+     * send, so the claim is visible to everyone else while the HTTP call runs.
+     */
+    @Modifying
+    @Transactional
+    @Query(value = "update {h-schema}apt_outbox set next_attempt_at = :leaseUntil where id = :id"
+            + " and processed_at is null and failed_at is null and next_attempt_at <= :now", nativeQuery = true)
+    int claim(@Param("id") UUID id, @Param("now") Instant now, @Param("leaseUntil") Instant leaseUntil);
 }

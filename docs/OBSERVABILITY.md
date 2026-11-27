@@ -65,5 +65,5 @@ exported (OTLP over HTTP) only when a collector is set up:
 | `BAYFLOW_OTLP_TRACES_ENDPOINT` | `http://localhost:4318/v1/traces` | the collector (Jaeger, Tempo, Grafana Cloud, an OTel collector) |
 | `BAYFLOW_TRACING_SAMPLING` | `0.1` | share of requests traced |
 
-Calls between the services carry the request id but not yet the trace context, so each service's
-spans form their own trace; search by `requestId` to follow one request across services.
+Calls between the services carry the trace (`traceparent`) as well as the request id, so one
+request is one trace across every service it touches.

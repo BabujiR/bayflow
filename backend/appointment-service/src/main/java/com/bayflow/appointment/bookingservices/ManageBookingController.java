@@ -19,6 +19,7 @@ import com.bayflow.appointment.domain.AppointmentStatus;
 import com.bayflow.appointment.integration.WorkshopDirectory.Workshop;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
@@ -33,6 +34,8 @@ public class ManageBookingController {
     public record TokenRequest(@NotBlank @Size(max = 64) String token) {
     }
 
+    /** Own OpenAPI name: another API type is also called RescheduleRequest. */
+    @Schema(name = "ManageRescheduleRequest")
     public record RescheduleRequest(@NotBlank @Size(max = 64) String token, @NotNull Instant startsAt) {
     }
 

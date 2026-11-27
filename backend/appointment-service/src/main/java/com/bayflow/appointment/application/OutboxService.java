@@ -1,6 +1,7 @@
 package com.bayflow.appointment.application;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bayflow.appointment.config.IntegrationProperties;
@@ -32,6 +34,9 @@ import tools.jackson.databind.json.JsonMapper;
 /** Database side of the outbox: storing, finding and settling messages. */
 @Service
 public class OutboxService {
+
+    /** How long a claimed message is left to its sender (longer than any HTTP timeout here). */
+    static final Duration CLAIM_LEASE = Duration.ofMinutes(2);
 
     private static final Logger log = LoggerFactory.getLogger(OutboxService.class);
 
@@ -170,6 +175,18 @@ public class OutboxService {
     }
 
     /** A message of the current workshop. */
+    /**
+     * Claims the message before sending it, so it goes out once even when the immediate send and
+     * the dispatcher (or two instances) reach it together. A claim lasts {@link #CLAIM_LEASE}: a
+     * sender that dies mid-send leaves the message to be retried after that. True when the caller
+     * may send it now.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean claim(UUID messageId) {
+        Instant now = clock.instant();
+        return outbox.claim(messageId, now, now.plus(CLAIM_LEASE)) == 1;
+    }
+
     @Transactional(readOnly = true)
     public Optional<OutboxMessage> find(UUID messageId) {
         return outbox.findById(messageId);

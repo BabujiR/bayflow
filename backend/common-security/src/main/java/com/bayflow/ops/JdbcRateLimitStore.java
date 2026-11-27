@@ -21,8 +21,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Counts in PostgreSQL (the service's {@code <prefix>_rate_limits} table), shared by every
- * instance of the service. Keys are stored hashed: no e-mail addresses or IPs in the table. Each hit commits on its own connection, so a request that fails (a
- * wrong password, say) still counts. If the database can't be reached the hit is let through
+ * instance of the service. Keys are stored hashed: no e-mail addresses or IPs in the table.
+ * Each hit commits on its own connection, so a request that fails (a wrong password, say) still
+ * counts. If the database can't be reached the hit is let through
  * (logged): the service's own database being down fails the request anyway.
  */
 public class JdbcRateLimitStore implements RateLimitStore {

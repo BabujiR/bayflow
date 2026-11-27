@@ -4,7 +4,8 @@
  *
  * The generated response types mark every field optional. {@link Present} marks the fields
  * the backend always sends as required, so only genuinely optional fields (like a
- * job card id before check-in) need checks in the UI.
+ * job card id before check-in) need checks in the UI. Types still written by hand are checked
+ * against the generated ones in ./schema-drift.ts: a field the API drops fails type-checking.
  */
 import type { components as AppointmentApi } from './schema/appointment';
 import type { components as AuthApi } from './schema/auth';
@@ -27,20 +28,19 @@ export interface PageResponse<T> {
 
 // ---- auth --------------------------------------------------------------------------
 
-/** MANAGER (phase L2) is hand-written until `pnpm api:update`. */
-export type Role = A['CreateStaffRequest']['role'] | 'MANAGER' | 'PLATFORM_ADMIN';
+export type Role = NonNullable<A['CreateStaffRequest']['role']>;
 
+/**
+ * `allLocations`: works with every location (ADMIN, CUSTOMER), otherwise at `locationIds`.
+ * `mustChangePassword`: signed in with a temporary password from a staff reset.
+ */
 export type User = Present<
-  Omit<A['UserResponse'], 'roles'>,
+  Omit<A['UserResponse'], 'roles' | 'avatar'>,
   'id' | 'username' | 'email' | 'enabled' | 'createdAt'
 > & {
+  /** The schema says string[]; they are always roles. */
   roles: Role[];
-  /** Works with every location (ADMIN, CUSTOMER); otherwise at locationIds. Hand-written (L2). */
-  allLocations?: boolean;
-  locationIds?: string[];
-  /** Signed in with a temporary password from a staff reset: must choose a new one first. */
-  mustChangePassword?: boolean;
-  /** How they show in the app (initials when missing). Hand-written until `pnpm api:update`. */
+  /** How they show in the app (initials when missing). */
   avatar?: Avatar;
 };
 
@@ -99,7 +99,7 @@ export type TokenResponse = Present<
 export type LoginRequest = A['LoginRequest'];
 export type RegisterRequest = A['RegisterRequest'];
 export type CreateStaffRequest = Omit<A['CreateStaffRequest'], 'role' | 'roles'> & {
-  /** Everything they do, e.g. ['ADMIN', 'MECHANIC'] (hand-written until `pnpm api:update`). */
+  /** Everything they do, e.g. ['ADMIN', 'MECHANIC'] (the API also takes a single `role`). */
   roles: Role[];
   /** For MANAGER, SERVICE_ADVISOR and MECHANIC; none = the organization's only location. */
   locationIds?: string[];
@@ -123,8 +123,9 @@ export type VehicleSummary = Present<
 >;
 
 export type Appointment = Present<
-  Omit<P['AppointmentResponse'], 'vehicle'>,
+  Omit<P['AppointmentResponse'], 'vehicle' | 'serviceName' | 'cancelReason'>,
   | 'id'
+  | 'locationId'
   | 'customerId'
   | 'customerName'
   | 'scheduledAt'
@@ -136,27 +137,18 @@ export type Appointment = Present<
   | 'updatedAt'
 > & {
   vehicle: VehicleSummary;
-  /** The location (shop) of the organization; hand-written until `pnpm api:update`. */
-  locationId: string;
-  /** Booked by the customer on the public booking page (hand-written until `pnpm api:update`). */
-  bookedOnline?: boolean;
-  /** The service they picked online, e.g. "Oil change" or "Something else". */
+  /** The service they picked online (`bookedOnline`), e.g. "Oil change" or "Something else". */
   serviceName?: string | null;
-  /** Cancelled by the customer from their booking's private link, with their reason. */
-  cancelledByCustomer?: boolean;
+  /** The customer's reason, when they cancelled from their booking's private link. */
   cancelReason?: string | null;
-  /** Times the customer moved it from the link. */
-  customerReschedules?: number;
 };
 
 export type ProfileRequest = P['ProfileRequest'];
 export type CreateCustomerRequest = P['CreateCustomerRequest'];
 export type CreateVehicleRequest = P['CreateVehicleRequest'];
 export type UpdateVehicleRequest = P['UpdateVehicleRequest'];
-export type BookAppointmentRequest = P['BookAppointmentRequest'] & {
-  /** Optional while the organization has one location; hand-written until `pnpm api:update`. */
-  locationId?: string;
-};
+/** `locationId`: optional while the organization has one location. */
+export type BookAppointmentRequest = P['BookAppointmentRequest'];
 export type RescheduleRequest = P['RescheduleRequest'];
 
 // ---- workshop -----------------------------------------------------------------------
@@ -200,6 +192,7 @@ export type JobCard = Present<
   Omit<W['JobCardResponse'], 'findings' | 'recommendations' | 'workLogs' | 'parts' | 'labour'>,
   | 'id'
   | 'appointmentId'
+  | 'locationId'
   | 'vehicleId'
   | 'vin'
   | 'registration'
@@ -218,8 +211,6 @@ export type JobCard = Present<
   workLogs: WorkLog[];
   parts: Part[];
   labour: Labour[];
-  /** The location (shop) where the work is done; hand-written until `pnpm api:update`. */
-  locationId: string;
 };
 
 export type JobCardSummary = Present<
@@ -234,10 +225,7 @@ export type JobCardSummary = Present<
   | 'status'
   | 'createdAt'
   | 'updatedAt'
-> & {
-  /** Hand-written until `pnpm api:update`. */
-  locationId?: string;
-};
+>;
 
 export type ServiceRecord = W['ServiceRecord'];
 
@@ -254,10 +242,7 @@ export type ServiceHistoryEntry = Present<
   | 'labourTotal'
   | 'totalCost'
   | 'currency'
-> & {
-  /** Where the work was done; hand-written until `pnpm api:update`. */
-  locationId?: string;
-};
+>;
 
 export type FindingRequest = W['FindingRequest'];
 export type RecommendationRequest = W['RecommendationRequest'];
@@ -266,7 +251,7 @@ export type PartRequest = W['PartRequest'];
 export type LabourRequest = W['LabourRequest'];
 
 // ---- canned jobs (R3a) ---------------------------------------------------------------------
-// Written by hand until the schema is regenerated with `pnpm api:update`.
+// Hand-written (stricter than the generated types); schema-drift.ts checks them against the API.
 
 export interface CannedJobPart {
   id: string;
@@ -366,7 +351,7 @@ export interface WorkRequest {
 }
 
 // ---- workshop settings (auth-service, SaaS phase 3) --------------------------------------
-// Written by hand until the schema is regenerated with `pnpm api:update`.
+// Hand-written (stricter than the generated types); schema-drift.ts checks them against the API.
 
 /** The signed-in user's workshop and its settings. */
 export interface Workshop {
@@ -829,7 +814,8 @@ export interface AppNotification {
 }
 
 // ---- reports (workshop-service, phase R1) -----------------------------------------------
-// Hand-written until `pnpm api:update`. Money is in the workshop's currency; ratios are 0–1.
+// Hand-written; schema-drift.ts checks them against the API. Money is in the workshop's currency;
+// ratios are 0–1.
 
 export interface PeriodMetrics {
   carCount: number;
@@ -1022,7 +1008,7 @@ export interface ReportRows<T> {
 }
 
 // ---- invoices (workshop-service, phase R2a) ----------------------------------------------
-// Hand-written until `pnpm api:update`. Money is in the invoice's currency.
+// Hand-written; schema-drift.ts checks them against the API. Money is in the invoice's currency.
 
 export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PARTIALLY_PAID' | 'PAID' | 'VOID';
 export type InvoiceLineType = 'PART' | 'LABOUR' | 'FEE' | 'DISCOUNT';
@@ -1248,7 +1234,7 @@ export interface PaymentRequest {
   reference?: string;
 }
 
-/** Admin > Activity: one change to an account (hand-written until `pnpm api:update`). */
+/** Admin > Activity: what was done (the schema says string). */
 export type AuditAction =
   | 'STAFF_CREATED'
   | 'ROLES_CHANGED'
@@ -1259,6 +1245,7 @@ export type AuditAction =
   | 'PASSWORD_RESET'
   | 'AVATAR_RESET';
 
+/** One change to an account. Names are as they were at the time; null when not known. */
 export interface AuditEvent {
   id: string;
   occurredAt: string;

@@ -46,6 +46,11 @@ public class OnlineBooking {
             "diagnostic", ServiceType.DIAGNOSTIC);
 
     public static final String SOMETHING_ELSE = "Something else";
+    /**
+     * Make of the placeholder car for a VIN on file under another customer: with the VIN as its
+     * model it reads "VIN …" everywhere, like any car booked by VIN (see unverifiedVin).
+     */
+    static final String UNVERIFIED_VIN_MAKE = "VIN";
 
     static final String BOOKED = "APPOINTMENT_BOOKED";
     static final String RESCHEDULED = "APPOINTMENT_RESCHEDULED";
@@ -107,17 +112,14 @@ public class OnlineBooking {
         Instant now = clock.instant();
         String email = r.email().strip().toLowerCase(Locale.ROOT);
         String phone = r.phone() == null || r.phone().isBlank() ? null : r.phone().strip();
-        Customer customer = customers.findFirstByEmailOrderByCreatedAtAsc(email).map(c -> {
-            // Someone's account: they sign in to book, so nobody books into it by typing the e-mail.
-            if (c.getUserId() != null) {
-                throw ApiException.conflict("sign-in-to-book",
-                        "This e-mail has an account with the shop. Sign in to book.");
-            }
-            return c;
-        }).orElseGet(() ->
+        // A guest record for this e-mail, never an account's own record (nobody signed in here), and
+        // the same answer either way: the page doesn't tell anyone whether an e-mail has an account.
+        // The confirmation goes to the address; its owner can cancel, or add it to their account.
+        Customer customer = customers.findFirstByEmailAndUserIdIsNullOrderByCreatedAtAsc(email).orElseGet(() ->
                 customers.saveAndFlush(Customer.create(null, r.firstName().strip() + " " + r.lastName().strip(),
                         email, phone, now)));
-        Vehicle vehicle = vehicleFor(customer, r, now);
+        CarChoice car = vehicleFor(customer, r, now);
+        Vehicle vehicle = car.vehicle();
 
         int minutes = service != null && service.getDurationMinutes() != null
                 ? Math.max(Appointment.MIN_DURATION_MINUTES,
@@ -130,6 +132,10 @@ public class OnlineBooking {
         ServiceType type = service == null ? ServiceType.OTHER
                 : TYPES.getOrDefault(service.getCode(), ServiceType.OTHER);
         String notes = r.description() == null || r.description().isBlank() ? null : r.description().strip();
+        if (car.vinOnFileElsewhere()) {
+            notes = (notes == null ? "" : notes + "\n\n") + "[Online booking] The VIN given ("
+                    + car.vehicle().getModel() + ") is on file under another customer. Check the car at the desk.";
+        }
         Appointment appointment = Appointment.book(customer, vehicle, location.id(), r.startsAt(), minutes, type,
                 notes, now);
         appointment.bookedOnline(service == null ? SOMETHING_ELSE : service.getName(),
@@ -160,26 +166,40 @@ public class OnlineBooking {
         }
     }
 
+    /** The car a booking is for; {@code vinOnFileElsewhere}: its VIN belongs to another customer's car. */
+    private record CarChoice(Vehicle vehicle, boolean vinOnFileElsewhere) {
+    }
+
     /** The customer's car this booking is for: by VIN, else by year, make and model; else a new one. */
-    private Vehicle vehicleFor(Customer customer, Request r, Instant now) {
+    private CarChoice vehicleFor(Customer customer, Request r, Instant now) {
         if (r.vin() != null && !r.vin().isBlank()) {
             String vin = Vehicle.normalizeVin(r.vin());
             return vehicles.findByVin(vin)
-                    .map(v -> {
-                        if (!v.getOwner().getId().equals(customer.getId())) {
-                            throw ApiException.conflict("vin-registered", "This VIN is already with the shop"
-                                    + " under another customer. Please call the shop.");
-                        }
-                        return v;
-                    })
-                    .orElseGet(() -> vehicles.saveAndFlush(
-                            Vehicle.fromOnlineBooking(customer, vin, null, null, null, now)));
+                    .map(v -> v.getOwner().getId().equals(customer.getId())
+                            ? new CarChoice(v, false)
+                            : new CarChoice(unverifiedVin(customer, vin, now), true))
+                    .orElseGet(() -> new CarChoice(vehicles.saveAndFlush(
+                            Vehicle.fromOnlineBooking(customer, vin, null, null, null, now)), false));
         }
-        return vehicles.findAllByOwnerId(customer.getId()).stream()
+        return new CarChoice(vehicles.findAllByOwnerId(customer.getId()).stream()
                 .filter(v -> v.getYear() == r.year() && r.make().strip().equalsIgnoreCase(v.getMake())
                         && r.model().strip().equalsIgnoreCase(v.getModel()))
                 .findFirst()
                 .orElseGet(() -> vehicles.saveAndFlush(
-                        Vehicle.fromOnlineBooking(customer, null, r.make(), r.model(), r.year(), now)));
+                        Vehicle.fromOnlineBooking(customer, null, r.make(), r.model(), r.year(), now))), false);
+    }
+
+    /**
+     * A VIN that is already another customer's car (sold on, or mistyped): booked anyway, without
+     * saying so (that would tell anyone whose VIN is on file), on a placeholder car of this
+     * customer's that reads exactly like any car booked by VIN ("VIN …"). The VIN can't be stored
+     * twice; the desk sorts it out at check-in, from the booking's note.
+     */
+    private Vehicle unverifiedVin(Customer customer, String vin, Instant now) {
+        return vehicles.findAllByOwnerId(customer.getId()).stream()
+                .filter(v -> v.getVin() == null && UNVERIFIED_VIN_MAKE.equals(v.getMake()) && vin.equals(v.getModel()))
+                .findFirst()
+                .orElseGet(() -> vehicles.saveAndFlush(
+                        Vehicle.fromOnlineBooking(customer, null, UNVERIFIED_VIN_MAKE, vin, 0, now)));
     }
 }

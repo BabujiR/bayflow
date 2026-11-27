@@ -41,6 +41,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- TracePropagation; every service brings it through spring-boot-starter-opentelemetry -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- SharedSchemaMigrations; every service brings Flyway through its Flyway starter -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

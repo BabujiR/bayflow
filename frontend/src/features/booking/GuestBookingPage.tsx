@@ -121,10 +121,7 @@ function BookingFlow({ options }: { options: PublicBookingOptions }) {
         setTimeError(errorMessage(error));
         void queryClient.invalidateQueries({ queryKey: ['booking', 'availability'] });
         setStep(2);
-      } else if (
-        error instanceof ApiError &&
-        ['invalid-vin', 'vehicle-required', 'vin-registered'].includes(error.code)
-      ) {
+      } else if (error instanceof ApiError && ['invalid-vin', 'vehicle-required'].includes(error.code)) {
         setStep(1);
       }
     },
@@ -342,9 +339,6 @@ function BookingFlow({ options }: { options: PublicBookingOptions }) {
                       />
                     </Field>
                   )}
-                  {book.error instanceof ApiError && book.error.code === 'vin-registered' && (
-                    <Alert>{errorMessage(book.error)}</Alert>
-                  )}
                 </>
               )}
 
@@ -458,14 +452,6 @@ function BookingFlow({ options }: { options: PublicBookingOptions }) {
                     ) && (
                       <Alert>
                         {errorMessage(book.error)}
-                        {book.error instanceof ApiError && book.error.code === 'sign-in-to-book' && (
-                          <>
-                            {' '}
-                            <Link to="/login" className="font-medium underline underline-offset-4">
-                              Sign in
-                            </Link>
-                          </>
-                        )}
                       </Alert>
                     )}
                 </>

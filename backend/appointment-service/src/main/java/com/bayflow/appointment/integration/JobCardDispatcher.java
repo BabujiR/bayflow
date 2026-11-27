@@ -92,7 +92,7 @@ public class JobCardDispatcher {
             TenantContext.run(queued.tenantId(), () -> fresh.execute(s -> outbox.pendingFor(queued.appointmentId()))
                     .stream()
                     .filter(m -> OutboxMessage.SEND_MAIL.equals(m.getType()))
-                    .forEach(this::deliverMail));
+                    .forEach(this::deliver));
         } catch (RuntimeException e) {
             log.warn("Could not send e-mails for appointment {}: {}", queued.appointmentId(), e.getMessage());
         }
@@ -116,7 +116,12 @@ public class JobCardDispatcher {
         background.shutdown();
     }
 
+    /** Sends one message, if no other sender has claimed it (see {@link OutboxService#claim}). */
     private void deliver(OutboxMessage message) {
+        if (!outbox.claim(message.getId())) {
+            log.debug("Message {} is being sent elsewhere", message.getId());
+            return;
+        }
         switch (message.getType()) {
             case OutboxMessage.NOTIFY -> deliverNotification(message);
             case OutboxMessage.SEND_MAIL -> deliverMail(message);

@@ -75,7 +75,12 @@ public class NotificationDispatcher {
         background.shutdown();
     }
 
+    /** Sends one event, if no other sender has claimed it (see {@link OutboxService#claim}). */
     private void deliver(OutboxMessage message) {
+        if (!outbox.claim(message.getId())) {
+            log.debug("Message {} is being sent elsewhere", message.getId());
+            return;
+        }
         try {
             client.send(outbox.payload(message));
         } catch (RuntimeException e) {

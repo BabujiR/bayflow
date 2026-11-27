@@ -188,6 +188,174 @@
         ]
       }
     },
+    "/api/v1/booking-services/{id}": {
+      "put": {
+        "tags": [
+          "Online booking"
+        ],
+        "summary": "Change a service, or hide / show it (active); send the version read",
+        "operationId": "update_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingServiceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingServiceResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/booking-services/order": {
+      "put": {
+        "tags": [
+          "Online booking"
+        ],
+        "summary": "Put the services in a new order (every id once, first to last)",
+        "operationId": "reorder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BookingServiceResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/booking-services/hours/{locationId}": {
+      "get": {
+        "tags": [
+          "Online booking"
+        ],
+        "summary": "A location's online booking hours (defaults until saved: Mon-Fri 8-5)",
+        "operationId": "hours",
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoursResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Online booking"
+        ],
+        "summary": "Change a location's online booking hours; send the version read",
+        "operationId": "updateHours",
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoursRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoursResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/vehicles": {
       "get": {
         "tags": [
@@ -369,14 +537,239 @@
         ]
       }
     },
+    "/api/v1/customers/me/claim": {
+      "post": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Add an online booking (and its customer's cars and bookings) to my account",
+        "description": "The token from the booking's private link proves the e-mail is mine.",
+        "operationId": "claim",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/booking/manage": {
+      "post": {
+        "tags": [
+          "Online booking (public)"
+        ],
+        "summary": "The booking a private link names",
+        "operationId": "view",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedBooking"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/booking/manage/reschedule": {
+      "post": {
+        "tags": [
+          "Online booking (public)"
+        ],
+        "summary": "Move it to another free time (at most 3 times; not inside the shop's notice)",
+        "operationId": "reschedule",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RescheduleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedBooking"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/booking/manage/cancel": {
+      "post": {
+        "tags": [
+          "Online booking (public)"
+        ],
+        "summary": "Cancel it (not inside the shop's notice); the reason is shown to the shop",
+        "operationId": "cancel",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedBooking"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/booking/appointments": {
+      "post": {
+        "tags": [
+          "Online booking (public)"
+        ],
+        "summary": "Book without signing in (confirmed at once; rate-limited per address)",
+        "description": "Send the X-Bayflow-Client header like the web app.",
+        "operationId": "book",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booked"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/booking-services": {
+      "get": {
+        "tags": [
+          "Online booking"
+        ],
+        "summary": "The shop's bookable services in its order, hidden ones too (a new shop gets a starting list)",
+        "operationId": "list_2",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BookingServiceResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Online booking"
+        ],
+        "summary": "Add a service (goes to the end of the list)",
+        "operationId": "create_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingServiceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingServiceResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/appointments": {
       "get": {
         "tags": [
           "Appointments"
         ],
         "summary": "List appointments",
-        "description": "Customers see their own; mechanics see today's checked-in vehicles; advisors and admins see all. date is a workshop-local day (YYYY-MM-DD).",
-        "operationId": "list_2",
+        "description": "Customers see their own; mechanics see today's checked-in vehicles; advisors and admins see all. date is a day (YYYY-MM-DD) at locationId, or at the organization's default location; locationId also limits the list to that location. sort: upcoming (not finished yet, soonest first, then the past, latest first), latest, earliest or recent (most recently booked first); default earliest with a date, else upcoming.",
+        "operationId": "list_3",
         "parameters": [
           {
             "name": "date",
@@ -419,6 +812,23 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "locationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -465,7 +875,7 @@
           "Appointments"
         ],
         "summary": "Book a service appointment",
-        "operationId": "book",
+        "operationId": "book_1",
         "requestBody": {
           "content": {
             "application/json": {
@@ -623,7 +1033,7 @@
           "Appointments"
         ],
         "summary": "BOOKED/CONFIRMED → CANCELLED",
-        "operationId": "cancel",
+        "operationId": "cancel_1",
         "parameters": [
           {
             "name": "id",
@@ -697,7 +1107,7 @@
           "Appointments"
         ],
         "summary": "Move a BOOKED/CONFIRMED appointment to a new time (status unchanged)",
-        "operationId": "reschedule",
+        "operationId": "reschedule_1",
         "parameters": [
           {
             "name": "id",
@@ -738,6 +1148,88 @@
         ]
       }
     },
+    "/api/v1/internal/tenants/{tenantId}/locations/{locationId}/upcoming": {
+      "get": {
+        "tags": [
+          "Internal"
+        ],
+        "summary": "Upcoming appointments at a location (SYSTEM)",
+        "operationId": "upcoming",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "locationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Upcoming"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/internal/tenants/{tenantId}/appointments/{appointmentId}/billing": {
+      "get": {
+        "tags": [
+          "Internal"
+        ],
+        "summary": "The customer and vehicle to put on the appointment's invoice (SYSTEM)",
+        "operationId": "billing",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "appointmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingContact"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/customers/{id}": {
       "get": {
         "tags": [
@@ -773,6 +1265,77 @@
             "bearerAuth": []
           }
         ]
+      }
+    },
+    "/api/v1/booking/options": {
+      "get": {
+        "tags": [
+          "Online booking (public)"
+        ],
+        "summary": "What this workshop offers online: its locations and services",
+        "operationId": "options",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Options"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/booking/availability": {
+      "get": {
+        "tags": [
+          "Online booking (public)"
+        ],
+        "summary": "Free start times at a location, from a day, for up to 14 days",
+        "operationId": "availability",
+        "parameters": [
+          {
+            "name": "location",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 7
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Availability"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/appointments/{id}": {
@@ -940,6 +1503,209 @@
           }
         }
       },
+      "BookingServiceRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "priceKind": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "FROM",
+              "FIXED",
+              "FREE",
+              "QUOTE"
+            ]
+          },
+          "price": {
+            "type": "number"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 1440,
+            "minimum": 5
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "name",
+          "priceKind"
+        ]
+      },
+      "BookingServiceResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "priceKind": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "FROM",
+              "FIXED",
+              "FREE",
+              "QUOTE"
+            ]
+          },
+          "price": {
+            "type": "number"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "OrderRequest": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      },
+      "DayHoursDto": {
+        "type": "object",
+        "properties": {
+          "opens": {
+            "type": "string",
+            "format": "time-local"
+          },
+          "closes": {
+            "type": "string",
+            "format": "time-local"
+          }
+        }
+      },
+      "HoursRequest": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayHoursDto"
+            },
+            "maxItems": 7,
+            "minItems": 7
+          },
+          "slotMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "carsPerSlot": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minNoticeMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxDaysAhead": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "days"
+        ]
+      },
+      "HoursResponse": {
+        "type": "object",
+        "properties": {
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayHoursDto"
+            }
+          },
+          "slotMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "carsPerSlot": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minNoticeMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxDaysAhead": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "CreateVehicleRequest": {
         "type": "object",
         "properties": {
@@ -1016,10 +1782,262 @@
           "name"
         ]
       },
+      "ClaimRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "TokenRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "ManagedBooking": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "BOOKED",
+              "CONFIRMED",
+              "ARRIVED",
+              "CHECKED_IN",
+              "CANCELLED",
+              "NO_SHOW"
+            ]
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "locationCode": {
+            "type": "string"
+          },
+          "locationName": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "manyLocations": {
+            "type": "boolean"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "car": {
+            "type": "string"
+          },
+          "shopName": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "canChange": {
+            "type": "boolean"
+          },
+          "blocked": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "CANCELLED",
+              "ARRIVED",
+              "PAST",
+              "TOO_LATE",
+              "LOCATION_CLOSED"
+            ]
+          },
+          "noticeMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reschedulesLeft": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cancelledByCustomer": {
+            "type": "boolean"
+          },
+          "hasAccount": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RescheduleRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 0
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "startsAt",
+          "token"
+        ]
+      },
+      "CancelRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 0
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "BookingRequest": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "maxLength": 20,
+            "minLength": 0
+          },
+          "service": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "vin": {
+            "type": "string",
+            "maxLength": 17,
+            "minLength": 0
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 2100,
+            "minimum": 1950
+          },
+          "make": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "firstName": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "lastName": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "minLength": 0
+          },
+          "phone": {
+            "type": "string",
+            "pattern": "^$|^[0-9+()\\-. ]{7,30}$"
+          },
+          "smsConsent": {
+            "type": "boolean"
+          },
+          "website": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "email",
+          "firstName",
+          "lastName",
+          "location",
+          "startsAt"
+        ]
+      },
+      "Booked": {
+        "type": "object",
+        "properties": {
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "locationName": {
+            "type": "string"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "emailed": {
+            "type": "boolean"
+          },
+          "manageToken": {
+            "type": "string"
+          }
+        }
+      },
       "BookAppointmentRequest": {
         "type": "object",
         "properties": {
           "vehicleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
             "type": "string",
             "format": "uuid"
           },
@@ -1062,6 +2080,10 @@
         "type": "object",
         "properties": {
           "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
             "type": "string",
             "format": "uuid"
           },
@@ -1145,6 +2167,22 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "bookedOnline": {
+            "type": "boolean"
+          },
+          "serviceName": {
+            "type": "string"
+          },
+          "cancelledByCustomer": {
+            "type": "boolean"
+          },
+          "cancelReason": {
+            "type": "string"
+          },
+          "customerReschedules": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -1180,28 +2218,20 @@
             "type": "integer",
             "format": "int32",
             "minimum": 0
+          },
+          "vin": {
+            "type": "string",
+            "maxLength": 17,
+            "minLength": 0
+          },
+          "registration": {
+            "type": "string",
+            "maxLength": 20,
+            "minLength": 0
           }
         },
         "required": [
           "mileage"
-        ]
-      },
-      "RescheduleRequest": {
-        "type": "object",
-        "properties": {
-          "scheduledAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "durationMinutes": {
-            "type": "integer",
-            "format": "int32",
-            "maximum": 480,
-            "minimum": 15
-          }
-        },
-        "required": [
-          "scheduledAt"
         ]
       },
       "PageResponseVehicleResponse": {
@@ -1231,6 +2261,43 @@
           }
         }
       },
+      "Upcoming": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "BillingContact": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "vehicleMake": {
+            "type": "string"
+          },
+          "vehicleModel": {
+            "type": "string"
+          },
+          "vehicleYear": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PageResponseCustomerResponse": {
         "type": "object",
         "properties": {
@@ -1255,6 +2322,116 @@
           "totalPages": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "Options": {
+        "type": "object",
+        "properties": {
+          "shopName": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "locations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicLocation"
+            }
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicService"
+            }
+          }
+        }
+      },
+      "PublicLocation": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          }
+        }
+      },
+      "PublicService": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "priceKind": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "FROM",
+              "FIXED",
+              "FREE",
+              "QUOTE"
+            ]
+          },
+          "price": {
+            "type": "number"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "locations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Availability": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityDay"
+            }
+          }
+        }
+      },
+      "AvailabilityDay": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
           }
         }
       },

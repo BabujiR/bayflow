@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * Response bodies of the owner dashboard and reports. Money is in the workshop's currency;
  * every figure covers the locations the caller may see (and the one picked in the switcher).
@@ -112,6 +114,8 @@ public final class ReportDtos {
     public record TaxRow(String category, BigDecimal rate, long invoices, BigDecimal taxableAmount, BigDecimal tax) {
     }
 
+    /** Own OpenAPI name: another API type is also called TaxResponse. */
+    @Schema(name = "TaxReportResponse")
     public record TaxResponse(Instant from, Instant to, List<TaxRow> rows, BigDecimal totalTax) {
     }
 

@@ -196,10 +196,35 @@ class ManageBookingIT extends IntegrationTestBase {
         claim(ana, token).andExpect(status().isOk());
         claim(UUID.randomUUID(), token).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.type").value("urn:bayflow:problem:already-claimed"));
-        // The account's e-mail no longer books without signing in.
-        publicBook("ana@example.com", TUESDAY_10AM.plus(Duration.ofDays(1)))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.type").value("urn:bayflow:problem:sign-in-to-book"));
+        // The account's e-mail again, not signed in: booked as a guest like any other e-mail (nothing
+        // tells the booker it has an account), the account's record untouched, the owner e-mailed.
+        String again = JsonPath.read(publicBook("ana@example.com", TUESDAY_10AM.plus(Duration.ofDays(1)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString(), "$.manageToken");
+        manage("", again).andExpect(jsonPath("$.hasAccount").value(false));
+        assertThat(jdbc.queryForObject("select count(*) from bayflow.apt_customers where tenant_id = ?"
+                + " and user_id is null", Integer.class, tenant)).isEqualTo(1);
+        assertThat(lastMail().to()).isEqualTo("ana@example.com");
+    }
+
+    @Test
+    void aVinOnFileUnderAnotherCustomerIsBookedWithoutSayingSo() throws Exception {
+        String vin = "1HGCV1F30LA000123";
+        bookWithVin("bea@example.com", vin, TUESDAY_10AM).andExpect(status().isCreated());
+
+        String body = bookWithVin("cy@example.com", vin, TUESDAY_10AM.plus(Duration.ofDays(1)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        // Reads like any booking by VIN; the shop gets a note to check the car.
+        manage("", JsonPath.read(body, "$.manageToken")).andExpect(jsonPath("$.car").value("VIN " + vin));
+        assertThat(jdbc.queryForObject("""
+                select a.notes from bayflow.apt_appointments a join bayflow.apt_customers c on c.id = a.customer_id
+                where c.tenant_id = ? and c.email = 'cy@example.com'""", String.class, tenant))
+                .contains("is on file under another customer");
+        // Still one car with that VIN, Bea's.
+        assertThat(jdbc.queryForObject("select count(*) from bayflow.apt_vehicles where tenant_id = ? and vin = ?",
+                Integer.class, tenant, vin)).isEqualTo(1);
     }
 
     @Test
@@ -254,6 +279,15 @@ class ManageBookingIT extends IntegrationTestBase {
                         {"location":"main","service":"oil-change","year":2019,"make":"Honda","model":"Civic",
                          "startsAt":"%s","firstName":"Ana","lastName":"Silva","email":"%s","smsConsent":false}
                         """.formatted(at, email)));
+    }
+
+    private ResultActions bookWithVin(String email, String vin, Instant at) throws Exception {
+        return mvc.perform(post("/api/v1/booking/appointments").header("X-Forwarded-Host", host())
+                .header("X-Bayflow-Client", "web").contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"location":"main","service":"oil-change","vin":"%s","startsAt":"%s",
+                         "firstName":"Cy","lastName":"Vee","email":"%s","smsConsent":false}
+                        """.formatted(vin, at, email)));
     }
 
     private ResultActions manage(String path, String token, String... extra) throws Exception {

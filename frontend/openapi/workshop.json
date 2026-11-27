@@ -12,6 +12,608 @@
     }
   ],
   "paths": {
+    "/api/v1/service-reminders/settings": {
+      "get": {
+        "tags": [
+          "Service reminders"
+        ],
+        "summary": "Reminders on or off, how many days before, and the miles a day assumed",
+        "operationId": "settings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Service reminders"
+        ],
+        "summary": "Change the reminder settings (ADMIN)",
+        "operationId": "updateSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/service-reminders/me": {
+      "get": {
+        "tags": [
+          "Service reminders"
+        ],
+        "summary": "Whether the signed-in customer gets service reminders",
+        "operationId": "mine",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyReminders"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Service reminders"
+        ],
+        "summary": "Turn service reminders on or off for the signed-in customer",
+        "operationId": "setMine",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MyReminders"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyReminders"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/service-intervals/{id}": {
+      "put": {
+        "tags": [
+          "Service reminders"
+        ],
+        "summary": "Change a service interval (ADMIN; send the version read)",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntervalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntervalResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Service reminders"
+        ],
+        "summary": "Delete a service interval and what was recorded for it (ADMIN)",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/quickbooks/mapping": {
+      "put": {
+        "tags": [
+          "QuickBooks"
+        ],
+        "summary": "Which product/service parts, labour and fees are booked to, and the deposit account (ADMIN)",
+        "operationId": "mapping",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MappingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/invoices/{id}": {
+      "get": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "One invoice with its lines, taxes and payments",
+        "operationId": "get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Edit a draft: reprice lines, enter part costs, add or remove fees and discounts",
+        "description": "Send every line in order; parts and labour from the job card can't be removed. Send the version you read (409 if stale).",
+        "operationId": "update_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInvoiceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Discard a draft (issued invoices are voided instead)",
+        "operationId": "discard",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/canned-jobs/{id}": {
+      "get": {
+        "tags": [
+          "Canned jobs"
+        ],
+        "summary": "One canned job with its usual parts",
+        "operationId": "get_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CannedJobResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Canned jobs"
+        ],
+        "summary": "Change a canned job (send the version you read; 409 if stale)",
+        "operationId": "update_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CannedJobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CannedJobResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/canned-jobs/{id}/active": {
+      "put": {
+        "tags": [
+          "Canned jobs"
+        ],
+        "summary": "Archive (false) or restore (true) a canned job",
+        "operationId": "setActive",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActiveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CannedJobResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/service-intervals": {
+      "get": {
+        "tags": [
+          "Service reminders"
+        ],
+        "summary": "The shop's service intervals (a starter list the first time)",
+        "operationId": "intervals",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntervalResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Service reminders"
+        ],
+        "summary": "Add a service interval (ADMIN)",
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntervalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntervalResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/service-due/vehicles/{vehicleId}/remind": {
+      "post": {
+        "tags": [
+          "Service reminders"
+        ],
+        "summary": "Send the customer a reminder now for the vehicle's services due within 60 days",
+        "description": "409 when the customer has no account or turned reminders off.",
+        "operationId": "remind",
+        "parameters": [
+          {
+            "name": "vehicleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/quickbooks/connect": {
+      "post": {
+        "tags": [
+          "QuickBooks"
+        ],
+        "summary": "Start connecting the organization's QuickBooks company (ADMIN)",
+        "description": "Returns Intuit's sign-in address; the browser goes there and comes back to returnUrl with ?quickbooks=connected, cancelled, expired or failed.",
+        "operationId": "connect",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/job-cards": {
       "get": {
         "tags": [
@@ -101,6 +703,79 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/JobCardResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/job-cards/{jobCardId}/invoice": {
+      "get": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "The job card's invoice (404 when it has none, or a customer's is still a draft)",
+        "operationId": "forJobCard",
+        "parameters": [
+          {
+            "name": "jobCardId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Draft the invoice of a completed job card",
+        "description": "Lines from its parts and labour plus the location's fees, with the location's tax rates. 409 if the job already has an invoice that isn't void.",
+        "operationId": "create_1",
+        "parameters": [
+          {
+            "name": "jobCardId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
                 }
               }
             }
@@ -257,6 +932,63 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RecommendationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobCardResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/job-cards/{id}/recommendations/{itemId}/work": {
+      "post": {
+        "tags": [
+          "Job cards"
+        ],
+        "summary": "Record several parts and the labour for an approved item at once (IN_PROGRESS)",
+        "description": "For a canned job's usual parts and hours, as ticked by the mechanic. Labour is at the card's rate. All or nothing.",
+        "operationId": "addWork",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkRequest"
               }
             }
           },
@@ -552,6 +1284,333 @@
         ]
       }
     },
+    "/api/v1/invoices/{id}/void": {
+      "post": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Void an issued invoice with nothing paid on it; it keeps its number",
+        "operationId": "voidInvoice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/invoices/{id}/quickbooks": {
+      "post": {
+        "tags": [
+          "QuickBooks"
+        ],
+        "summary": "Send an issued invoice to QuickBooks, with the payments not sent yet (and its void)",
+        "description": "A QuickBooks error is kept on the invoice and returned in quickbooks.error.",
+        "operationId": "send",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/invoices/{id}/payments": {
+      "post": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Record a payment taken at the counter (negative = refund, managers and admins)",
+        "description": "Send an Idempotency-Key header: the same key twice records the payment once.",
+        "operationId": "pay",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/invoices/{id}/issue": {
+      "post": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Issue a draft: it gets the next number, is locked, and the customer is told",
+        "operationId": "issue",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/invoices/{id}/email": {
+      "post": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "E-mail an issued invoice to the customer",
+        "description": "The whole invoice in the e-mail body, with a link to view it online when the customer has an account. to: blank = the customer's address. 503 when e-mail is not set up.",
+        "operationId": "email",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/canned-jobs": {
+      "get": {
+        "tags": [
+          "Canned jobs"
+        ],
+        "summary": "Canned jobs by category and name",
+        "description": "locationId: only those usable there; q: in name, category or description; includeInactive: archived ones too (for the settings page).",
+        "operationId": "list_1",
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeInactive",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CannedJobResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Canned jobs"
+        ],
+        "summary": "Add a canned job (managers and admins)",
+        "operationId": "create_2",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CannedJobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CannedJobResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/service-history/vehicles/{vehicleId}": {
       "get": {
         "tags": [
@@ -610,13 +1669,707 @@
         ]
       }
     },
+    "/api/v1/service-due": {
+      "get": {
+        "tags": [
+          "Service reminders"
+        ],
+        "summary": "Vehicles with a service due within `days` (or overdue), soonest first",
+        "description": "Only vehicles last serviced at the caller's locations; locationId narrows to one.",
+        "operationId": "dueSoon",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 30
+            }
+          },
+          {
+            "name": "locationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DueVehicle"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/service-due/vehicles/{vehicleId}": {
+      "get": {
+        "tags": [
+          "Service reminders"
+        ],
+        "summary": "A vehicle's services due within 30 days or 500 miles of `mileage` (at check-in)",
+        "operationId": "forVehicle_1",
+        "parameters": [
+          {
+            "name": "vehicleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "mileage",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DueService"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/reports/unpaid": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Issued invoices still owed, oldest first, with ageing (now, not for a period)",
+        "operationId": "unpaid",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnpaidResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/reports/technicians": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Hours and labour value per mechanic, by the time the hours were logged",
+        "operationId": "technicians",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TechnicianRow"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/reports/tax": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Tax on the invoices issued in the period, per category and rate",
+        "operationId": "tax",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/reports/summary": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Car count, sales, ARO, hours, close ratio for the period and the one before; open work now",
+        "operationId": "summary",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/reports/payments": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Payments and refunds received in the period (up to 1000), with totals per method",
+        "operationId": "payments",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/reports/parts": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Parts fitted in the period (up to 1000)",
+        "operationId": "parts",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RowsResponsePartRow"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/reports/locations": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Completed sales per location",
+        "operationId": "locations",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LocationRow"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/reports/declined": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Recommendations declined in the period (up to 1000), for follow-up",
+        "operationId": "declined",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RowsResponseDeclinedRow"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/reports/daily": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Completed sales per day in the given time zone",
+        "operationId": "daily",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "zone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/reports/advisors": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Estimates sent, approved and declined value, close ratio and sales per advisor",
+        "operationId": "advisors",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdvisorRow"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/quickbooks": {
+      "get": {
+        "tags": [
+          "QuickBooks"
+        ],
+        "summary": "Whether QuickBooks is set up on the server, connected and ready to take invoices",
+        "operationId": "status",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/quickbooks/items": {
+      "get": {
+        "tags": [
+          "QuickBooks"
+        ],
+        "summary": "The company's active products and services (ADMIN)",
+        "operationId": "items",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Choice"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/quickbooks/callback": {
+      "get": {
+        "tags": [
+          "QuickBooks"
+        ],
+        "summary": "Intuit sends the browser back here after connecting (no sign-in)",
+        "operationId": "callback",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "realmId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/quickbooks/accounts": {
+      "get": {
+        "tags": [
+          "QuickBooks"
+        ],
+        "summary": "Accounts payments can be deposited to: bank and other current assets (ADMIN)",
+        "operationId": "accounts",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Choice"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/job-cards/{id}": {
       "get": {
         "tags": [
           "Job cards"
         ],
         "summary": "A job card with findings, recommendations and estimates",
-        "operationId": "get",
+        "operationId": "get_2",
         "parameters": [
           {
             "name": "id",
@@ -683,10 +2436,992 @@
           }
         ]
       }
+    },
+    "/api/v1/invoices": {
+      "get": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Invoices, newest first",
+        "description": "status: DRAFT, ISSUED, PARTIALLY_PAID, PAID, VOID or UNPAID (issued or partly paid); from/to: issue time (creation time for drafts); q: number, customer or registration. Customers get their own issued invoices.",
+        "operationId": "list_2",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseInvoiceSummary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/invoices/export": {
+      "get": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Invoices issued and payments received in [from, to), for CSV export",
+        "description": "Voided invoices and drafts are left out. At most 366 days; 400 when the period holds more than 5,000 invoices.",
+        "operationId": "export",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceExport"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/quickbooks/connection": {
+      "delete": {
+        "tags": [
+          "QuickBooks"
+        ],
+        "summary": "Disconnect QuickBooks (ADMIN); invoices already sent stay in QuickBooks",
+        "operationId": "disconnect",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
     "schemas": {
+      "SettingsRequest": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "remindDaysBefore": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 90,
+            "minimum": 0
+          },
+          "milesPerDay": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 500,
+            "minimum": 1
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "enabled",
+          "milesPerDay",
+          "remindDaysBefore",
+          "version"
+        ]
+      },
+      "SettingsResponse": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "remindDaysBefore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "milesPerDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "MyReminders": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
+      "IntervalRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 0
+          },
+          "miles": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 200000,
+            "minimum": 100
+          },
+          "months": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 120,
+            "minimum": 1
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 60,
+              "minLength": 0
+            },
+            "maxItems": 20,
+            "minItems": 0
+          },
+          "cannedJobIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "maxItems": 50,
+            "minItems": 0
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "IntervalResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "miles": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "months": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cannedJobIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "MappingRequest": {
+        "type": "object",
+        "properties": {
+          "partsItemId": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 0
+          },
+          "partsItemName": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "labourItemId": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 0
+          },
+          "labourItemName": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "feesItemId": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 0
+          },
+          "feesItemName": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "depositAccountId": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 0
+          },
+          "depositAccountName": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "feesItemId",
+          "labourItemId",
+          "partsItemId"
+        ]
+      },
+      "Mapping": {
+        "type": "object",
+        "properties": {
+          "partsItemId": {
+            "type": "string"
+          },
+          "partsItemName": {
+            "type": "string"
+          },
+          "labourItemId": {
+            "type": "string"
+          },
+          "labourItemName": {
+            "type": "string"
+          },
+          "feesItemId": {
+            "type": "string"
+          },
+          "feesItemName": {
+            "type": "string"
+          },
+          "depositAccountId": {
+            "type": "string"
+          },
+          "depositAccountName": {
+            "type": "string"
+          }
+        }
+      },
+      "Status": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "connectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "connectedBy": {
+            "type": "string"
+          },
+          "mapping": {
+            "$ref": "#/components/schemas/Mapping"
+          }
+        }
+      },
+      "LineRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "PART",
+              "LABOUR",
+              "FEE",
+              "DISCOUNT"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "partNumber": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "quantity": {
+            "type": "number",
+            "maximum": 99999999.99,
+            "minimum": 0.01
+          },
+          "unitPrice": {
+            "type": "number",
+            "maximum": 9999999999.99,
+            "minimum": 0
+          },
+          "unitCost": {
+            "type": "number",
+            "maximum": 9999999999.99,
+            "minimum": 0
+          },
+          "taxable": {
+            "type": "boolean"
+          },
+          "taxCategory": {
+            "type": "string",
+            "enum": [
+              "PARTS",
+              "LABOUR",
+              "FEES"
+            ]
+          }
+        },
+        "required": [
+          "description",
+          "quantity",
+          "unitPrice"
+        ]
+      },
+      "UpdateInvoiceRequest": {
+        "type": "object",
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineRequest"
+            },
+            "maxItems": 200,
+            "minItems": 0
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 0
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "lines",
+          "version"
+        ]
+      },
+      "InvoiceResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "ISSUED",
+              "PARTIALLY_PAID",
+              "PAID",
+              "VOID"
+            ]
+          },
+          "jobCardId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerEmail": {
+            "type": "string"
+          },
+          "customerPhone": {
+            "type": "string"
+          },
+          "registration": {
+            "type": "string"
+          },
+          "vin": {
+            "type": "string"
+          },
+          "mileage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "vehicleDescription": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineResponse"
+            }
+          },
+          "partsTotal": {
+            "type": "number"
+          },
+          "labourTotal": {
+            "type": "number"
+          },
+          "feesTotal": {
+            "type": "number"
+          },
+          "discountTotal": {
+            "type": "number"
+          },
+          "subtotal": {
+            "type": "number"
+          },
+          "taxes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaxResponse"
+            }
+          },
+          "taxTotal": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "amountPaid": {
+            "type": "number"
+          },
+          "balanceDue": {
+            "type": "number"
+          },
+          "payments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentResponse"
+            }
+          },
+          "notes": {
+            "type": "string"
+          },
+          "footer": {
+            "type": "string"
+          },
+          "paymentTermsDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "issuedBy": {
+            "type": "string"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "voidedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "voidedBy": {
+            "type": "string"
+          },
+          "voidReason": {
+            "type": "string"
+          },
+          "emailedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "emailedTo": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "partsProfit": {
+            "$ref": "#/components/schemas/PartsProfit"
+          },
+          "quickbooks": {
+            "$ref": "#/components/schemas/QuickBooksState"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "LineResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "PART",
+              "LABOUR",
+              "FEE",
+              "DISCOUNT"
+            ]
+          },
+          "feeCode": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "partNumber": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unitPrice": {
+            "type": "number"
+          },
+          "unitCost": {
+            "type": "number"
+          },
+          "lineTotal": {
+            "type": "number"
+          },
+          "taxable": {
+            "type": "boolean"
+          },
+          "taxCategory": {
+            "type": "string",
+            "enum": [
+              "PARTS",
+              "LABOUR",
+              "FEES"
+            ]
+          },
+          "fromJobCard": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PartsProfit": {
+        "type": "object",
+        "properties": {
+          "partsWithCost": {
+            "type": "number"
+          },
+          "partsCost": {
+            "type": "number"
+          },
+          "profit": {
+            "type": "number"
+          }
+        }
+      },
+      "PaymentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "CASH",
+              "CARD",
+              "CHECK",
+              "BANK_TRANSFER",
+              "OTHER"
+            ]
+          },
+          "amount": {
+            "type": "number"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receivedBy": {
+            "type": "string"
+          }
+        }
+      },
+      "QuickBooksState": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "invoiceId": {
+            "type": "string"
+          },
+          "syncedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error": {
+            "type": "string"
+          },
+          "paymentsToSend": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refundsByHand": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "TaxResponse": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "PARTS",
+              "LABOUR",
+              "FEES"
+            ]
+          },
+          "rate": {
+            "type": "number"
+          },
+          "tax": {
+            "type": "number"
+          }
+        }
+      },
+      "CannedJobRequest": {
+        "type": "object",
+        "properties": {
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 0
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 0
+          },
+          "labourHours": {
+            "type": "number",
+            "maximum": 999.99,
+            "minimum": 0
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartRequest"
+            },
+            "maxItems": 50,
+            "minItems": 0
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "description",
+          "labourHours",
+          "name",
+          "parts"
+        ]
+      },
+      "PartRequest": {
+        "type": "object",
+        "properties": {
+          "partNumber": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 1000,
+            "minimum": 1
+          },
+          "unitPrice": {
+            "type": "number",
+            "maximum": 9999999999.99,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "partNumber",
+          "quantity",
+          "unitPrice"
+        ]
+      },
+      "CannedJobResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "labourHours": {
+            "type": "number"
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartResponse"
+            }
+          },
+          "partsTotal": {
+            "type": "number"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PartResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "partNumber": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unitPrice": {
+            "type": "number"
+          },
+          "lineTotal": {
+            "type": "number"
+          }
+        }
+      },
+      "ActiveRequest": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "active"
+        ]
+      },
+      "ConnectRequest": {
+        "type": "object",
+        "properties": {
+          "returnUrl": {
+            "type": "string",
+            "maxLength": 400,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "returnUrl"
+        ]
+      },
+      "ConnectResponse": {
+        "type": "object",
+        "properties": {
+          "authorizeUrl": {
+            "type": "string"
+          }
+        }
+      },
       "OpenJobCardRequest": {
         "type": "object",
         "properties": {
@@ -721,6 +3456,14 @@
             "type": "integer",
             "format": "int32",
             "minimum": 0
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
           }
         },
         "required": [
@@ -768,6 +3511,10 @@
             "format": "uuid"
           },
           "appointmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
             "type": "string",
             "format": "uuid"
           },
@@ -860,6 +3607,9 @@
             "type": "string",
             "format": "date-time"
           },
+          "submittedBy": {
+            "type": "string"
+          },
           "decidedAt": {
             "type": "string",
             "format": "date-time"
@@ -907,38 +3657,6 @@
           }
         }
       },
-      "PartResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "recommendationId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "partNumber": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "quantity": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "unitPrice": {
-            "type": "number"
-          },
-          "lineTotal": {
-            "type": "number"
-          },
-          "recordedBy": {
-            "type": "string"
-          }
-        }
-      },
       "RecommendationResponse": {
         "type": "object",
         "properties": {
@@ -975,6 +3693,10 @@
           "decidedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "cannedJobId": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },
@@ -1035,6 +3757,10 @@
             "type": "number",
             "maximum": 999.99,
             "minimum": 0
+          },
+          "cannedJobId": {
+            "type": "string",
+            "format": "uuid"
           }
         },
         "required": [
@@ -1043,13 +3769,9 @@
           "estimatedPartsCost"
         ]
       },
-      "PartRequest": {
+      "WorkPartRequest": {
         "type": "object",
         "properties": {
-          "recommendationId": {
-            "type": "string",
-            "format": "uuid"
-          },
           "partNumber": {
             "type": "string",
             "maxLength": 50,
@@ -1075,8 +3797,28 @@
           "name",
           "partNumber",
           "quantity",
-          "recommendationId",
           "unitPrice"
+        ]
+      },
+      "WorkRequest": {
+        "type": "object",
+        "properties": {
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkPartRequest"
+            },
+            "maxItems": 50,
+            "minItems": 0
+          },
+          "hours": {
+            "type": "number",
+            "maximum": 24,
+            "minimum": 0.01
+          }
+        },
+        "required": [
+          "parts"
         ]
       },
       "LabourRequest": {
@@ -1123,6 +3865,75 @@
           "description",
           "severity"
         ]
+      },
+      "VoidRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "PaymentRequest": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "CASH",
+              "CARD",
+              "CHECK",
+              "BANK_TRANSFER",
+              "OTHER"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "maximum": 9999999999.99,
+            "minimum": -9999999999.99
+          },
+          "reference": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "amount",
+          "method"
+        ]
+      },
+      "IssueRequest": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "version"
+        ]
+      },
+      "EmailRequest": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "minLength": 0
+          }
+        }
       },
       "Finding": {
         "type": "object",
@@ -1210,6 +4021,10 @@
         "type": "object",
         "properties": {
           "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
             "type": "string",
             "format": "uuid"
           },
@@ -1311,6 +4126,665 @@
           }
         }
       },
+      "DueService": {
+        "type": "object",
+        "properties": {
+          "intervalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "lastDoneAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastMileage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dueMileage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "overdue": {
+            "type": "boolean"
+          },
+          "cannedJobId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "DueVehicle": {
+        "type": "object",
+        "properties": {
+          "vehicleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "registration": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "remindedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DueService"
+            }
+          }
+        }
+      },
+      "AgeBucket": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "balance": {
+            "type": "number"
+          }
+        }
+      },
+      "UnpaidResponse": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnpaidRow"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "buckets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgeBucket"
+            }
+          },
+          "totalBalance": {
+            "type": "number"
+          },
+          "overdueBalance": {
+            "type": "number"
+          }
+        }
+      },
+      "UnpaidRow": {
+        "type": "object",
+        "properties": {
+          "invoiceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerEmail": {
+            "type": "string"
+          },
+          "customerPhone": {
+            "type": "string"
+          },
+          "registration": {
+            "type": "string"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "total": {
+            "type": "number"
+          },
+          "balanceDue": {
+            "type": "number"
+          },
+          "days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "overdue": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TechnicianRow": {
+        "type": "object",
+        "properties": {
+          "mechanic": {
+            "type": "string"
+          },
+          "hours": {
+            "type": "number"
+          },
+          "labourValue": {
+            "type": "number"
+          },
+          "jobCards": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "hoursOnCompleted": {
+            "type": "number"
+          }
+        }
+      },
+      "OpenWork": {
+        "type": "object",
+        "properties": {
+          "openCards": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "awaitingApproval": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "inWork": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pendingValue": {
+            "type": "number"
+          },
+          "unpaidInvoices": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "unpaidBalance": {
+            "type": "number"
+          },
+          "overdueBalance": {
+            "type": "number"
+          }
+        }
+      },
+      "PeriodMetrics": {
+        "type": "object",
+        "properties": {
+          "carCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sales": {
+            "type": "number"
+          },
+          "partsSales": {
+            "type": "number"
+          },
+          "labourSales": {
+            "type": "number"
+          },
+          "averageRepairOrder": {
+            "type": "number"
+          },
+          "labourHours": {
+            "type": "number"
+          },
+          "effectiveLabourRate": {
+            "type": "number"
+          },
+          "itemsApproved": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "itemsDeclined": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "approvedValue": {
+            "type": "number"
+          },
+          "declinedValue": {
+            "type": "number"
+          },
+          "hoursApproved": {
+            "type": "number"
+          },
+          "hoursDeclined": {
+            "type": "number"
+          },
+          "closeRatio": {
+            "type": "number"
+          },
+          "feesSales": {
+            "type": "number"
+          },
+          "discounts": {
+            "type": "number"
+          },
+          "collected": {
+            "type": "number"
+          }
+        }
+      },
+      "SummaryResponse": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "current": {
+            "$ref": "#/components/schemas/PeriodMetrics"
+          },
+          "previousFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "previousTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "previous": {
+            "$ref": "#/components/schemas/PeriodMetrics"
+          },
+          "open": {
+            "$ref": "#/components/schemas/OpenWork"
+          }
+        }
+      },
+      "MethodTotal": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "amount": {
+            "type": "number"
+          }
+        }
+      },
+      "PaymentRow": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoiceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoiceNumber": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "registration": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receivedBy": {
+            "type": "string"
+          }
+        }
+      },
+      "PaymentsResponse": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentRow"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "byMethod": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MethodTotal"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      },
+      "PartRow": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobCardId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "partNumber": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unitPrice": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "recordedBy": {
+            "type": "string"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "registration": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          }
+        }
+      },
+      "RowsResponsePartRow": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartRow"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LocationRow": {
+        "type": "object",
+        "properties": {
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "carCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sales": {
+            "type": "number"
+          },
+          "partsSales": {
+            "type": "number"
+          },
+          "labourSales": {
+            "type": "number"
+          },
+          "averageRepairOrder": {
+            "type": "number"
+          },
+          "labourHours": {
+            "type": "number"
+          }
+        }
+      },
+      "DeclinedRow": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobCardId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "registration": {
+            "type": "string"
+          },
+          "vin": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "estimatedPartsCost": {
+            "type": "number"
+          },
+          "estimatedLabourHours": {
+            "type": "number"
+          },
+          "value": {
+            "type": "number"
+          },
+          "decidedBy": {
+            "type": "string"
+          },
+          "decidedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submittedBy": {
+            "type": "string"
+          }
+        }
+      },
+      "RowsResponseDeclinedRow": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeclinedRow"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DailyResponse": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "zone": {
+            "type": "string"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyRow"
+            }
+          }
+        }
+      },
+      "DailyRow": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "carCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sales": {
+            "type": "number"
+          },
+          "partsSales": {
+            "type": "number"
+          },
+          "labourSales": {
+            "type": "number"
+          }
+        }
+      },
+      "AdvisorRow": {
+        "type": "object",
+        "properties": {
+          "advisor": {
+            "type": "string"
+          },
+          "estimatesSent": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "presentedValue": {
+            "type": "number"
+          },
+          "approvedValue": {
+            "type": "number"
+          },
+          "declinedValue": {
+            "type": "number"
+          },
+          "closeRatio": {
+            "type": "number"
+          },
+          "completedCards": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "completedSales": {
+            "type": "number"
+          },
+          "averageRepairOrder": {
+            "type": "number"
+          }
+        }
+      },
+      "Choice": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
       "JobCardSummary": {
         "type": "object",
         "properties": {
@@ -1319,6 +4793,10 @@
             "format": "uuid"
           },
           "appointmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
             "type": "string",
             "format": "uuid"
           },
@@ -1386,6 +4864,284 @@
           "totalPages": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "InvoiceSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "ISSUED",
+              "PARTIALLY_PAID",
+              "PAID",
+              "VOID"
+            ]
+          },
+          "jobCardId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "registration": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "total": {
+            "type": "number"
+          },
+          "balanceDue": {
+            "type": "number"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PageResponseInvoiceSummary": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvoiceSummary"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ExportInvoice": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "ISSUED",
+              "PARTIALLY_PAID",
+              "PAID",
+              "VOID"
+            ]
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "customerEmail": {
+            "type": "string"
+          },
+          "customerPhone": {
+            "type": "string"
+          },
+          "registration": {
+            "type": "string"
+          },
+          "vin": {
+            "type": "string"
+          },
+          "vehicleDescription": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "paymentTermsDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExportLine"
+            }
+          },
+          "subtotal": {
+            "type": "number"
+          },
+          "taxTotal": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "amountPaid": {
+            "type": "number"
+          },
+          "balanceDue": {
+            "type": "number"
+          }
+        }
+      },
+      "ExportLine": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "PART",
+              "LABOUR",
+              "FEE",
+              "DISCOUNT"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "partNumber": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unitPrice": {
+            "type": "number"
+          },
+          "lineTotal": {
+            "type": "number"
+          },
+          "taxable": {
+            "type": "boolean"
+          },
+          "taxCategory": {
+            "type": "string",
+            "enum": [
+              "PARTS",
+              "LABOUR",
+              "FEES"
+            ]
+          }
+        }
+      },
+      "ExportPayment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoiceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoiceNumber": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "CASH",
+              "CARD",
+              "CHECK",
+              "BANK_TRANSFER",
+              "OTHER"
+            ]
+          },
+          "amount": {
+            "type": "number"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receivedBy": {
+            "type": "string"
+          }
+        }
+      },
+      "InvoiceExport": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "invoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExportInvoice"
+            }
+          },
+          "payments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExportPayment"
+            }
           }
         }
       }
