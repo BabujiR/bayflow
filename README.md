@@ -46,7 +46,7 @@ recorded in the vehicle's service history.
 - JDK 21 (Temurin recommended)
 - Maven 3.9+
 - Docker Desktop (for Postgres, Testcontainers and the full stack)
-- Node 22.12+ (24 LTS recommended) and pnpm 10: `npm install -g pnpm@10`
+- Node 22.12+ (24 LTS recommended) and pnpm 10.26 or later (CI and the image use 10; 11 and 12 work too): `npm install -g pnpm@10`
   (Node 25+ no longer includes Corepack, so `corepack enable` does not work there)
 
 ## Quick start
@@ -337,7 +337,7 @@ a new link; earlier ones keep working until a new one is sent. API:
 
 ### Quick estimates and VIN decode
 
-For a customer on the phone or at the desk, advisors (and admins) click **New estimate** on *Job
+For a customer on the phone or at the desk, advisors, managers and admins click **New estimate** on *Job
 cards* or a customer's page: pick the customer and car, and type what they asked for. The visit is
 made with status `ESTIMATE` (no time; not on the board or the day's list, and it holds no slot), and
 its job card opens at once with the request as the first finding. Price it and send the approval
@@ -354,6 +354,18 @@ was typed), with a warning when the check digit doesn't add up. Check-in does th
 booked online without a VIN. `GET /api/v1/vehicles/decode?vin=` (staff; 120 lookups an hour per
 user, a 3 s timeout, results cached in memory; `bayflow.integration.vin-decoder.*`,
 `BAYFLOW_VIN_DECODER_URL`). If vPIC is down, details are typed by hand as before.
+
+On the public booking page, a customer who books by VIN sees which car it is ("Your car: 2018
+Toyota Corolla"), and the year, make and model are saved with the booking
+(`GET /api/v1/booking/vin`, 20 lookups an hour per address and workshop, `public-max-per-hour`).
+
+**Scan VIN** (beside the VIN field when adding a car and at check-in) reads the VIN barcode on the
+door frame or windscreen with the phone's camera. It uses the browser's own barcode reader, so it
+appears in Chrome and Edge on Android; on iPhone and desktop browsers without one, the VIN is typed.
+The site allows its own pages to use the camera (`Permissions-Policy: camera=(self)`).
+
+Managers work estimates like advisors: a manager is also a service advisor at their locations (the
+token converter adds the role), so everything above is open to them there.
 
 ### Canned jobs
 

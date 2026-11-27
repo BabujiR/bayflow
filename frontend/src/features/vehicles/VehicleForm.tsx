@@ -11,6 +11,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 
 import { useVinDecode, VinDecodeNote } from './vin-decode';
+import { VinScanButton } from './VinScanner';
 
 const currentYear = new Date().getFullYear();
 
@@ -165,6 +166,9 @@ export function VehicleForm({
           >
             <Input autoComplete="off" className="uppercase" {...register('vin')} />
           </Field>
+          <div className="mt-2">
+            <VinScanButton onScan={(scanned) => setValue('vin', scanned, { shouldValidate: true })} />
+          </div>
           {canDecode && (
             <div className="mt-2 flex flex-wrap items-start justify-between gap-2">
               <VinDecodeNote query={decoded} />

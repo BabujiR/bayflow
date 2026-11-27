@@ -48,6 +48,8 @@ public class IntegrationProperties {
         private Duration timeout = Duration.ofSeconds(3);
         /** Lookups an hour per staff member. */
         private int maxPerHour = 120;
+        /** Lookups an hour from one address on the public booking page. */
+        private int publicMaxPerHour = 20;
 
         public String getUrl() { return url; }
         public void setUrl(String url) { this.url = url; }
@@ -55,6 +57,8 @@ public class IntegrationProperties {
         public void setTimeout(Duration timeout) { this.timeout = timeout; }
         public int getMaxPerHour() { return maxPerHour; }
         public void setMaxPerHour(int maxPerHour) { this.maxPerHour = maxPerHour; }
+        public int getPublicMaxPerHour() { return publicMaxPerHour; }
+        public void setPublicMaxPerHour(int publicMaxPerHour) { this.publicMaxPerHour = publicMaxPerHour; }
     }
 
     /** Events for notification-service, sent through the outbox. */

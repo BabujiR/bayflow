@@ -91,6 +91,7 @@ import type {
   PublicBooked,
   PublicBookingOptions,
   PublicBookingRequest,
+  PublicVin,
   Role,
 } from './types';
 
@@ -253,6 +254,8 @@ export const bookingApi = {
   availability: (location: string, from: string, days = 7) =>
     http.get<PublicAvailability>('/api/v1/booking/availability', { location, from, days }),
   book: (body: PublicBookingRequest) => http.post<PublicBooked>('/api/v1/booking/appointments', body),
+  /** Year, make and model from a VIN, for the booking form (limited per address). */
+  vin: (vin: string) => http.get<PublicVin>('/api/v1/booking/vin', { vin }),
   /** The booking's private link (the token goes in the body, out of server logs). */
   manage: (token: string) => http.post<ManagedBooking>('/api/v1/booking/manage', { token }),
   reschedule: (token: string, startsAt: string) =>

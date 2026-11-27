@@ -13,24 +13,31 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.bayflow.appointment.IntegrationTestBase;
 import com.bayflow.appointment.integration.SystemTokenProvider;
+import com.bayflow.appointment.integration.WorkshopDirectory;
+import com.bayflow.appointment.integration.WorkshopDirectory.Workshop;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.jayway.jsonpath.JsonPath;
+import com.bayflow.security.Tenants;
 
 /**
  * Quick estimates (a visit without a time, whose job card opens at once) and VIN decode. WireMock
@@ -51,6 +58,7 @@ class QuickEstimateIT extends IntegrationTestBase {
         registry.add("bayflow.integration.vin-decoder.url", WIREMOCK::baseUrl);
         registry.add("bayflow.integration.vin-decoder.timeout", () -> "500ms");
         registry.add("bayflow.integration.vin-decoder.max-per-hour", () -> "3");
+        registry.add("bayflow.integration.vin-decoder.public-max-per-hour", () -> "2");
     }
 
     private static final String JOB_CARDS = "/api/v1/job-cards";
@@ -62,11 +70,20 @@ class QuickEstimateIT extends IntegrationTestBase {
     @Autowired
     private SystemTokenProvider tokens;
 
+    @MockitoBean
+    private WorkshopDirectory directory;
+
+    private final UUID shopId = UUID.randomUUID();
+    private final String slug = "vin-" + shopId.toString().substring(0, 8);
+
     @BeforeEach
     void resetRemoteServices() {
         ownerJdbc().update("delete from bayflow.apt_outbox");
         WIREMOCK.resetAll();
         tokens.invalidate();
+        Mockito.when(directory.bySlug(ArgumentMatchers.anyString())).thenReturn(Optional.empty());
+        Mockito.when(directory.bySlug(slug)).thenReturn(Optional.of(new Workshop(shopId, slug, "Lotus Auto LLC",
+                "Lotus Auto", true)));
         WIREMOCK.stubFor(WireMock.post(urlEqualTo("/api/v1/auth/token")).willReturn(json(200,
                 "{\"accessToken\":\"system-token\",\"expiresAt\":\"2030-01-01T00:00:00Z\"}")));
     }
@@ -137,6 +154,24 @@ class QuickEstimateIT extends IntegrationTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CANCELLED"));
         schedule(id, TOMORROW_10AM).andExpect(status().isConflict());
+    }
+
+    @Test
+    void aLocationManagerWorksEstimatesLikeAnAdvisor() throws Exception {
+        WIREMOCK.stubFor(WireMock.post(urlEqualTo(JOB_CARDS)).willReturn(aResponse().withStatus(503)));
+        // The organization's only location has the tenant's id.
+        RequestPostProcessor manager = atLocations("MANAGER", UUID.randomUUID(), Tenants.DEFAULT_TENANT_ID);
+        String vehicleId = vehicle(as("CUSTOMER", UUID.randomUUID()));
+
+        String id = JsonPath.read(mvc.perform(post("/api/v1/appointments/estimates").with(manager)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"vehicleId\":\"" + vehicleId + "\",\"request\":\"Quote a service\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString(), "$.id");
+        mvc.perform(post("/api/v1/appointments/" + id + "/schedule").with(manager)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"scheduledAt\":\"" + TOMORROW_10AM + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("BOOKED"));
     }
 
     @Test
@@ -212,6 +247,26 @@ class QuickEstimateIT extends IntegrationTestBase {
         decode(as("CUSTOMER", UUID.randomUUID()), VALID_VIN).andExpect(status().isForbidden());
     }
 
+    @Test
+    void theBookingPageLooksUpAVinWithinItsOwnLimit() throws Exception {
+        WIREMOCK.stubFor(vpic(VALID_VIN).willReturn(json(200, """
+                {"Results":[{"ModelYear":"2003","Make":"HONDA","Model":"Accord","Trim":"EX","BodyClass":"Coupe"}]}
+                """)));
+
+        publicVin(VALID_VIN, true).andExpect(status().isOk())
+                .andExpect(jsonPath("$.year").value(2003))
+                .andExpect(jsonPath("$.make").value("Honda"))
+                .andExpect(jsonPath("$.model").value("Accord"))
+                .andExpect(jsonPath("$.trim").doesNotExist());
+        // Like every public change: only the web app (a header a cross-site page can't send).
+        publicVin(VALID_VIN, false).andExpect(status().isForbidden());
+        publicVin(VALID_VIN, true).andExpect(status().isOk());
+        publicVin(VALID_VIN, true).andExpect(status().isTooManyRequests());
+        mvc.perform(get("/api/v1/booking/vin").param("vin", VALID_VIN)
+                        .header("X-Forwarded-Host", "nobody.localhost:3000").header("X-Bayflow-Client", "web"))
+                .andExpect(status().isNotFound());
+    }
+
     // ---- helpers -----------------------------------------------------------------------------
 
     private static com.github.tomakehurst.wiremock.client.MappingBuilder vpic(String vin) {
@@ -224,6 +279,11 @@ class QuickEstimateIT extends IntegrationTestBase {
 
     private ResultActions decode(RequestPostProcessor user, String vin) throws Exception {
         return mvc.perform(get("/api/v1/vehicles/decode").param("vin", vin).with(user));
+    }
+
+    private ResultActions publicVin(String vin, boolean fromTheApp) throws Exception {
+        var request = get("/api/v1/booking/vin").param("vin", vin).header("X-Forwarded-Host", slug + ".localhost:3000");
+        return mvc.perform(fromTheApp ? request.header("X-Bayflow-Client", "web") : request);
     }
 
     private ResultActions createEstimate(String vehicleId, String request) throws Exception {

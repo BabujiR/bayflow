@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { useLocationLookup } from '@/features/locations/use-locations';
 import { useVinDecode, VinDecodeNote } from '@/features/vehicles/vin-decode';
+import { VinScanButton } from '@/features/vehicles/VinScanner';
 import { formatDateTime, isoToLocalInput, localInputToIso, localInputToMillis } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
@@ -54,6 +55,7 @@ export function CheckInDialog({ appointment }: { appointment: Appointment }) {
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<z.input<typeof checkInSchema>, unknown, z.output<typeof checkInSchema>>({
     resolver: zodResolver(checkInSchema),
@@ -125,7 +127,12 @@ export function CheckInDialog({ appointment }: { appointment: Appointment }) {
               <Input maxLength={17} className="font-mono uppercase" {...register('vin')} />
             </Field>
           )}
-          {needsVin && <VinDecodeNote query={decoded} />}
+          {needsVin && (
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <VinDecodeNote query={decoded} />
+              <VinScanButton onScan={(scanned) => setValue('vin', scanned, { shouldValidate: true })} />
+            </div>
+          )}
           {needsPlate && (
             <Field label="Plate" error={errors.registration?.message}>
               <Input maxLength={20} className="uppercase" {...register('registration')} />

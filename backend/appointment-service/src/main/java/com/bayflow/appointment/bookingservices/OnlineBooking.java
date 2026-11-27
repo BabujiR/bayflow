@@ -178,8 +178,9 @@ public class OnlineBooking {
                     .map(v -> v.getOwner().getId().equals(customer.getId())
                             ? new CarChoice(v, false)
                             : new CarChoice(unverifiedVin(customer, vin, now), true))
+                    // Year, make and model too when the booking page decoded the VIN.
                     .orElseGet(() -> new CarChoice(vehicles.saveAndFlush(
-                            Vehicle.fromOnlineBooking(customer, vin, null, null, null, now)), false));
+                            Vehicle.fromOnlineBooking(customer, vin, r.make(), r.model(), r.year(), now)), false));
         }
         return new CarChoice(vehicles.findAllByOwnerId(customer.getId()).stream()
                 .filter(v -> v.getYear() == r.year() && r.make().strip().equalsIgnoreCase(v.getMake())

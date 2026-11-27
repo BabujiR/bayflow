@@ -1343,3 +1343,6 @@ export interface DecodedVin {
 /** A quick estimate: the car (with VIN and plate) and what the customer asked for. */
 export type CreateEstimateRequest = P['CreateEstimateRequest'];
 export type ScheduleEstimateRequest = P['ScheduleEstimateRequest'];
+
+/** What the public booking page fills in from a VIN. */
+export type PublicVin = P['PublicVin'];

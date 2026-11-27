@@ -1,6 +1,8 @@
 package com.bayflow.appointment.bookingservices;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -32,9 +34,13 @@ import org.springframework.web.bind.annotation.RestController;
 import com.bayflow.appointment.application.ApiException;
 import com.bayflow.appointment.application.Locations;
 import com.bayflow.appointment.bookingservices.BookingService.PriceKind;
+import com.bayflow.appointment.config.IntegrationProperties;
 import com.bayflow.appointment.domain.Appointment;
 import com.bayflow.appointment.integration.LocationsClient.LocationSettings;
+import com.bayflow.appointment.integration.VinDecoder;
+import com.bayflow.appointment.integration.VinDecoder.DecodedVin;
 import com.bayflow.appointment.integration.WorkshopDirectory.Workshop;
+import com.bayflow.ops.RateLimitStore;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -96,21 +102,36 @@ public class PublicBookingController {
             boolean emailed, String manageToken) {
     }
 
+    /** What the booking form fills in from a VIN (the same lookup staff use, less detail). */
+    public record PublicVin(Integer year, String make, String model, List<String> warnings) {
+    }
+
+    private static final Duration HOUR = Duration.ofHours(1);
+
     private final PublicShop shops;
     private final Locations locations;
     private final BookingCatalog catalog;
     private final BookingHours hours;
     private final OnlineBooking booking;
     private final BookingConfirmation confirmation;
+    private final VinDecoder vinDecoder;
+    private final RateLimitStore limits;
+    private final IntegrationProperties integration;
+    private final Clock clock;
 
     public PublicBookingController(PublicShop shops, Locations locations, BookingCatalog catalog, BookingHours hours,
-            OnlineBooking booking, BookingConfirmation confirmation) {
+            OnlineBooking booking, BookingConfirmation confirmation, VinDecoder vinDecoder, RateLimitStore limits,
+            IntegrationProperties integration, Clock clock) {
         this.shops = shops;
         this.locations = locations;
         this.catalog = catalog;
         this.hours = hours;
         this.booking = booking;
         this.confirmation = confirmation;
+        this.vinDecoder = vinDecoder;
+        this.limits = limits;
+        this.integration = integration;
+        this.clock = clock;
     }
 
     @GetMapping("/options")
@@ -149,6 +170,25 @@ public class PublicBookingController {
             return new Availability(l.code(), zone.getId(), hours.freeSlots(l.id(), zone, from, Math.max(days, 1))
                     .stream().map(d -> new AvailabilityDay(d.date(), d.slots())).toList());
         });
+    }
+
+    @GetMapping("/vin")
+    @Operation(summary = "Year, make and model from a VIN, to fill in the booking form (NHTSA vPIC)",
+            description = "Send the X-Bayflow-Client header like the web app. Limited per address; 404 "
+                    + "vin-not-decoded and 503 vin-decoder-unavailable mean the details are typed by hand.")
+    public PublicVin vin(@RequestParam String vin, HttpServletRequest request) {
+        if (request.getHeader(PublicShop.CLIENT_HEADER) == null) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "missing-client-header", "Forbidden",
+                    "Send the X-Bayflow-Client header.");
+        }
+        Workshop workshop = shops.of(request);
+        String key = "vin-decode-public|" + workshop.id() + "|" + request.getRemoteAddr();
+        if (limits.hit(key, clock.instant(), HOUR) > integration.getVinDecoder().getPublicMaxPerHour()) {
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "too-many-requests", "Too Many Requests",
+                    "Too many VIN lookups from here. Please type the car's details.");
+        }
+        DecodedVin decoded = vinDecoder.decode(vin);
+        return new PublicVin(decoded.year(), decoded.make(), decoded.model(), decoded.warnings());
     }
 
     @PostMapping("/appointments")
