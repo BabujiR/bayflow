@@ -66,10 +66,9 @@ describe('quick estimates', () => {
     estimateCard();
     const { router } = renderApp(`/estimates/new?customerId=${CUSTOMER_ID}`);
 
-    await userEvent.selectOptions(
-      await screen.findByLabelText('Vehicle'),
-      'v0000000-0000-0000-0000-000000000001',
-    );
+    // The select is there before the customer's cars have loaded: wait for the car itself.
+    await screen.findByRole('option', { name: /BFL 1234/ });
+    await userEvent.selectOptions(screen.getByLabelText('Vehicle'), 'v0000000-0000-0000-0000-000000000001');
     await userEvent.type(screen.getByLabelText('What the customer is asking for'), 'Brakes squeal');
     await userEvent.click(screen.getByRole('button', { name: 'Start estimate' }));
 
