@@ -1257,3 +1257,64 @@ export interface AuditEvent {
   details?: string | null;
   requestId?: string | null;
 }
+
+// ---- estimate approval links ------------------------------------------------------------
+// Hand-written until `pnpm api:update` (then add them to schema-drift.ts).
+
+/** The approval link e-mailed for a job card's estimate, as staff see it. */
+export interface EstimateLinkStatus {
+  sentTo: string;
+  sentBy: string;
+  /** The first e-mail; `lastSentAt` the latest reminder. */
+  sentAt: string;
+  lastSentAt: string;
+  expiresAt: string;
+  firstViewedAt: string | null;
+  remindersSent: number;
+  nextReminderAt: string | null;
+  decidedAt: string | null;
+  signerName: string | null;
+  signed: boolean;
+  /** The customer can still answer from the link. */
+  open: boolean;
+}
+
+export interface CustomerEstimateItem {
+  id: string;
+  description: string;
+  /** Parts plus labour, in the estimate's currency. */
+  price: number;
+  status: ApprovalStatus;
+}
+
+export interface CustomerEstimateFinding {
+  description: string;
+  severity: Severity;
+}
+
+/** What the customer sees from their link (no sign-in). */
+export interface CustomerEstimate {
+  shopName: string | null;
+  locationName: string | null;
+  shopPhone: string | null;
+  firstName: string | null;
+  vehicle: string;
+  status: JobCardStatus;
+  /** They can still approve or decline here. */
+  canDecide: boolean;
+  findings: CustomerEstimateFinding[];
+  items: CustomerEstimateItem[];
+  total: number;
+  currency: string;
+  expiresAt: string;
+  decidedAt: string | null;
+  signerName: string | null;
+}
+
+export interface EstimateDecisionRequest {
+  token: string;
+  decisions: { itemId: string; approve: boolean }[];
+  signerName: string;
+  /** The drawn signature, as a PNG data URL. */
+  signature: string;
+}

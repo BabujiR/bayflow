@@ -2,6 +2,7 @@ package com.bayflow.workshop.application;
 
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,6 +19,7 @@ import com.bayflow.security.CurrentUser;
 import com.bayflow.security.LocationContext;
 import com.bayflow.security.TenantContext;
 import com.bayflow.workshop.cannedjobs.CannedJobService;
+import com.bayflow.workshop.domain.RecommendedWorkItem;
 import com.bayflow.workshop.reminders.ServiceDueService;
 import com.bayflow.workshop.domain.JobCard;
 import com.bayflow.workshop.domain.JobCardStatus;
@@ -208,6 +210,30 @@ public class JobCardService {
         card.decide(itemId, approve, decidedBy, clock.instant());
         // Once, when the last item is decided.
         if (before == JobCardStatus.AWAITING_APPROVAL && card.getStatus() != JobCardStatus.AWAITING_APPROVAL) {
+            outbox.enqueue(card, OutboxService.ESTIMATE_DECIDED);
+        }
+        return loaded(card);
+    }
+
+    /**
+     * The customer's answers from their estimate link: every item still pending, decided at once,
+     * in the current workshop (the caller has checked the link). {@code decidedBy} says who signed.
+     */
+    @Transactional
+    public JobCard decideAll(UUID id, java.util.Map<UUID, Boolean> decisions, String decidedBy) {
+        JobCard card = jobCards.findById(id).orElseThrow(() -> ApiException.notFound("Job card"));
+        if (card.getStatus() != JobCardStatus.AWAITING_APPROVAL) {
+            throw ApiException.conflict("estimate-decided", "This estimate has already been answered.");
+        }
+        java.util.Set<UUID> pending = new java.util.HashSet<>();
+        card.getRecommendations().stream().filter(RecommendedWorkItem::isPending)
+                .forEach(item -> pending.add(item.getId()));
+        if (!pending.equals(decisions.keySet())) {
+            throw ApiException.badRequest("decide-every-item", "Approve or decline every item, then confirm.");
+        }
+        Instant now = clock.instant();
+        decisions.forEach((itemId, approve) -> card.decide(itemId, approve, decidedBy, now));
+        if (card.getStatus() != JobCardStatus.AWAITING_APPROVAL) {
             outbox.enqueue(card, OutboxService.ESTIMATE_DECIDED);
         }
         return loaded(card);

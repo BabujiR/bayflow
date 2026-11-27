@@ -40,6 +40,7 @@ export default defineConfig({
       '/api/v1/service-intervals': to(WORKSHOP),
       '/api/v1/service-reminders': to(WORKSHOP),
       '/api/v1/service-due': to(WORKSHOP),
+      '/api/v1/estimate-approval': to(WORKSHOP),
       '/api/v1/notifications': to(NOTIFICATION),
     },
   },

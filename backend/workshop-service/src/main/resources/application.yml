@@ -71,6 +71,13 @@ bayflow:
     client-id: workshop-service
     client-secret: ${BAYFLOW_WORKSHOP_CLIENT_SECRET:dev-workshop-secret}
     settings-cache-ttl: 5m
+    # Estimate approval links: e-mailed on submit, 2 reminders a day apart, valid 14 days.
+    estimates:
+      send-on-submit: ${BAYFLOW_ESTIMATE_SEND_ON_SUBMIT:true}
+      link-lifetime: 14d
+      remind-every: 1d
+      max-reminders: 2
+      reminders-enabled: true
     # Estimate ready / decided / work complete → notification-service, through the outbox.
     notifications:
       enabled: true

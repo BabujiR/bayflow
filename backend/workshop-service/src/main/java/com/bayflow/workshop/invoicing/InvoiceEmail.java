@@ -103,9 +103,7 @@ public final class InvoiceEmail {
                     .append(esc(money(line.getLineTotal(), currency))).append("</td></tr>");
         }
         StringBuilder totals = new StringBuilder();
-        List<String[]> rows = totals(i);
-        for (int r = 0; r < rows.size(); r++) {
-            String[] row = rows.get(r);
+        for (String[] row : totals(i)) {
             boolean strong = row[0].equals("Total") || row[0].equals("Balance due");
             String style = strong ? "font-weight:700;font-size:16px;padding:6px 0" : "color:" + MUTED + ";padding:3px 0";
             totals.append("<tr><td style=\"").append(style).append("\">").append(esc(row[0]))
@@ -187,7 +185,7 @@ public final class InvoiceEmail {
         }
     }
 
-    static String money(BigDecimal amount, String currency) {
+    public static String money(BigDecimal amount, String currency) {
         try {
             NumberFormat format = NumberFormat.getCurrencyInstance(Locale.US);
             Currency code = Currency.getInstance(currency);

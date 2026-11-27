@@ -25,6 +25,7 @@ public class WorkshopProperties {
     private Duration settingsCacheTtl = Duration.ofMinutes(5);
     private final Notifications notifications = new Notifications();
     private final QuickBooks quickbooks = new QuickBooks();
+    private final Estimates estimates = new Estimates();
 
     public String getSiteUrl() { return siteUrl; }
     public void setSiteUrl(String siteUrl) { this.siteUrl = siteUrl; }
@@ -44,6 +45,7 @@ public class WorkshopProperties {
     public void setSettingsCacheTtl(Duration settingsCacheTtl) { this.settingsCacheTtl = settingsCacheTtl; }
     public Notifications getNotifications() { return notifications; }
     public QuickBooks getQuickbooks() { return quickbooks; }
+    public Estimates getEstimates() { return estimates; }
 
     /**
      * QuickBooks Online (Intuit app keys). Off until client id, secret and token key are set. One
@@ -105,6 +107,33 @@ public class WorkshopProperties {
         public void setConnectTimeout(Duration connectTimeout) { this.connectTimeout = connectTimeout; }
         public Duration getReadTimeout() { return readTimeout; }
         public void setReadTimeout(Duration readTimeout) { this.readTimeout = readTimeout; }
+    }
+
+    /** Estimate approval links e-mailed to customers (approve, decline and sign without an account). */
+    public static class Estimates {
+        /** E-mail the link as soon as an estimate is submitted for approval (to the customer's address). */
+        private boolean sendOnSubmit = true;
+        /** How long a link works. */
+        private Duration linkLifetime = Duration.ofDays(14);
+        /** A reminder this long after the link (and after each reminder), while nothing is decided. */
+        private Duration remindEvery = Duration.ofDays(1);
+        private int maxReminders = 2;
+        /** The scheduled reminder run (off in tests, which call it themselves). */
+        private boolean remindersEnabled = true;
+        private long reminderIntervalMs = 15 * 60 * 1000L;
+
+        public boolean isSendOnSubmit() { return sendOnSubmit; }
+        public void setSendOnSubmit(boolean sendOnSubmit) { this.sendOnSubmit = sendOnSubmit; }
+        public Duration getLinkLifetime() { return linkLifetime; }
+        public void setLinkLifetime(Duration linkLifetime) { this.linkLifetime = linkLifetime; }
+        public Duration getRemindEvery() { return remindEvery; }
+        public void setRemindEvery(Duration remindEvery) { this.remindEvery = remindEvery; }
+        public int getMaxReminders() { return maxReminders; }
+        public void setMaxReminders(int maxReminders) { this.maxReminders = maxReminders; }
+        public boolean isRemindersEnabled() { return remindersEnabled; }
+        public void setRemindersEnabled(boolean remindersEnabled) { this.remindersEnabled = remindersEnabled; }
+        public long getReminderIntervalMs() { return reminderIntervalMs; }
+        public void setReminderIntervalMs(long reminderIntervalMs) { this.reminderIntervalMs = reminderIntervalMs; }
     }
 
     /** Events for notification-service, sent through the outbox (ws_outbox). */

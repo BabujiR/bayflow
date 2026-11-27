@@ -48,6 +48,8 @@ const defaults = [
   http.get('*/api/v1/vehicles', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/appointments', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/job-cards', () => HttpResponse.json(pageOf([]))),
+  // No approval link sent yet (204).
+  http.get('*/api/v1/job-cards/:id/estimate-link', () => new HttpResponse(null, { status: 204 })),
   // A completed job card asks for its invoice: none by default.
   http.get('*/api/v1/job-cards/:id/invoice', () =>
     HttpResponse.json({ status: 404, title: 'Not Found', detail: 'Invoice was not found.' }, { status: 404 }),

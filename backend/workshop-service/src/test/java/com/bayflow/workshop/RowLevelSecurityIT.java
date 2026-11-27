@@ -76,8 +76,9 @@ class RowLevelSecurityIT {
         // (ws_qbo_connections, ws_qbo_oauth_states); 33 with canned jobs (ws_canned_jobs,
         // ws_canned_job_parts); 36 with reminders (ws_service_intervals, ws_reminder_settings,
         // ws_vehicle_services); 37 with ws_reminder_opt_outs; 38 with apt_booking_services; 39 with
-        // apt_booking_settings; 40 with auth_user_avatars; 41 with auth_audit_events.
-        assertThat(tables).hasSize(41);
+        // apt_booking_settings; 40 with auth_user_avatars; 41 with auth_audit_events; 42 with
+        // ws_estimate_links.
+        assertThat(tables).hasSize(42);
         try (Connection owner = owner(); Statement statement = owner.createStatement()) {
             for (String table : tables) {
                 try (ResultSet rs = statement.executeQuery("select c.relrowsecurity, (select count(*) from pg_policies p"

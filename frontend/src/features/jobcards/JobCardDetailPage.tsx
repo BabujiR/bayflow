@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCannedJobs } from '@/features/cannedjobs/canned-jobs';
 import { CannedWorkDialog } from '@/features/cannedjobs/CannedWorkDialog';
+import { EstimateLinkCard } from '@/features/estimates/EstimateLinkCard';
 import { JobCardInvoiceAction } from '@/features/invoices/JobCardInvoice';
 import { useLocationLookup } from '@/features/locations/use-locations';
 import { formatDateTime, formatMileage, formatMoney } from '@/lib/format';
@@ -68,7 +69,7 @@ function JobCardView({ card }: { card: JobCard }) {
   const submit = useJobCardAction(
     card.id,
     () => jobCardsApi.submit(card.id),
-    'Sent to the customer for approval',
+    'Sent to the customer for approval (with an e-mailed link when they have an address)',
   );
   const decide = useJobCardAction(
     card.id,
@@ -241,6 +242,8 @@ function JobCardView({ card }: { card: JobCard }) {
           )}
         </CardContent>
       </Card>
+
+      {advisor && <EstimateLinkCard jobCardId={card.id} status={status} zone={zone} />}
 
       {/* ---- Work ---- */}
       {workPhase && (

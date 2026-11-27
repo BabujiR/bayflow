@@ -1,9 +1,12 @@
-import { http, request } from './http';
+import { http, request, requestBlob } from './http';
 import type {
   AdvisorRow,
   Announcement,
   AnnouncementRequest,
   AuditEvent,
+  CustomerEstimate,
+  EstimateDecisionRequest,
+  EstimateLinkStatus,
   AppNotification,
   Appointment,
   Branding,
@@ -173,6 +176,25 @@ export const jobCardsApi = {
   /** A canned job's usual parts and labour for one approved item, all at once (mechanics). */
   addWork: (id: string, itemId: string, body: WorkRequest) =>
     http.post<JobCard>(`/api/v1/job-cards/${id}/recommendations/${itemId}/work`, body),
+  /** The customer's approval link (undefined: none sent yet). */
+  estimateLink: (id: string) =>
+    http.get<EstimateLinkStatus | undefined>(`/api/v1/job-cards/${id}/estimate-link`),
+  /** E-mails the link (to `to`, or the customer's address), replacing an earlier one. */
+  sendEstimateLink: (id: string, to?: string) =>
+    http.post<EstimateLinkStatus>(`/api/v1/job-cards/${id}/estimate-link`, to ? { to } : {}),
+  estimateSignature: (id: string) => requestBlob(`/api/v1/job-cards/${id}/estimate-link/signature`),
+};
+
+/** The customer's estimate from its e-mailed link: no sign-in, the token is the key (in the body). */
+export const estimateApi = {
+  view: (token: string) =>
+    request<CustomerEstimate>('/api/v1/estimate-approval/view', {
+      method: 'POST',
+      body: { token },
+      auth: false,
+    }),
+  decide: (body: EstimateDecisionRequest) =>
+    request<CustomerEstimate>('/api/v1/estimate-approval/decide', { method: 'POST', body, auth: false }),
 };
 
 export const remindersApi = {

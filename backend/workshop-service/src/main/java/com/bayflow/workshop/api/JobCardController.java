@@ -32,6 +32,7 @@ import com.bayflow.workshop.application.JobCardService;
 import com.bayflow.workshop.application.JobCardService.OpenResult;
 import com.bayflow.workshop.domain.JobCard;
 import com.bayflow.workshop.domain.JobCardStatus;
+import com.bayflow.workshop.estimates.EstimateLinks;
 import com.bayflow.workshop.application.ApiException;
 import com.bayflow.security.TenantContext;
 
@@ -46,9 +47,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class JobCardController {
 
     private final JobCardService jobCards;
+    private final EstimateLinks estimateLinks;
 
-    public JobCardController(JobCardService jobCards) {
+    public JobCardController(JobCardService jobCards, EstimateLinks estimateLinks) {
         this.jobCards = jobCards;
+        this.estimateLinks = estimateLinks;
     }
 
     @PostMapping
@@ -120,9 +123,17 @@ public class JobCardController {
 
     @PostMapping("/{id}/submit-for-approval")
     @PreAuthorize("hasRole('SERVICE_ADVISOR')")
-    @Operation(summary = "INSPECTED → AWAITING_APPROVAL (or DECLINED when nothing is recommended)")
+    @Operation(summary = "INSPECTED → AWAITING_APPROVAL (or DECLINED when nothing is recommended)",
+            description = "Also e-mails the customer a link to approve or decline and sign, when they have an "
+                    + "e-mail address (see /estimate-link).")
     public JobCardResponse submit(@PathVariable UUID id, Authentication auth) {
-        return response(jobCards.submitForApproval(CurrentUser.from(auth), id));
+        CurrentUser user = CurrentUser.from(auth);
+        JobCard card = jobCards.submitForApproval(user, id);
+        if (card.getStatus() == JobCardStatus.AWAITING_APPROVAL) {
+            // After the submit has committed: e-mail the customer their approval link (never fails the submit).
+            estimateLinks.sendAfterSubmit(user, id);
+        }
+        return response(card);
     }
 
     @PostMapping("/{id}/recommendations/{itemId}/approve")

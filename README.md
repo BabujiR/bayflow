@@ -321,6 +321,20 @@ e-mail booked without signing in goes to a separate guest record (the confirmati
 address, whose owner can cancel it or add it to their account), and a VIN already on another
 customer's car is booked on a placeholder car reading "VIN …", with a note for the desk.
 
+### Estimate approval by link
+
+*Send to customer for approval* also e-mails the customer a private link (when they have an
+address). On `/estimate?token=…`, with no account, they see the findings and each recommended item
+with its price, approve or decline each one, type their name and sign; the job card moves on as
+if they had answered in the app, and the advisor and mechanics get *Estimate decided*. Two
+reminders go out a day apart while nothing is decided (a cross-instance job, 15-minute runs); the
+link works 14 days (`bayflow.workshop.estimates.*`). On the job card, advisors see *Customer
+approval link*: sent to, opened, reminders, then who signed and the signature; *Send again* (or
+to another address) replaces the link. Only the token's hash is stored, so each reminder carries
+a new link; earlier ones keep working until a new one is sent. API:
+`/api/v1/job-cards/{id}/estimate-link` (GET, POST, `/signature`) and the public
+`POST /api/v1/estimate-approval/view|decide`.
+
 ### Canned jobs
 
 Managers and admins keep the shop's everyday work under *Canned jobs* (e.g. "Synthetic oil
@@ -369,7 +383,8 @@ At http://demo.localhost:3000 (or the dev server on :5173):
 3. **mechanic1** — *My jobs* → the card under *Needs inspection* → add findings.
 4. **advisor1** — on the job card: add recommended work with estimates, then
    *Send to customer for approval*.
-5. **customer1** — *Job cards* → approve or decline each item.
+5. **customer1** — *Job cards* → approve or decline each item (or, from the e-mailed link,
+   approve, decline and sign without signing in; see *Estimate approval by link*).
 6. **mechanic1** — *Start work*, log work (plus parts and labour) for each
    approved item, then *Complete job*.
 7. **customer1** — *My vehicles* → the vehicle → its service history.
