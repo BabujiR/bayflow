@@ -122,6 +122,10 @@ public class JobCard {
     @Column(name = "started_at")
     private Instant startedAt;
 
+    /** When the car reached the shop (check-in). Null for a quick estimate made before the visit. */
+    @Column(name = "arrived_at")
+    private Instant arrivedAt;
+
     @Column(name = "completed_at")
     private Instant completedAt;
 
@@ -176,9 +180,65 @@ public class JobCard {
         card.labourRate = labourRate;
         card.currency = currency;
         card.status = JobCardStatus.OPEN;
+        card.arrivedAt = now;
         card.createdAt = now;
         card.updatedAt = now;
         return card;
+    }
+
+    // ---- quick estimates (before the visit) -----------------------------------------------
+
+    /** A quick estimate: made before the car comes in, so it hasn't arrived yet. */
+    public void awaitArrival() {
+        arrivedAt = null;
+    }
+
+    /**
+     * The visit is checked in: the car is here, with its reading and (now known) VIN and plate.
+     * Nothing changes for a card that was opened at check-in.
+     */
+    public boolean arrive(int checkInMileage, String checkInVin, String checkInRegistration, Instant now) {
+        if (arrivedAt != null) {
+            return false;
+        }
+        if (checkInMileage >= mileage) {
+            mileage = checkInMileage;
+        }
+        if (checkInVin != null && !checkInVin.isBlank()) {
+            vin = checkInVin;
+        }
+        if (checkInRegistration != null && !checkInRegistration.isBlank()) {
+            registration = checkInRegistration;
+        }
+        arrivedAt = now;
+        updatedAt = now;
+        return true;
+    }
+
+    public boolean isEstimateBeforeVisit() {
+        return arrivedAt == null;
+    }
+
+    /**
+     * The customer won't go ahead (or never answered): the estimate is closed as declined, any
+     * undecided items with it. Only before the visit; closing again changes nothing.
+     */
+    public void closeEstimate(String by, Instant now) {
+        if (arrivedAt != null) {
+            throw new BusinessRuleException("not-an-estimate",
+                    "The car has been checked in: complete the job card instead.");
+        }
+        if (status == JobCardStatus.DECLINED) {
+            return;
+        }
+        if (status == JobCardStatus.IN_PROGRESS || status == JobCardStatus.COMPLETED) {
+            throw new BusinessRuleException("not-an-estimate", "Work on this job card has started.");
+        }
+        recommendations.stream().filter(RecommendedWorkItem::isPending)
+                .forEach(item -> item.decide(false, by + " (estimate closed)", now));
+        status = JobCardStatus.DECLINED;
+        decidedAt = now;
+        updatedAt = now;
     }
 
     // ---- inspection --------------------------------------------------------------
@@ -259,6 +319,10 @@ public class JobCard {
 
     public void start(Instant now) {
         require(JobCardAction.START);
+        if (arrivedAt == null) {
+            throw new BusinessRuleException("not-arrived",
+                    "The car isn't at the shop yet: check its visit in first.");
+        }
         status = JobCardStatus.IN_PROGRESS;
         startedAt = now;
         updatedAt = now;
@@ -298,6 +362,10 @@ public class JobCard {
      */
     public void complete(Instant now) {
         require(JobCardAction.COMPLETE);
+        if (arrivedAt == null) {
+            throw new BusinessRuleException("not-arrived",
+                    "This estimate was never carried out: close the estimate instead.");
+        }
         if (status == JobCardStatus.IN_PROGRESS) {
             List<String> unfinished = recommendations.stream()
                     .filter(RecommendedWorkItem::isApproved)
@@ -396,6 +464,7 @@ public class JobCard {
     public List<PartUsage> getParts() { return Collections.unmodifiableList(parts); }
     public List<LabourEntry> getLabour() { return Collections.unmodifiableList(labour); }
     public Instant getStartedAt() { return startedAt; }
+    public Instant getArrivedAt() { return arrivedAt; }
     public Instant getCompletedAt() { return completedAt; }
     public BigDecimal getPartsTotal() { return partsTotal; }
     public BigDecimal getLabourTotal() { return labourTotal; }

@@ -179,7 +179,9 @@ export function AppointmentsPage() {
                   {result.content.map((a) => (
                     <TableRow key={a.id}>
                       <TableCell className="whitespace-nowrap">
-                        {formatDateTime(a.scheduledAt, locations.zoneOf(a.locationId))}
+                        {a.status === 'ESTIMATE'
+                          ? 'Not scheduled yet'
+                          : formatDateTime(a.scheduledAt, locations.zoneOf(a.locationId))}
                       </TableCell>
                       {locations.hasSeveral && <TableCell>{locations.nameOf(a.locationId)}</TableCell>}
                       <TableCell>

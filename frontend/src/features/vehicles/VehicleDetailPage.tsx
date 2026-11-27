@@ -12,7 +12,7 @@ import { formatMileage } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
 import { ServiceHistoryList } from './ServiceHistoryList';
-import { isVehicleFieldError, VehicleForm } from './VehicleForm';
+import { isVehicleFieldError, VehicleForm, type VehicleFormResult } from './VehicleForm';
 
 export function VehicleDetailPage() {
   const { id = '' } = useParams();
@@ -22,19 +22,8 @@ export function VehicleDetailPage() {
   const [editing, setEditing] = useState(false);
   const vehicle = useQuery({ queryKey: ['vehicle', id], queryFn: () => vehiclesApi.get(id) });
   const update = useAction(
-    ({
-      registration,
-      make,
-      model,
-      year,
-      mileage,
-    }: {
-      registration: string;
-      make: string;
-      model: string;
-      year: number;
-      mileage: number;
-    }) => vehiclesApi.update(id, { registration, make, model, year, mileage }),
+    ({ registration, make, model, year, mileage, trim, engine }: VehicleFormResult) =>
+      vehiclesApi.update(id, { registration, make, model, year, mileage, trim, engine }),
     {
       success: 'Vehicle updated',
       invalidate: [['vehicle', id], ['vehicles']],
@@ -97,6 +86,18 @@ export function VehicleDetailPage() {
                     <dt className="text-muted-foreground">Mileage</dt>
                     <dd>{formatMileage(v.mileage)}</dd>
                   </div>
+                  {v.trim && (
+                    <div>
+                      <dt className="text-muted-foreground">Trim</dt>
+                      <dd>{v.trim}</dd>
+                    </div>
+                  )}
+                  {v.engine && (
+                    <div>
+                      <dt className="text-muted-foreground">Engine</dt>
+                      <dd>{v.engine}</dd>
+                    </div>
+                  )}
                 </dl>
               )}
             </CardContent>

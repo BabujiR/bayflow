@@ -62,4 +62,12 @@ export type DriftGuard = [
   None<Extra<T.InvoiceExport, W['InvoiceExport']>>,
   None<Extra<T.PaymentRequest, W['PaymentRequest']>>,
   None<Extra<T.AuditEvent, A['AuditEventResponse']>>,
+  None<Extra<T.EstimateLinkStatus, W['EstimateLinkStatus']>>,
+  None<Extra<T.CustomerEstimate, W['CustomerEstimate']>>,
+  None<Extra<T.CustomerEstimateItem, W['CustomerEstimateItem']>>,
+  None<Extra<T.CustomerEstimateFinding, W['CustomerEstimateFinding']>>,
+  None<Extra<T.EstimateDecisionRequest, W['EstimateDecisionRequest']>>,
+  None<Extra<T.DecodedVin, P['DecodedVin']>>,
+  None<Extra<T.JobCard, W['JobCardResponse']>>,
+  None<Extra<T.JobCardSummary, W['JobCardSummary']>>,
 ];

@@ -46,6 +46,11 @@ const defaults = [
   ),
   http.get('*/api/v1/auth/customer-accounts', () => HttpResponse.json([])),
   http.get('*/api/v1/vehicles', () => HttpResponse.json(pageOf([]))),
+  // VIN lookups find nothing unless a test says otherwise (the details are typed by hand).
+  http.get('*/api/v1/vehicles/decode', () =>
+    problem(404, 'vin-not-decoded', "This VIN couldn't be decoded."),
+  ),
+  http.get('*/api/v1/booking/vin', () => problem(404, 'vin-not-decoded', "This VIN couldn't be decoded.")),
   http.get('*/api/v1/appointments', () => HttpResponse.json(pageOf([]))),
   http.get('*/api/v1/job-cards', () => HttpResponse.json(pageOf([]))),
   // No approval link sent yet (204).

@@ -8,7 +8,15 @@ import java.util.UUID;
  * both only from a SYSTEM token.
  */
 public record OpenJobCardPayload(UUID appointmentId, UUID vehicleId, String vin, String registration,
-        UUID customerUserId, String customerName, int mileage, UUID tenantId, UUID locationId) {
+        UUID customerUserId, String customerName, int mileage, UUID tenantId, UUID locationId, Boolean estimate,
+        String request, String requestedBy) {
+
+    /** A job card opened at check-in. */
+    public OpenJobCardPayload(UUID appointmentId, UUID vehicleId, String vin, String registration,
+            UUID customerUserId, String customerName, int mileage, UUID tenantId, UUID locationId) {
+        this(appointmentId, vehicleId, vin, registration, customerUserId, customerName, mileage, tenantId,
+                locationId, null, null, null);
+    }
 
     /**
      * Fills in what older queued messages lack: the tenant (before multi-tenancy, it comes from the
@@ -18,6 +26,6 @@ public record OpenJobCardPayload(UUID appointmentId, UUID vehicleId, String vin,
         UUID tenant = tenantId != null ? tenantId : rowTenant;
         UUID location = locationId != null ? locationId : tenant;
         return new OpenJobCardPayload(appointmentId, vehicleId, vin, registration, customerUserId, customerName,
-                mileage, tenant, location);
+                mileage, tenant, location, estimate, request, requestedBy);
     }
 }

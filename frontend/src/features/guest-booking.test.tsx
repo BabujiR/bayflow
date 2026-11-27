@@ -255,6 +255,41 @@ describe('Settings → Online booking: booking hours', () => {
 });
 
 describe('check-in of a car booked online', () => {
+  it('shows which car a VIN is and sends its year, make and model', async () => {
+    let sent: Record<string, unknown> | undefined;
+    server.use(
+      noSession,
+      http.get('*/api/v1/booking/options', () => HttpResponse.json(bookingOptions())),
+      serveAvailability(),
+      http.get('*/api/v1/booking/vin', () =>
+        HttpResponse.json({ year: 2018, make: 'Toyota', model: 'Corolla', warnings: [] }),
+      ),
+      http.post('*/api/v1/booking/appointments', async ({ request }) => {
+        sent = (await request.json()) as Record<string, unknown>;
+        return problem(409, 'slot-taken', 'That time was just taken. Choose another.');
+      }),
+    );
+    renderApp('/book');
+
+    await userEvent.click(await screen.findByRole('radio', { name: /Something else/ }, { timeout: 10_000 }));
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await userEvent.type(screen.getByLabelText("What's going on?"), 'Check engine light');
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await userEvent.click(await screen.findByRole('tab', { name: 'VIN' }));
+    await userEvent.type(screen.getByLabelText('VIN'), '2T1BURHE2JC034501');
+
+    expect(await screen.findByText('2018 Toyota Corolla')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await chooseFirstTime();
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await fillDetails();
+    await userEvent.click(screen.getByRole('button', { name: 'Book my visit' }));
+
+    await vi.waitFor(() =>
+      expect(sent).toMatchObject({ vin: '2T1BURHE2JC034501', year: 2018, make: 'Toyota', model: 'Corolla' }),
+    );
+  });
+
   it('asks for the VIN and plate the job card needs', async () => {
     let body: unknown;
     server.use(

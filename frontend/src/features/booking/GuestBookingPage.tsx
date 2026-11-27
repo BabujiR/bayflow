@@ -93,8 +93,21 @@ function BookingFlow({ options }: { options: PublicBookingOptions }) {
     carMode === 'vin' ? VIN.test(vin.trim()) : year !== '' && make.trim() !== '' && model.trim() !== '';
   const phoneOk = phone.trim() === '' || PHONE.test(phone.trim());
   const detailsOk = firstName.trim() !== '' && lastName.trim() !== '' && EMAIL.test(email.trim()) && phoneOk;
+  // A complete VIN is looked up, so the customer sees which car it is (and the shop gets its details).
+  const vinTyped = vin.trim().toUpperCase();
+  const decoded = useQuery({
+    queryKey: ['booking', 'vin', vinTyped],
+    queryFn: () => bookingApi.vin(vinTyped),
+    enabled: carMode === 'vin' && VIN.test(vinTyped),
+    staleTime: Infinity,
+    retry: false,
+  });
+  const vinCar = carMode === 'vin' && decoded.data?.make ? decoded.data : undefined;
+  const decodedCar = vinCar ? [vinCar.year, vinCar.make, vinCar.model].filter(Boolean).join(' ') : null;
   const car =
-    carMode === 'vin' ? `VIN ${vin.trim().toUpperCase()}` : `${year} ${make.trim()} ${model.trim()}`.trim();
+    carMode === 'vin'
+      ? `${decodedCar ? `${decodedCar} · ` : ''}VIN ${vinTyped}`
+      : `${year} ${make.trim()} ${model.trim()}`.trim();
 
   const book = useMutation({
     mutationFn: () =>
@@ -103,9 +116,9 @@ function BookingFlow({ options }: { options: PublicBookingOptions }) {
         service: service === OTHER ? null : service,
         description: description.trim() || null,
         vin: carMode === 'vin' ? vin.trim().toUpperCase() : null,
-        year: carMode === 'model' ? Number(year) : null,
-        make: carMode === 'model' ? make.trim() : null,
-        model: carMode === 'model' ? model.trim() : null,
+        year: carMode === 'model' ? Number(year) : (vinCar?.year ?? null),
+        make: carMode === 'model' ? make.trim() : (vinCar?.make ?? null),
+        model: carMode === 'model' ? model.trim() : (vinCar?.model ?? null),
         startsAt: slot!,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -320,24 +333,37 @@ function BookingFlow({ options }: { options: PublicBookingOptions }) {
                       </Field>
                     </div>
                   ) : (
-                    <Field
-                      label="VIN"
-                      error={
-                        touched && !VIN.test(vin.trim())
-                          ? 'A VIN has 17 letters and digits (no I, O or Q)'
-                          : undefined
-                      }
-                      hint="On the dashboard by the windshield, or on your registration card."
-                    >
-                      <Input
-                        value={vin}
-                        maxLength={17}
-                        autoCapitalize="characters"
-                        className="font-mono uppercase"
-                        onChange={(e) => setVin(e.target.value)}
-                        placeholder="1HGCV1F3XLA012345"
-                      />
-                    </Field>
+                    <div className="grid gap-2">
+                      <Field
+                        label="VIN"
+                        error={
+                          touched && !VIN.test(vin.trim())
+                            ? 'A VIN has 17 letters and digits (no I, O or Q)'
+                            : undefined
+                        }
+                        hint="On the dashboard by the windshield, or on your registration card."
+                      >
+                        <Input
+                          value={vin}
+                          maxLength={17}
+                          autoCapitalize="characters"
+                          className="font-mono uppercase"
+                          onChange={(e) => setVin(e.target.value)}
+                          placeholder="1HGCV1F3XLA012345"
+                        />
+                      </Field>
+                      {decodedCar && (
+                        <p className="text-sm" role="status">
+                          <span className="text-muted-foreground">Your car: </span>
+                          <span className="font-medium">{decodedCar}</span>
+                          {vinCar?.warnings?.length ? (
+                            <span className="block text-amber-700 dark:text-amber-400">
+                              If that isn't your car, check the VIN for a typo.
+                            </span>
+                          ) : null}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </>
               )}

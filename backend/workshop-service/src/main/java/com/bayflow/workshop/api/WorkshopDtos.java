@@ -52,11 +52,16 @@ public final class WorkshopDtos {
             // The workshop; required from SYSTEM callers, ignored for users (their token decides).
             UUID tenantId,
             // The location of the appointment; none = the organization's first location ("Main").
-            UUID locationId) {
+            UUID locationId,
+            // A quick estimate, before the visit: the car isn't here yet. "request": what the
+            // customer asked for (recorded as the first finding, by "requestedBy").
+            Boolean estimate,
+            @Size(max = 1000) String request,
+            @Size(max = 100) String requestedBy) {
 
         OpenCommand toCommand() {
             return new OpenCommand(appointmentId, locationId, vehicleId, vin, registration, customerUserId,
-                    customerName, mileage);
+                    customerName, mileage, Boolean.TRUE.equals(estimate), request, requestedBy);
         }
     }
 
@@ -165,7 +170,7 @@ public final class WorkshopDtos {
             BigDecimal labourRate, String currency, BigDecimal estimatedTotal, BigDecimal approvedEstimate,
             BigDecimal partsTotal, BigDecimal labourTotal, BigDecimal grandTotal,
             Instant submittedAt, String submittedBy, Instant decidedAt, Instant startedAt, Instant completedAt,
-            Instant createdAt, Instant updatedAt) {
+            Instant createdAt, Instant updatedAt, Instant arrivedAt) {
 
         static JobCardResponse from(JobCard c) {
             BigDecimal rate = c.getLabourRate();
@@ -181,7 +186,7 @@ public final class WorkshopDtos {
                     rate, currency, c.estimatedTotal(rate), c.approvedEstimate(rate),
                     c.getPartsTotal(), c.getLabourTotal(), c.getGrandTotal(),
                     c.getSubmittedAt(), c.getSubmittedBy(), c.getDecidedAt(), c.getStartedAt(),
-                    c.getCompletedAt(), c.getCreatedAt(), c.getUpdatedAt());
+                    c.getCompletedAt(), c.getCreatedAt(), c.getUpdatedAt(), c.getArrivedAt());
         }
     }
 
@@ -200,16 +205,20 @@ public final class WorkshopDtos {
         }
     }
 
-    /** Job card row for lists (no findings or recommendations). */
+    /**
+     * Job card row for lists (no findings or recommendations). {@code arrivedAt}: null for a quick
+     * estimate whose car hasn't come in yet.
+     */
     public record JobCardSummary(UUID id, UUID appointmentId, UUID locationId, UUID vehicleId, String vin,
             String registration,
-            String customerName, int mileage, JobCardStatus status, Instant createdAt, Instant updatedAt) {
+            String customerName, int mileage, JobCardStatus status, Instant createdAt, Instant updatedAt,
+            Instant arrivedAt) {
 
         static JobCardSummary from(JobCard c) {
             return new JobCardSummary(c.getId(), c.getAppointmentId(), c.getLocationId(), c.getVehicleId(),
                     c.getVin(),
                     c.getRegistration(), c.getCustomerName(), c.getMileage(), c.getStatus(), c.getCreatedAt(),
-                    c.getUpdatedAt());
+                    c.getUpdatedAt(), c.getArrivedAt());
         }
     }
 

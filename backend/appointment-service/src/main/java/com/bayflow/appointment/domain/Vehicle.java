@@ -52,6 +52,13 @@ public class Vehicle {
     @Column(name = "model_year")
     private Integer year;
 
+    /** From VIN decode or typed: "EX", "2.0L 4-cyl Gasoline". Optional. */
+    @Column(length = 60)
+    private String trim;
+
+    @Column(length = 80)
+    private String engine;
+
     /** Odometer reading in miles. */
     @Column(nullable = false)
     private int mileage;
@@ -111,18 +118,18 @@ public class Vehicle {
         return vehicle;
     }
 
-    /** Whether the VIN and the plate are known (a job card needs both). */
-    public boolean isIdentified() {
-        return vin != null && registration != null;
+    /** Whether the VIN or the plate is still unknown (a job card needs both). */
+    public boolean lacksVinOrPlate() {
+        return vin == null || registration == null;
     }
 
-    /** Fills in what an online booking didn't give (at check-in); what is known stays. */
     /** The car joins the customer's account (claimed online booking, merged profiles). */
     public void moveTo(Customer newOwner, Instant now) {
         this.owner = newOwner;
         this.updatedAt = now;
     }
 
+    /** Fills in what an online booking didn't give (at check-in); what is known stays. */
     public void complete(String vin, String registration, Instant now) {
         if (this.vin == null) {
             String normalizedVin = normalizeVin(vin);
@@ -155,6 +162,21 @@ public class Vehicle {
         this.mileage = mileage;
         this.updatedAt = now;
     }
+
+    /** Trim and engine: null leaves one as it is, blank clears it. */
+    public void describe(String trim, String engine, Instant now) {
+        if (trim != null) {
+            this.trim = trim.isBlank() ? null : trim.strip();
+        }
+        if (engine != null) {
+            this.engine = engine.isBlank() ? null : engine.strip();
+        }
+        this.updatedAt = now;
+    }
+
+    public String getTrim() { return trim; }
+
+    public String getEngine() { return engine; }
 
     /** Records an odometer reading taken at check-in; it may never go down. */
     public void recordMileage(int reading, Instant now) {

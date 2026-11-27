@@ -174,6 +174,7 @@ export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
 };
 
 export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
+  ESTIMATE: 'Estimate',
   BOOKED: 'Booked',
   CONFIRMED: 'Confirmed',
   ARRIVED: 'Arrived',

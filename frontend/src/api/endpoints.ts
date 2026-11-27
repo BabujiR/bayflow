@@ -15,7 +15,9 @@ import type {
   BookAppointmentRequest,
   CreateCustomerRequest,
   CreateStaffRequest,
+  CreateEstimateRequest,
   CreateVehicleRequest,
+  DecodedVin,
   Customer,
   DailyReport,
   DeclinedRow,
@@ -67,6 +69,7 @@ import type {
   ReportRows,
   ReportSummary,
   RescheduleRequest,
+  ScheduleEstimateRequest,
   ServiceHistoryEntry,
   SignupRequest,
   SignupResponse,
@@ -88,6 +91,7 @@ import type {
   PublicBooked,
   PublicBookingOptions,
   PublicBookingRequest,
+  PublicVin,
   Role,
 } from './types';
 
@@ -116,6 +120,8 @@ export const vehiclesApi = {
   get: (id: string) => http.get<Vehicle>(`/api/v1/vehicles/${id}`),
   create: (body: CreateVehicleRequest) => http.post<Vehicle>('/api/v1/vehicles', body),
   update: (id: string, body: UpdateVehicleRequest) => http.put<Vehicle>(`/api/v1/vehicles/${id}`, body),
+  /** Staff: year, make, model, trim and engine from a VIN (NHTSA vPIC). */
+  decode: (vin: string) => http.get<DecodedVin>('/api/v1/vehicles/decode', { vin }),
 };
 
 export interface AppointmentFilters extends Paging {
@@ -150,13 +156,22 @@ export const appointmentsApi = {
   cancel: (id: string) => http.post<Appointment>(`/api/v1/appointments/${id}/cancel`),
   reschedule: (id: string, body: RescheduleRequest) =>
     http.patch<Appointment>(`/api/v1/appointments/${id}/reschedule`, body),
+  /** A quick estimate: a visit without a time, whose job card opens straight away (`jobCardId`). */
+  createEstimate: (body: CreateEstimateRequest) =>
+    http.post<Appointment>('/api/v1/appointments/estimates', body),
+  /** The customer goes ahead: ESTIMATE → BOOKED for a time. */
+  schedule: (id: string, body: ScheduleEstimateRequest) =>
+    http.post<Appointment>(`/api/v1/appointments/${id}/schedule`, body),
 };
 
 // ---- workshop-service ----------------------------------------------------------------------
 
 export const jobCardsApi = {
-  list: (params: Paging & { status?: JobCardStatus }) =>
+  /** `estimates`: true for quick estimates before their visit only, false for cars at the shop only. */
+  list: (params: Paging & { status?: JobCardStatus; estimates?: boolean }) =>
     http.get<PageResponse<JobCardSummary>>('/api/v1/job-cards', { ...params }),
+  /** A quick estimate the customer won't go ahead with (then cancel its appointment). */
+  closeEstimate: (id: string) => http.post<JobCard>(`/api/v1/job-cards/${id}/close-estimate`),
   get: (id: string) => http.get<JobCard>(`/api/v1/job-cards/${id}`),
   byAppointment: (appointmentId: string) =>
     http.get<JobCard>(`/api/v1/job-cards/by-appointment/${appointmentId}`),
@@ -239,6 +254,8 @@ export const bookingApi = {
   availability: (location: string, from: string, days = 7) =>
     http.get<PublicAvailability>('/api/v1/booking/availability', { location, from, days }),
   book: (body: PublicBookingRequest) => http.post<PublicBooked>('/api/v1/booking/appointments', body),
+  /** Year, make and model from a VIN, for the booking form (limited per address). */
+  vin: (vin: string) => http.get<PublicVin>('/api/v1/booking/vin', { vin }),
   /** The booking's private link (the token goes in the body, out of server logs). */
   manage: (token: string) => http.post<ManagedBooking>('/api/v1/booking/manage', { token }),
   reschedule: (token: string, startsAt: string) =>

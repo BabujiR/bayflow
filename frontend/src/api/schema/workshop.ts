@@ -197,7 +197,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List job cards, newest first (customers see their own) */
+        /**
+         * List job cards, newest first (customers see their own)
+         * @description estimates=true: only quick estimates whose car hasn't come in; false: only cars at the shop. Mechanics only ever see cars at the shop.
+         */
         get: operations["list"];
         put?: never;
         /**
@@ -443,6 +446,26 @@ export interface paths {
         put?: never;
         /** IN_PROGRESS/DECLINED → COMPLETED; calculates totals and writes the service history */
         post: operations["complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/job-cards/{id}/close-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close a quick estimate the customer won't go ahead with (declined; before the visit)
+         * @description Also cancel its ESTIMATE appointment. Repeats are harmless.
+         */
+        post: operations["closeEstimate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1281,6 +1304,9 @@ export interface components {
             tenantId?: string;
             /** Format: uuid */
             locationId?: string;
+            estimate?: boolean;
+            request?: string;
+            requestedBy?: string;
         };
         FindingResponse: {
             /** Format: uuid */
@@ -1335,6 +1361,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            /** Format: date-time */
+            arrivedAt?: string;
         };
         LabourResponse: {
             /** Format: uuid */
@@ -1878,6 +1906,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            /** Format: date-time */
+            arrivedAt?: string;
         };
         PageResponseJobCardSummary: {
             content?: components["schemas"]["JobCardSummary"][];
@@ -2390,6 +2420,7 @@ export interface operations {
         parameters: {
             query?: {
                 status?: "OPEN" | "INSPECTED" | "AWAITING_APPROVAL" | "APPROVED" | "PARTIALLY_APPROVED" | "DECLINED" | "IN_PROGRESS" | "COMPLETED";
+                estimates?: boolean;
                 page?: number;
                 size?: number;
             };
@@ -2774,6 +2805,28 @@ export interface operations {
         };
     };
     complete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["JobCardResponse"];
+                };
+            };
+        };
+    };
+    closeEstimate: {
         parameters: {
             query?: never;
             header?: never;

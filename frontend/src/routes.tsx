@@ -10,6 +10,7 @@ import { BoardPage } from '@/features/board/BoardPage';
 import { GuestBookingPage } from '@/features/booking/GuestBookingPage';
 import { ManageBookingPage } from '@/features/booking/ManageBookingPage';
 import { EstimateApprovalPage } from '@/features/estimates/EstimateApprovalPage';
+import { NewEstimatePage } from '@/features/estimates/NewEstimatePage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { CannedJobsPage } from '@/features/cannedjobs/CannedJobsPage';
@@ -135,6 +136,7 @@ export const routes: RouteObject[] = withErrorPage([
             element: <RequireRole roles={['SERVICE_ADVISOR', 'ADMIN']} />,
             children: [
               { path: '/customers', element: <CustomersPage /> },
+              { path: '/estimates/new', element: <NewEstimatePage /> },
               { path: '/customers/:id', element: <CustomerDetailPage /> },
             ],
           },

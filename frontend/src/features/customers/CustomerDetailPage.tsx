@@ -64,6 +64,11 @@ export function CustomerDetailPage() {
                     <Link to={`/appointments/new?customerId=${c.id}`}>Book a service</Link>
                   </Button>
                 )}
+                {advisor && (
+                  <Button asChild variant="outline">
+                    <Link to={`/estimates/new?customerId=${c.id}`}>New estimate</Link>
+                  </Button>
+                )}
               </>
             }
           />

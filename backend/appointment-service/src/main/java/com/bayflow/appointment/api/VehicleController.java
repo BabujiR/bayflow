@@ -1,5 +1,7 @@
 package com.bayflow.appointment.api;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
@@ -21,7 +23,12 @@ import com.bayflow.appointment.api.AppointmentDtos.CreateVehicleRequest;
 import com.bayflow.appointment.api.AppointmentDtos.PageResponse;
 import com.bayflow.appointment.api.AppointmentDtos.UpdateVehicleRequest;
 import com.bayflow.appointment.api.AppointmentDtos.VehicleResponse;
+import com.bayflow.appointment.application.ApiException;
 import com.bayflow.appointment.application.VehicleService;
+import com.bayflow.appointment.config.IntegrationProperties;
+import com.bayflow.appointment.integration.VinDecoder;
+import com.bayflow.appointment.integration.VinDecoder.DecodedVin;
+import com.bayflow.ops.RateLimitStore;
 import com.bayflow.security.CurrentUser;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,10 +41,36 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Vehicles")
 public class VehicleController {
 
-    private final VehicleService vehicles;
+    private static final Duration HOUR = Duration.ofHours(1);
 
-    public VehicleController(VehicleService vehicles) {
+    private final VehicleService vehicles;
+    private final VinDecoder vinDecoder;
+    private final RateLimitStore limits;
+    private final IntegrationProperties properties;
+    private final Clock clock;
+
+    public VehicleController(VehicleService vehicles, VinDecoder vinDecoder, RateLimitStore limits,
+            IntegrationProperties properties, Clock clock) {
         this.vehicles = vehicles;
+        this.vinDecoder = vinDecoder;
+        this.limits = limits;
+        this.properties = properties;
+        this.clock = clock;
+    }
+
+    @GetMapping("/decode")
+    @PreAuthorize("hasAnyRole('SERVICE_ADVISOR', 'ADMIN')")
+    @Operation(summary = "Decode a VIN: year, make, model, trim and engine (NHTSA vPIC)",
+            description = "404 vin-not-decoded when vPIC doesn't know it, 503 vin-decoder-unavailable when it "
+                    + "can't be reached (enter the details by hand), 429 past the hourly limit per user.")
+    public DecodedVin decode(@RequestParam String vin, Authentication auth) {
+        CurrentUser user = CurrentUser.from(auth);
+        int max = properties.getVinDecoder().getMaxPerHour();
+        if (limits.hit("vin-decode|" + user.subject(), clock.instant(), HOUR) > max) {
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "too-many-requests", "Too Many Requests",
+                    "That's a lot of VIN lookups for one hour. Enter the details by hand, or try again later.");
+        }
+        return vinDecoder.decode(vin);
     }
 
     @PostMapping

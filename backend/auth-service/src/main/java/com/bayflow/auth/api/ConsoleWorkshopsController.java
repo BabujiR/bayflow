@@ -52,8 +52,10 @@ public class ConsoleWorkshopsController {
     private static final Logger log = LoggerFactory.getLogger(ConsoleWorkshopsController.class);
     private static final int MAX_PAGE_SIZE = 100;
 
-    /** {@code invitedEmail}: the setup invite it came from (null for test and older workshops). */
-    /** Own OpenAPI name: another API type is also called WorkshopResponse. */
+    /**
+     * {@code invitedEmail}: the setup invite it came from (null for test and older workshops). Own
+     * OpenAPI name: another API type is also called WorkshopResponse.
+     */
     @Schema(name = "ConsoleWorkshopResponse")
     public record WorkshopResponse(UUID id, String slug, String name, Tenant.Status status, boolean test,
             Instant createdAt, int staff, int customers, int locations, String ownerUsername, String ownerEmail,

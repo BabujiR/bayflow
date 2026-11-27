@@ -82,12 +82,23 @@ public class JobCardController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('CUSTOMER', 'SERVICE_ADVISOR', 'MECHANIC', 'ADMIN')")
-    @Operation(summary = "List job cards, newest first (customers see their own)")
+    @Operation(summary = "List job cards, newest first (customers see their own)",
+            description = "estimates=true: only quick estimates whose car hasn't come in; false: only cars at "
+                    + "the shop. Mechanics only ever see cars at the shop.")
     public PageResponse<JobCardSummary> list(@RequestParam(required = false) JobCardStatus status,
+            @RequestParam(required = false) Boolean estimates,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
             Authentication auth) {
-        return PageResponse.from(jobCards.list(CurrentUser.from(auth), status, Paging.page(page), Paging.size(size)),
-                JobCardSummary::from);
+        return PageResponse.from(jobCards.list(CurrentUser.from(auth), status, estimates, Paging.page(page),
+                Paging.size(size)), JobCardSummary::from);
+    }
+
+    @PostMapping("/{id}/close-estimate")
+    @PreAuthorize("hasAnyRole('SERVICE_ADVISOR', 'ADMIN')")
+    @Operation(summary = "Close a quick estimate the customer won't go ahead with (declined; before the visit)",
+            description = "Also cancel its ESTIMATE appointment. Repeats are harmless.")
+    public JobCardResponse closeEstimate(@PathVariable UUID id, Authentication auth) {
+        return response(jobCards.closeEstimate(CurrentUser.from(auth), id));
     }
 
     @GetMapping("/{id}")

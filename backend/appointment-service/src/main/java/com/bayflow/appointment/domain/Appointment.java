@@ -158,6 +158,26 @@ public class Appointment {
         return appointment;
     }
 
+    /**
+     * A quick estimate made at the desk or on the phone: the visit exists (so its job card can) but
+     * has no time yet; {@code notes} is what the customer asked for.
+     */
+    public static Appointment estimate(Customer customer, Vehicle vehicle, UUID locationId, int durationMinutes,
+            String notes, Instant now) {
+        Appointment appointment = book(customer, vehicle, locationId, now, durationMinutes, ServiceType.REPAIR,
+                notes, now);
+        appointment.status = AppointmentStatus.ESTIMATE;
+        return appointment;
+    }
+
+    /** The customer goes ahead with the estimate: the visit is booked for a time. */
+    public void schedule(Instant scheduledAt, int durationMinutes, Instant now) {
+        require(AppointmentAction.SCHEDULE);
+        setSlot(scheduledAt, durationMinutes, now);
+        status = AppointmentStatus.BOOKED;
+        updatedAt = now;
+    }
+
     /** Marks a booking made on the public booking page, keeping the service as it was offered. */
     public void bookedOnline(String serviceName, String priceKind, java.math.BigDecimal price, Instant smsConsentAt) {
         this.bookedOnline = true;
@@ -244,8 +264,13 @@ public class Appointment {
         setSlot(newScheduledAt, newDurationMinutes, now);
     }
 
+    /** A job card is opened at check-in, or straight away for a quick estimate. */
+    public boolean canLinkJobCard() {
+        return status == AppointmentStatus.CHECKED_IN || status == AppointmentStatus.ESTIMATE;
+    }
+
     public void linkJobCard(UUID jobCardId, Instant now) {
-        if (status != AppointmentStatus.CHECKED_IN) {
+        if (!canLinkJobCard()) {
             throw new InvalidTransitionException(ENTITY, status, "link a job card to");
         }
         this.jobCardId = jobCardId;

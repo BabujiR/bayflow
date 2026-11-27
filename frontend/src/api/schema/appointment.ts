@@ -259,6 +259,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/appointments/{id}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** ESTIMATE → BOOKED: the customer goes ahead; book the visit for a time */
+        post: operations["schedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/appointments/{id}/no-show": {
         parameters: {
             query?: never;
@@ -322,7 +339,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** BOOKED/CONFIRMED → CANCELLED */
+        /** ESTIMATE/BOOKED/CONFIRMED → CANCELLED */
         post: operations["cancel_1"];
         delete?: never;
         options?: never;
@@ -347,6 +364,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/appointments/estimates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a quick estimate (desk or phone): a visit without a time yet, with its job card
+         * @description The job card opens straight away (jobCardId; empty if workshop-service is down, then it follows on retry), with the request as its first finding. Listed with status=ESTIMATE.
+         */
+        post: operations["createEstimate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/appointments/{id}/reschedule": {
         parameters: {
             query?: never;
@@ -362,6 +399,26 @@ export interface paths {
         head?: never;
         /** Move a BOOKED/CONFIRMED appointment to a new time (status unchanged) */
         patch: operations["reschedule_1"];
+        trace?: never;
+    };
+    "/api/v1/vehicles/decode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Decode a VIN: year, make, model, trim and engine (NHTSA vPIC)
+         * @description 404 vin-not-decoded when vPIC doesn't know it, 503 vin-decoder-unavailable when it can't be reached (enter the details by hand), 429 past the hourly limit per user.
+         */
+        get: operations["decode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/internal/tenants/{tenantId}/locations/{locationId}/upcoming": {
@@ -407,6 +464,26 @@ export interface paths {
         };
         /** A customer (customers can only read their own) */
         get: operations["get_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/booking/vin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Year, make and model from a VIN, to fill in the booking form (NHTSA vPIC)
+         * @description Send the X-Bayflow-Client header like the web app. Limited per address; 404 vin-not-decoded and 503 vin-decoder-unavailable mean the details are typed by hand.
+         */
+        get: operations["vin"];
         put?: never;
         post?: never;
         delete?: never;
@@ -478,6 +555,8 @@ export interface components {
             year: number;
             /** Format: int32 */
             mileage: number;
+            trim?: string;
+            engine?: string;
         };
         VehicleResponse: {
             /** Format: uuid */
@@ -492,6 +571,8 @@ export interface components {
             year?: number;
             /** Format: int32 */
             mileage?: number;
+            trim?: string;
+            engine?: string;
             /** Format: date-time */
             createdAt?: string;
         };
@@ -595,6 +676,8 @@ export interface components {
             year: number;
             /** Format: int32 */
             mileage: number;
+            trim?: string;
+            engine?: string;
         };
         CreateCustomerRequest: {
             /** Format: uuid */
@@ -612,7 +695,7 @@ export interface components {
         };
         ManagedBooking: {
             /** @enum {string} */
-            status?: "BOOKED" | "CONFIRMED" | "ARRIVED" | "CHECKED_IN" | "CANCELLED" | "NO_SHOW";
+            status?: "ESTIMATE" | "BOOKED" | "CONFIRMED" | "ARRIVED" | "CHECKED_IN" | "CANCELLED" | "NO_SHOW";
             /** Format: date-time */
             startsAt?: string;
             timeZone?: string;
@@ -706,7 +789,7 @@ export interface components {
             serviceType?: "ROUTINE_SERVICE" | "OIL_CHANGE" | "INSPECTION" | "BRAKES" | "TYRES" | "DIAGNOSTIC" | "REPAIR" | "OTHER";
             notes?: string;
             /** @enum {string} */
-            status?: "BOOKED" | "CONFIRMED" | "ARRIVED" | "CHECKED_IN" | "CANCELLED" | "NO_SHOW";
+            status?: "ESTIMATE" | "BOOKED" | "CONFIRMED" | "ARRIVED" | "CHECKED_IN" | "CANCELLED" | "NO_SHOW";
             /** Format: int32 */
             arrivalMileage?: number;
             /** Format: date-time */
@@ -740,11 +823,24 @@ export interface components {
             /** Format: int32 */
             year?: number;
         };
+        ScheduleEstimateRequest: {
+            /** Format: date-time */
+            scheduledAt: string;
+            /** Format: int32 */
+            durationMinutes?: number;
+        };
         CheckInRequest: {
             /** Format: int32 */
             mileage: number;
             vin?: string;
             registration?: string;
+        };
+        CreateEstimateRequest: {
+            /** Format: uuid */
+            vehicleId: string;
+            /** Format: uuid */
+            locationId?: string;
+            request: string;
         };
         RescheduleRequest: {
             /** Format: date-time */
@@ -762,6 +858,17 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+        };
+        DecodedVin: {
+            vin?: string;
+            /** Format: int32 */
+            year?: number;
+            make?: string;
+            model?: string;
+            trim?: string;
+            engine?: string;
+            bodyClass?: string;
+            warnings?: string[];
         };
         Upcoming: {
             /** Format: int64 */
@@ -788,6 +895,13 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+        };
+        PublicVin: {
+            /** Format: int32 */
+            year?: number;
+            make?: string;
+            model?: string;
+            warnings?: string[];
         };
         Options: {
             shopName?: string;
@@ -1320,7 +1434,7 @@ export interface operations {
         parameters: {
             query?: {
                 date?: string;
-                status?: "BOOKED" | "CONFIRMED" | "ARRIVED" | "CHECKED_IN" | "CANCELLED" | "NO_SHOW";
+                status?: "ESTIMATE" | "BOOKED" | "CONFIRMED" | "ARRIVED" | "CHECKED_IN" | "CANCELLED" | "NO_SHOW";
                 vehicleId?: string;
                 customerId?: string;
                 locationId?: string;
@@ -1360,6 +1474,32 @@ export interface operations {
         responses: {
             /** @description Created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"];
+                };
+            };
+        };
+    };
+    schedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleEstimateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1483,6 +1623,30 @@ export interface operations {
             };
         };
     };
+    createEstimate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEstimateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"];
+                };
+            };
+        };
+    };
     reschedule_1: {
         parameters: {
             query?: never;
@@ -1505,6 +1669,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AppointmentResponse"];
+                };
+            };
+        };
+    };
+    decode: {
+        parameters: {
+            query: {
+                vin: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DecodedVin"];
                 };
             };
         };
@@ -1573,6 +1759,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CustomerResponse"];
+                };
+            };
+        };
+    };
+    vin: {
+        parameters: {
+            query: {
+                vin: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicVin"];
                 };
             };
         };

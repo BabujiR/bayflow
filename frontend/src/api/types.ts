@@ -108,6 +108,7 @@ export type CreateStaffRequest = Omit<A['CreateStaffRequest'], 'role' | 'roles'>
 // ---- appointments, customers, vehicles ------------------------------------------------
 
 export type ServiceType = P['BookAppointmentRequest']['serviceType'];
+/** ESTIMATE: a quick estimate whose visit has no time yet. */
 export type AppointmentStatus = NonNullable<P['AppointmentResponse']['status']>;
 
 export type Customer = Present<P['CustomerResponse'], 'id' | 'name' | 'email' | 'createdAt'>;
@@ -145,6 +146,7 @@ export type Appointment = Present<
 
 export type ProfileRequest = P['ProfileRequest'];
 export type CreateCustomerRequest = P['CreateCustomerRequest'];
+/** `trim`, `engine`: optional; on an update, leaving one out keeps it and '' clears it. */
 export type CreateVehicleRequest = P['CreateVehicleRequest'];
 export type UpdateVehicleRequest = P['UpdateVehicleRequest'];
 /** `locationId`: optional while the organization has one location. */
@@ -189,7 +191,7 @@ export type Labour = Present<
 >;
 
 export type JobCard = Present<
-  Omit<W['JobCardResponse'], 'findings' | 'recommendations' | 'workLogs' | 'parts' | 'labour'>,
+  Omit<W['JobCardResponse'], 'findings' | 'recommendations' | 'workLogs' | 'parts' | 'labour' | 'arrivedAt'>,
   | 'id'
   | 'appointmentId'
   | 'locationId'
@@ -211,10 +213,12 @@ export type JobCard = Present<
   workLogs: WorkLog[];
   parts: Part[];
   labour: Labour[];
+  /** When the car came in; empty for a quick estimate before its visit. */
+  arrivedAt?: string | null;
 };
 
 export type JobCardSummary = Present<
-  W['JobCardSummary'],
+  Omit<W['JobCardSummary'], 'arrivedAt'>,
   | 'id'
   | 'appointmentId'
   | 'vehicleId'
@@ -225,7 +229,10 @@ export type JobCardSummary = Present<
   | 'status'
   | 'createdAt'
   | 'updatedAt'
->;
+> & {
+  /** Empty for a quick estimate before its visit. */
+  arrivedAt?: string | null;
+};
 
 export type ServiceRecord = W['ServiceRecord'];
 
@@ -1318,3 +1325,24 @@ export interface EstimateDecisionRequest {
   /** The drawn signature, as a PNG data URL. */
   signature: string;
 }
+
+// ---- VIN decode and quick estimates -------------------------------------------------------
+
+/** A VIN decoded by NHTSA vPIC. `warnings`: e.g. a check digit that doesn't match. */
+export interface DecodedVin {
+  vin: string;
+  year: number | null;
+  make: string | null;
+  model: string | null;
+  trim: string | null;
+  engine: string | null;
+  bodyClass: string | null;
+  warnings: string[];
+}
+
+/** A quick estimate: the car (with VIN and plate) and what the customer asked for. */
+export type CreateEstimateRequest = P['CreateEstimateRequest'];
+export type ScheduleEstimateRequest = P['ScheduleEstimateRequest'];
+
+/** What the public booking page fills in from a VIN. */
+export type PublicVin = P['PublicVin'];

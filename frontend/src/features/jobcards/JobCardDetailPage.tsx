@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useCannedJobs } from '@/features/cannedjobs/canned-jobs';
 import { CannedWorkDialog } from '@/features/cannedjobs/CannedWorkDialog';
 import { EstimateLinkCard } from '@/features/estimates/EstimateLinkCard';
+import { EstimateVisitCard } from '@/features/estimates/EstimateVisitCard';
 import { JobCardInvoiceAction } from '@/features/invoices/JobCardInvoice';
 import { useLocationLookup } from '@/features/locations/use-locations';
 import { formatDateTime, formatMileage, formatMoney } from '@/lib/format';
@@ -47,7 +48,10 @@ function JobCardView({ card }: { card: JobCard }) {
   const advisor = hasRole('SERVICE_ADVISOR');
   const mechanic = hasRole('MECHANIC');
   const customer = hasRole('CUSTOMER');
+  const admin = hasRole('ADMIN');
   const { status } = card;
+  // A quick estimate before its visit: priced and approved now, worked on after check-in.
+  const awaitingVisit = card.arrivedAt === null;
   const inspecting = status === 'OPEN' || status === 'INSPECTED';
   const approved = card.recommendations.filter((r) => r.approvalStatus === 'APPROVED');
   const workPhase = ['APPROVED', 'PARTIALLY_APPROVED', 'IN_PROGRESS', 'COMPLETED'].includes(status);
@@ -99,7 +103,8 @@ function JobCardView({ card }: { card: JobCard }) {
     'Job completed and added to the service history',
   );
 
-  const canComplete = (advisor || mechanic) && (status === 'IN_PROGRESS' || status === 'DECLINED');
+  const canComplete =
+    !awaitingVisit && (advisor || mechanic) && (status === 'IN_PROGRESS' || status === 'DECLINED');
   // Canned jobs to start a recommendation from, while the advisor can still recommend.
   const cannedJobs = useCannedJobs(card.locationId, advisor && inspecting);
   // Maintenance due on this vehicle (by date, or by the odometer at check-in).
@@ -119,10 +124,10 @@ function JobCardView({ card }: { card: JobCard }) {
             Job card · {card.registration} <JobCardStatusBadge status={status} />
           </span>
         }
-        description={`${locations.hasSeveral ? `${locations.nameOf(card.locationId)} · ` : ''}${card.customerName} · VIN ${card.vin} · ${formatMileage(card.mileage)} at check-in`}
+        description={`${locations.hasSeveral ? `${locations.nameOf(card.locationId)} · ` : ''}${card.customerName} · VIN ${card.vin} · ${formatMileage(card.mileage)} ${awaitingVisit ? 'on file' : 'at check-in'}`}
         actions={
           <>
-            {mechanic && (status === 'APPROVED' || status === 'PARTIALLY_APPROVED') && (
+            {mechanic && !awaitingVisit && (status === 'APPROVED' || status === 'PARTIALLY_APPROVED') && (
               <Button disabled={start.isPending} onClick={() => start.mutate(undefined)}>
                 Start work
               </Button>
@@ -141,6 +146,7 @@ function JobCardView({ card }: { card: JobCard }) {
           </>
         }
       />
+      {awaitingVisit && (advisor || admin) && <EstimateVisitCard card={card} zone={zone} />}
 
       <Card>
         <CardContent className="pt-6">

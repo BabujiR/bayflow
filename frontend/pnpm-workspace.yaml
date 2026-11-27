@@ -1,0 +1,6 @@
+# pnpm settings (pnpm 10.26+ reads them here; pnpm 11+ no longer reads the "pnpm" field of package.json).
+# No `packages:` list: this is a single project, not a workspace.
+
+# Dependencies whose install scripts may run (msw copies its service worker for the dev mocks).
+allowBuilds:
+  msw: true

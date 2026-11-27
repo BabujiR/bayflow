@@ -787,6 +787,7 @@
             "schema": {
               "type": "string",
               "enum": [
+                "ESTIMATE",
                 "BOOKED",
                 "CONFIRMED",
                 "ARRIVED",
@@ -889,6 +890,53 @@
         "responses": {
           "201": {
             "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/appointments/{id}/schedule": {
+      "post": {
+        "tags": [
+          "Appointments"
+        ],
+        "summary": "ESTIMATE → BOOKED: the customer goes ahead; book the visit for a time",
+        "operationId": "schedule",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleEstimateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
@@ -1032,7 +1080,7 @@
         "tags": [
           "Appointments"
         ],
-        "summary": "BOOKED/CONFIRMED → CANCELLED",
+        "summary": "ESTIMATE/BOOKED/CONFIRMED → CANCELLED",
         "operationId": "cancel_1",
         "parameters": [
           {
@@ -1101,6 +1149,43 @@
         ]
       }
     },
+    "/api/v1/appointments/estimates": {
+      "post": {
+        "tags": [
+          "Appointments"
+        ],
+        "summary": "Start a quick estimate (desk or phone): a visit without a time yet, with its job card",
+        "description": "The job card opens straight away (jobCardId; empty if workshop-service is down, then it follows on retry), with the request as its first finding. Listed with status=ESTIMATE.",
+        "operationId": "createEstimate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEstimateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/appointments/{id}/reschedule": {
       "patch": {
         "tags": [
@@ -1136,6 +1221,43 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/AppointmentResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/vehicles/decode": {
+      "get": {
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "Decode a VIN: year, make, model, trim and engine (NHTSA vPIC)",
+        "description": "404 vin-not-decoded when vPIC doesn't know it, 503 vin-decoder-unavailable when it can't be reached (enter the details by hand), 429 past the hourly limit per user.",
+        "operationId": "decode",
+        "parameters": [
+          {
+            "name": "vin",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecodedVin"
                 }
               }
             }
@@ -1265,6 +1387,38 @@
             "bearerAuth": []
           }
         ]
+      }
+    },
+    "/api/v1/booking/vin": {
+      "get": {
+        "tags": [
+          "Online booking (public)"
+        ],
+        "summary": "Year, make and model from a VIN, to fill in the booking form (NHTSA vPIC)",
+        "description": "Send the X-Bayflow-Client header like the web app. Limited per address; 404 vin-not-decoded and 503 vin-decoder-unavailable mean the details are typed by hand.",
+        "operationId": "vin",
+        "parameters": [
+          {
+            "name": "vin",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicVin"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/booking/options": {
@@ -1406,6 +1560,16 @@
             "type": "integer",
             "format": "int32",
             "minimum": 0
+          },
+          "trim": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 0
+          },
+          "engine": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 0
           }
         },
         "required": [
@@ -1446,6 +1610,12 @@
           "mileage": {
             "type": "integer",
             "format": "int32"
+          },
+          "trim": {
+            "type": "string"
+          },
+          "engine": {
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -1743,6 +1913,16 @@
             "type": "integer",
             "format": "int32",
             "minimum": 0
+          },
+          "trim": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 0
+          },
+          "engine": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 0
           }
         },
         "required": [
@@ -1814,6 +1994,7 @@
           "status": {
             "type": "string",
             "enum": [
+              "ESTIMATE",
               "BOOKED",
               "CONFIRMED",
               "ARRIVED",
@@ -2128,6 +2309,7 @@
           "status": {
             "type": "string",
             "enum": [
+              "ESTIMATE",
               "BOOKED",
               "CONFIRMED",
               "ARRIVED",
@@ -2211,6 +2393,24 @@
           }
         }
       },
+      "ScheduleEstimateRequest": {
+        "type": "object",
+        "properties": {
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 480,
+            "minimum": 15
+          }
+        },
+        "required": [
+          "scheduledAt"
+        ]
+      },
       "CheckInRequest": {
         "type": "object",
         "properties": {
@@ -2232,6 +2432,28 @@
         },
         "required": [
           "mileage"
+        ]
+      },
+      "CreateEstimateRequest": {
+        "type": "object",
+        "properties": {
+          "vehicleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "request": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "request",
+          "vehicleId"
         ]
       },
       "RescheduleRequest": {
@@ -2276,6 +2498,39 @@
           "totalPages": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "DecodedVin": {
+        "type": "object",
+        "properties": {
+          "vin": {
+            "type": "string"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "make": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "trim": {
+            "type": "string"
+          },
+          "engine": {
+            "type": "string"
+          },
+          "bodyClass": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -2340,6 +2595,27 @@
           "totalPages": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "PublicVin": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "make": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
