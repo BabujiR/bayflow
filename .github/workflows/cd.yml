@@ -86,7 +86,9 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.image }}
 
       - name: Scan the image for vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        # v0.36.0 is an immutable release (its tag cannot be moved). Tags up to 0.34.2 were
+        # hijacked in the March 2026 Trivy supply-chain attack and have been removed.
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: scan/${{ matrix.image }}:${{ github.event.workflow_run.head_sha }}
           severity: CRITICAL,HIGH

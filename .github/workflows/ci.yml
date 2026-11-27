@@ -53,7 +53,9 @@ jobs:
       - uses: actions/checkout@v7
       # Maven and pnpm manifests: fails on a fixable HIGH or CRITICAL vulnerability.
       - name: Scan dependencies
-        uses: aquasecurity/trivy-action@0.28.0
+        # v0.36.0 is an immutable release (its tag cannot be moved). Tags up to 0.34.2 were
+        # hijacked in the March 2026 Trivy supply-chain attack and have been removed.
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
