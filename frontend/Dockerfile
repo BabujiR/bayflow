@@ -20,13 +20,16 @@ RUN pnpm build
 FROM nginx:1.30-alpine
 # Security fixes for Alpine packages released since the base image was built (CD passes a new
 # APK_REFRESH on every run, so the build cache never keeps an old package set). Then the non-root
-# setup: no "user" directive (we start as 101), the pid file and temp files where 101 can write,
-# and /etc/nginx writable for the entrypoint, which writes conf.d from /etc/nginx/templates.
+# setup: no "user" directive (we start as 101), the pid file and temp files (conf.d, inside http)
+# where 101 can write, and /etc/nginx writable for the entrypoint, which writes conf.d from
+# /etc/nginx/templates.
 ARG APK_REFRESH=0
 RUN echo "packages refreshed: ${APK_REFRESH}" && apk upgrade --no-cache \
     && sed -i '/^user /d' /etc/nginx/nginx.conf \
     && sed -i 's,/var/run/nginx.pid,/tmp/nginx.pid,; s,/run/nginx.pid,/tmp/nginx.pid,' /etc/nginx/nginx.conf \
-    && sed -i '/^http {/a \    client_body_temp_path /tmp/client_temp;\n    proxy_temp_path /tmp/proxy_temp;\n    fastcgi_temp_path /tmp/fastcgi_temp;\n    uwsgi_temp_path /tmp/uwsgi_temp;\n    scgi_temp_path /tmp/scgi_temp;' /etc/nginx/nginx.conf \
+    && printf '%s\n' 'client_body_temp_path /tmp/client_temp;' 'proxy_temp_path /tmp/proxy_temp;' \
+        'fastcgi_temp_path /tmp/fastcgi_temp;' 'uwsgi_temp_path /tmp/uwsgi_temp;' 'scgi_temp_path /tmp/scgi_temp;' \
+        > /etc/nginx/conf.d/00-temp-paths.conf \
     && chown -R 101:0 /etc/nginx /var/cache/nginx \
     && chmod -R g+w /etc/nginx /var/cache/nginx
 USER 101
