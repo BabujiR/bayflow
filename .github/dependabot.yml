@@ -45,6 +45,10 @@ updates:
       # The web image builds with Node 22 LTS; move to the next LTS deliberately.
       - dependency-name: "node"
         update-types: ["version-update:semver-major"]
+      # The web image stays on nginx's stable branch (1.30, even minor); patch releases arrive
+      # with every CD build (pull: true). Odd minors (1.31) are mainline: move deliberately.
+      - dependency-name: "nginx"
+        update-types: ["version-update:semver-minor"]
 
   - package-ecosystem: npm
     directory: /frontend
