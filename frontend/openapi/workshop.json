@@ -841,6 +841,7 @@
           "Job cards"
         ],
         "summary": "INSPECTED → AWAITING_APPROVAL (or DECLINED when nothing is recommended)",
+        "description": "Also e-mails the customer a link to approve or decline and sign, when they have an e-mail address (see /estimate-link).",
         "operationId": "submit",
         "parameters": [
           {
@@ -1247,6 +1248,88 @@
         ]
       }
     },
+    "/api/v1/job-cards/{id}/estimate-link": {
+      "get": {
+        "tags": [
+          "Job cards"
+        ],
+        "summary": "The approval link e-mailed to the customer: sent, viewed, reminded, signed (204: none)",
+        "operationId": "status",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstimateLinkStatus"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Job cards"
+        ],
+        "summary": "E-mail the customer a link to approve or decline and sign (replaces an earlier link)",
+        "description": "Only while the estimate awaits approval. 400 no-email-address when the customer has none and no 'to' is given; 503 when e-mail is not set up.",
+        "operationId": "send",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendEstimateLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstimateLinkStatus"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/job-cards/{id}/complete": {
       "post": {
         "tags": [
@@ -1338,7 +1421,7 @@
         ],
         "summary": "Send an issued invoice to QuickBooks, with the payments not sent yet (and its void)",
         "description": "A QuickBooks error is kept on the invoice and returned in quickbooks.error.",
-        "operationId": "send",
+        "operationId": "send_1",
         "parameters": [
           {
             "name": "id",
@@ -1517,6 +1600,68 @@
             "bearerAuth": []
           }
         ]
+      }
+    },
+    "/api/v1/estimate-approval/view": {
+      "post": {
+        "tags": [
+          "Estimate approval (public, by link)"
+        ],
+        "summary": "The estimate a link names (404 unknown, 410 replaced or expired)",
+        "operationId": "view",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EstimateTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerEstimate"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/estimate-approval/decide": {
+      "post": {
+        "tags": [
+          "Estimate approval (public, by link)"
+        ],
+        "summary": "Approve or decline every pending item and sign (409 estimate-decided when already answered)",
+        "operationId": "decide",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EstimateDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerEstimate"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/canned-jobs": {
@@ -1877,7 +2022,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/TaxResponse"
+                  "$ref": "#/components/schemas/TaxReportResponse"
                 }
               }
             }
@@ -2232,7 +2377,7 @@
           "QuickBooks"
         ],
         "summary": "Whether QuickBooks is set up on the server, connected and ready to take invoices",
-        "operationId": "status",
+        "operationId": "status_1",
         "responses": {
           "200": {
             "description": "OK",
@@ -2388,6 +2533,44 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/JobCardResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/job-cards/{id}/estimate-link/signature": {
+      "get": {
+        "tags": [
+          "Job cards"
+        ],
+        "summary": "The customer's signature, once they signed the estimate online (404 before)",
+        "operationId": "signature",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
                 }
               }
             }
@@ -3241,54 +3424,7 @@
           }
         }
       },
-      "CannedJobRequest": {
-        "type": "object",
-        "properties": {
-          "locationId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string",
-            "maxLength": 120,
-            "minLength": 0
-          },
-          "category": {
-            "type": "string",
-            "maxLength": 60,
-            "minLength": 0
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 1000,
-            "minLength": 0
-          },
-          "labourHours": {
-            "type": "number",
-            "maximum": 999.99,
-            "minimum": 0
-          },
-          "parts": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PartRequest"
-            },
-            "maxItems": 50,
-            "minItems": 0
-          },
-          "version": {
-            "type": "integer",
-            "format": "int64"
-          }
-        },
-        "required": [
-          "description",
-          "labourHours",
-          "name",
-          "parts"
-        ]
-      },
-      "PartRequest": {
+      "CannedJobPartRequest": {
         "type": "object",
         "properties": {
           "partNumber": {
@@ -3320,6 +3456,78 @@
           "unitPrice"
         ]
       },
+      "CannedJobRequest": {
+        "type": "object",
+        "properties": {
+          "locationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 0
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 0
+          },
+          "labourHours": {
+            "type": "number",
+            "maximum": 999.99,
+            "minimum": 0
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CannedJobPartRequest"
+            },
+            "maxItems": 50,
+            "minItems": 0
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "description",
+          "labourHours",
+          "name",
+          "parts"
+        ]
+      },
+      "CannedJobPartResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "partNumber": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unitPrice": {
+            "type": "number"
+          },
+          "lineTotal": {
+            "type": "number"
+          }
+        }
+      },
       "CannedJobResponse": {
         "type": "object",
         "properties": {
@@ -3346,7 +3554,7 @@
           "parts": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PartResponse"
+              "$ref": "#/components/schemas/CannedJobPartResponse"
             }
           },
           "partsTotal": {
@@ -3362,31 +3570,6 @@
           "version": {
             "type": "integer",
             "format": "int64"
-          }
-        }
-      },
-      "PartResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "partNumber": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "quantity": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "unitPrice": {
-            "type": "number"
-          },
-          "lineTotal": {
-            "type": "number"
           }
         }
       },
@@ -3657,6 +3840,38 @@
           }
         }
       },
+      "PartResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recommendationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "partNumber": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unitPrice": {
+            "type": "number"
+          },
+          "lineTotal": {
+            "type": "number"
+          },
+          "recordedBy": {
+            "type": "string"
+          }
+        }
+      },
       "RecommendationResponse": {
         "type": "object",
         "properties": {
@@ -3821,6 +4036,42 @@
           "parts"
         ]
       },
+      "PartRequest": {
+        "type": "object",
+        "properties": {
+          "recommendationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "partNumber": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 0
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 1000,
+            "minimum": 1
+          },
+          "unitPrice": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "partNumber",
+          "quantity",
+          "recommendationId",
+          "unitPrice"
+        ]
+      },
       "LabourRequest": {
         "type": "object",
         "properties": {
@@ -3865,6 +4116,65 @@
           "description",
           "severity"
         ]
+      },
+      "SendEstimateLinkRequest": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "minLength": 0
+          }
+        }
+      },
+      "EstimateLinkStatus": {
+        "type": "object",
+        "properties": {
+          "sentTo": {
+            "type": "string"
+          },
+          "sentBy": {
+            "type": "string"
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "firstViewedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "remindersSent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextReminderAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "signerName": {
+            "type": "string"
+          },
+          "signed": {
+            "type": "boolean"
+          },
+          "open": {
+            "type": "boolean"
+          }
+        }
       },
       "VoidRequest": {
         "type": "object",
@@ -3934,6 +4244,174 @@
             "minLength": 0
           }
         }
+      },
+      "EstimateTokenRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "CustomerEstimate": {
+        "type": "object",
+        "properties": {
+          "shopName": {
+            "type": "string"
+          },
+          "locationName": {
+            "type": "string"
+          },
+          "shopPhone": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "vehicle": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "INSPECTED",
+              "AWAITING_APPROVAL",
+              "APPROVED",
+              "PARTIALLY_APPROVED",
+              "DECLINED",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "canDecide": {
+            "type": "boolean"
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerEstimateFinding"
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerEstimateItem"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "signerName": {
+            "type": "string"
+          }
+        }
+      },
+      "CustomerEstimateFinding": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          }
+        }
+      },
+      "CustomerEstimateItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "DECLINED"
+            ]
+          }
+        }
+      },
+      "EstimateDecisionRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 0
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemDecision"
+            },
+            "maxItems": 100,
+            "minItems": 0
+          },
+          "signerName": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 0
+          },
+          "signature": {
+            "type": "string",
+            "maxLength": 300000,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "decisions",
+          "signature",
+          "signerName",
+          "token"
+        ]
+      },
+      "ItemDecision": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "approve": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "approve",
+          "itemId"
+        ]
       },
       "Finding": {
         "type": "object",
@@ -4309,6 +4787,49 @@
             "format": "int64"
           },
           "hoursOnCompleted": {
+            "type": "number"
+          }
+        }
+      },
+      "TaxReportResponse": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaxRow"
+            }
+          },
+          "totalTax": {
+            "type": "number"
+          }
+        }
+      },
+      "TaxRow": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "number"
+          },
+          "invoices": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "taxableAmount": {
+            "type": "number"
+          },
+          "tax": {
             "type": "number"
           }
         }

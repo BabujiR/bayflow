@@ -616,7 +616,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RescheduleRequest"
+                "$ref": "#/components/schemas/ManageRescheduleRequest"
               }
             }
           },
@@ -1887,7 +1887,7 @@
           }
         }
       },
-      "RescheduleRequest": {
+      "ManageRescheduleRequest": {
         "type": "object",
         "properties": {
           "token": {
@@ -2232,6 +2232,24 @@
         },
         "required": [
           "mileage"
+        ]
+      },
+      "RescheduleRequest": {
+        "type": "object",
+        "properties": {
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 480,
+            "minimum": 15
+          }
+        },
+        "required": [
+          "scheduledAt"
         ]
       },
       "PageResponseVehicleResponse": {

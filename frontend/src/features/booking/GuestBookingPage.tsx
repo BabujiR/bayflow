@@ -449,11 +449,7 @@ function BookingFlow({ options }: { options: PublicBookingOptions }) {
                     !(
                       book.error instanceof ApiError &&
                       ['slot-taken', 'double-booking'].includes(book.error.code)
-                    ) && (
-                      <Alert>
-                        {errorMessage(book.error)}
-                      </Alert>
-                    )}
+                    ) && <Alert>{errorMessage(book.error)}</Alert>}
                 </>
               )}
             </div>

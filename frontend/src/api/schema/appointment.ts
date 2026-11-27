@@ -636,7 +636,7 @@ export interface components {
             cancelledByCustomer?: boolean;
             hasAccount?: boolean;
         };
-        RescheduleRequest: {
+        ManageRescheduleRequest: {
             token: string;
             /** Format: date-time */
             startsAt: string;
@@ -745,6 +745,12 @@ export interface components {
             mileage: number;
             vin?: string;
             registration?: string;
+        };
+        RescheduleRequest: {
+            /** Format: date-time */
+            scheduledAt: string;
+            /** Format: int32 */
+            durationMinutes?: number;
         };
         PageResponseVehicleResponse: {
             content?: components["schemas"]["VehicleResponse"][];
@@ -1203,7 +1209,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RescheduleRequest"];
+                "application/json": components["schemas"]["ManageRescheduleRequest"];
             };
         };
         responses: {

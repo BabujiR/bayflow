@@ -258,7 +258,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** INSPECTED → AWAITING_APPROVAL (or DECLINED when nothing is recommended) */
+        /**
+         * INSPECTED → AWAITING_APPROVAL (or DECLINED when nothing is recommended)
+         * @description Also e-mails the customer a link to approve or decline and sign, when they have an e-mail address (see /estimate-link).
+         */
         post: operations["submit"];
         delete?: never;
         options?: never;
@@ -408,6 +411,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/job-cards/{id}/estimate-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The approval link e-mailed to the customer: sent, viewed, reminded, signed (204: none) */
+        get: operations["status"];
+        put?: never;
+        /**
+         * E-mail the customer a link to approve or decline and sign (replaces an earlier link)
+         * @description Only while the estimate awaits approval. 400 no-email-address when the customer has none and no 'to' is given; 503 when e-mail is not set up.
+         */
+        post: operations["send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/job-cards/{id}/complete": {
         parameters: {
             query?: never;
@@ -455,7 +479,7 @@ export interface paths {
          * Send an issued invoice to QuickBooks, with the payments not sent yet (and its void)
          * @description A QuickBooks error is kept on the invoice and returned in quickbooks.error.
          */
-        post: operations["send"];
+        post: operations["send_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -513,6 +537,40 @@ export interface paths {
          * @description The whole invoice in the e-mail body, with a link to view it online when the customer has an account. to: blank = the customer's address. 503 when e-mail is not set up.
          */
         post: operations["email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/estimate-approval/view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The estimate a link names (404 unknown, 410 replaced or expired) */
+        post: operations["view"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/estimate-approval/decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve or decline every pending item and sign (409 estimate-decided when already answered) */
+        post: operations["decide"];
         delete?: never;
         options?: never;
         head?: never;
@@ -775,7 +833,7 @@ export interface paths {
             cookie?: never;
         };
         /** Whether QuickBooks is set up on the server, connected and ready to take invoices */
-        get: operations["status"];
+        get: operations["status_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -844,6 +902,23 @@ export interface paths {
         };
         /** A job card with findings, recommendations and estimates */
         get: operations["get_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/job-cards/{id}/estimate-link/signature": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The customer's signature, once they signed the estimate online (404 before) */
+        get: operations["signature"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1136,6 +1211,13 @@ export interface components {
             rate?: number;
             tax?: number;
         };
+        CannedJobPartRequest: {
+            partNumber: string;
+            name: string;
+            /** Format: int32 */
+            quantity: number;
+            unitPrice: number;
+        };
         CannedJobRequest: {
             /** Format: uuid */
             locationId?: string;
@@ -1143,16 +1225,19 @@ export interface components {
             category?: string;
             description: string;
             labourHours: number;
-            parts: components["schemas"]["PartRequest"][];
+            parts: components["schemas"]["CannedJobPartRequest"][];
             /** Format: int64 */
             version?: number;
         };
-        PartRequest: {
-            partNumber: string;
-            name: string;
+        CannedJobPartResponse: {
+            /** Format: uuid */
+            id?: string;
+            partNumber?: string;
+            name?: string;
             /** Format: int32 */
-            quantity: number;
-            unitPrice: number;
+            quantity?: number;
+            unitPrice?: number;
+            lineTotal?: number;
         };
         CannedJobResponse: {
             /** Format: uuid */
@@ -1163,23 +1248,13 @@ export interface components {
             category?: string;
             description?: string;
             labourHours?: number;
-            parts?: components["schemas"]["PartResponse"][];
+            parts?: components["schemas"]["CannedJobPartResponse"][];
             partsTotal?: number;
             active?: boolean;
             /** Format: date-time */
             updatedAt?: string;
             /** Format: int64 */
             version?: number;
-        };
-        PartResponse: {
-            /** Format: uuid */
-            id?: string;
-            partNumber?: string;
-            name?: string;
-            /** Format: int32 */
-            quantity?: number;
-            unitPrice?: number;
-            lineTotal?: number;
         };
         ActiveRequest: {
             active: boolean;
@@ -1271,6 +1346,19 @@ export interface components {
             hourlyRate?: number;
             cost?: number;
         };
+        PartResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            recommendationId?: string;
+            partNumber?: string;
+            name?: string;
+            /** Format: int32 */
+            quantity?: number;
+            unitPrice?: number;
+            lineTotal?: number;
+            recordedBy?: string;
+        };
         RecommendationResponse: {
             /** Format: uuid */
             id?: string;
@@ -1320,6 +1408,15 @@ export interface components {
             parts: components["schemas"]["WorkPartRequest"][];
             hours?: number;
         };
+        PartRequest: {
+            /** Format: uuid */
+            recommendationId: string;
+            partNumber: string;
+            name: string;
+            /** Format: int32 */
+            quantity: number;
+            unitPrice: number;
+        };
         LabourRequest: {
             /** Format: uuid */
             recommendationId: string;
@@ -1330,6 +1427,31 @@ export interface components {
             description: string;
             /** @enum {string} */
             severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+        };
+        SendEstimateLinkRequest: {
+            /** Format: email */
+            to?: string;
+        };
+        EstimateLinkStatus: {
+            sentTo?: string;
+            sentBy?: string;
+            /** Format: date-time */
+            sentAt?: string;
+            /** Format: date-time */
+            lastSentAt?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            firstViewedAt?: string;
+            /** Format: int32 */
+            remindersSent?: number;
+            /** Format: date-time */
+            nextReminderAt?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            signerName?: string;
+            signed?: boolean;
+            open?: boolean;
         };
         VoidRequest: {
             reason: string;
@@ -1349,6 +1471,52 @@ export interface components {
         EmailRequest: {
             /** Format: email */
             to?: string;
+        };
+        EstimateTokenRequest: {
+            token: string;
+        };
+        CustomerEstimate: {
+            shopName?: string;
+            locationName?: string;
+            shopPhone?: string;
+            firstName?: string;
+            vehicle?: string;
+            /** @enum {string} */
+            status?: "OPEN" | "INSPECTED" | "AWAITING_APPROVAL" | "APPROVED" | "PARTIALLY_APPROVED" | "DECLINED" | "IN_PROGRESS" | "COMPLETED";
+            canDecide?: boolean;
+            findings?: components["schemas"]["CustomerEstimateFinding"][];
+            items?: components["schemas"]["CustomerEstimateItem"][];
+            total?: number;
+            currency?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            signerName?: string;
+        };
+        CustomerEstimateFinding: {
+            description?: string;
+            /** @enum {string} */
+            severity?: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+        };
+        CustomerEstimateItem: {
+            /** Format: uuid */
+            id?: string;
+            description?: string;
+            price?: number;
+            /** @enum {string} */
+            status?: "PENDING" | "APPROVED" | "DECLINED";
+        };
+        EstimateDecisionRequest: {
+            token: string;
+            decisions: components["schemas"]["ItemDecision"][];
+            signerName: string;
+            signature: string;
+        };
+        ItemDecision: {
+            /** Format: uuid */
+            itemId: string;
+            approve: boolean;
         };
         Finding: {
             description?: string;
@@ -1489,6 +1657,22 @@ export interface components {
             /** Format: int64 */
             jobCards?: number;
             hoursOnCompleted?: number;
+        };
+        TaxReportResponse: {
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            rows?: components["schemas"]["TaxRow"][];
+            totalTax?: number;
+        };
+        TaxRow: {
+            category?: string;
+            rate?: number;
+            /** Format: int64 */
+            invoices?: number;
+            taxableAmount?: number;
+            tax?: number;
         };
         OpenWork: {
             /** Format: int64 */
@@ -2541,6 +2725,54 @@ export interface operations {
             };
         };
     };
+    status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EstimateLinkStatus"];
+                };
+            };
+        };
+    };
+    send: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SendEstimateLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EstimateLinkStatus"];
+                };
+            };
+        };
+    };
     complete: {
         parameters: {
             query?: never;
@@ -2589,7 +2821,7 @@ export interface operations {
             };
         };
     };
-    send: {
+    send_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2687,6 +2919,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InvoiceResponse"];
+                };
+            };
+        };
+    };
+    view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EstimateTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerEstimate"];
+                };
+            };
+        };
+    };
+    decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EstimateDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CustomerEstimate"];
                 };
             };
         };
@@ -2872,7 +3152,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["TaxResponse"];
+                    "*/*": components["schemas"]["TaxReportResponse"];
                 };
             };
         };
@@ -3039,7 +3319,7 @@ export interface operations {
             };
         };
     };
-    status: {
+    status_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -3140,6 +3420,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["JobCardResponse"];
+                };
+            };
+        };
+    };
+    signature: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": string;
                 };
             };
         };

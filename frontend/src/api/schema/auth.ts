@@ -1286,6 +1286,28 @@ export interface components {
             adminEmail: string;
             adminPassword: string;
         };
+        ConsoleWorkshopResponse: {
+            /** Format: uuid */
+            id?: string;
+            slug?: string;
+            name?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "SUSPENDED";
+            test?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int32 */
+            staff?: number;
+            /** Format: int32 */
+            customers?: number;
+            /** Format: int32 */
+            locations?: number;
+            ownerUsername?: string;
+            ownerEmail?: string;
+            invitedEmail?: string;
+            /** Format: int64 */
+            version?: number;
+        };
         CreateInvitation: {
             /** Format: email */
             email: string;
@@ -1413,8 +1435,8 @@ export interface components {
             /** Format: int32 */
             totalPages?: number;
         };
-        PageResponseWorkshopResponse: {
-            content?: components["schemas"]["WorkshopResponse"][];
+        PageResponseConsoleWorkshopResponse: {
+            content?: components["schemas"]["ConsoleWorkshopResponse"][];
             /** Format: int32 */
             page?: number;
             /** Format: int32 */
@@ -2150,7 +2172,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PageResponseWorkshopResponse"];
+                    "*/*": components["schemas"]["PageResponseConsoleWorkshopResponse"];
                 };
             };
         };
@@ -2174,7 +2196,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["WorkshopResponse"];
+                    "*/*": components["schemas"]["ConsoleWorkshopResponse"];
                 };
             };
         };
