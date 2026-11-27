@@ -108,19 +108,15 @@ export type CreateStaffRequest = Omit<A['CreateStaffRequest'], 'role' | 'roles'>
 // ---- appointments, customers, vehicles ------------------------------------------------
 
 export type ServiceType = P['BookAppointmentRequest']['serviceType'];
-/** ESTIMATE: a quick estimate whose visit has no time yet (hand-written until `pnpm api:update`). */
-export type AppointmentStatus = NonNullable<P['AppointmentResponse']['status']> | 'ESTIMATE';
+/** ESTIMATE: a quick estimate whose visit has no time yet. */
+export type AppointmentStatus = NonNullable<P['AppointmentResponse']['status']>;
 
 export type Customer = Present<P['CustomerResponse'], 'id' | 'name' | 'email' | 'createdAt'>;
 
 export type Vehicle = Present<
   P['VehicleResponse'],
   'id' | 'customerId' | 'vin' | 'registration' | 'make' | 'model' | 'year' | 'mileage' | 'createdAt'
-> & {
-  /** From VIN decode or typed; optional (hand-written until `pnpm api:update`). */
-  trim?: string | null;
-  engine?: string | null;
-};
+>;
 
 export type VehicleSummary = Present<
   P['VehicleSummary'],
@@ -151,8 +147,8 @@ export type Appointment = Present<
 export type ProfileRequest = P['ProfileRequest'];
 export type CreateCustomerRequest = P['CreateCustomerRequest'];
 /** `trim`, `engine`: optional; on an update, leaving one out keeps it and '' clears it. */
-export type CreateVehicleRequest = P['CreateVehicleRequest'] & { trim?: string; engine?: string };
-export type UpdateVehicleRequest = P['UpdateVehicleRequest'] & { trim?: string; engine?: string };
+export type CreateVehicleRequest = P['CreateVehicleRequest'];
+export type UpdateVehicleRequest = P['UpdateVehicleRequest'];
 /** `locationId`: optional while the organization has one location. */
 export type BookAppointmentRequest = P['BookAppointmentRequest'];
 export type RescheduleRequest = P['RescheduleRequest'];
@@ -195,7 +191,7 @@ export type Labour = Present<
 >;
 
 export type JobCard = Present<
-  Omit<W['JobCardResponse'], 'findings' | 'recommendations' | 'workLogs' | 'parts' | 'labour'>,
+  Omit<W['JobCardResponse'], 'findings' | 'recommendations' | 'workLogs' | 'parts' | 'labour' | 'arrivedAt'>,
   | 'id'
   | 'appointmentId'
   | 'locationId'
@@ -222,7 +218,7 @@ export type JobCard = Present<
 };
 
 export type JobCardSummary = Present<
-  W['JobCardSummary'],
+  Omit<W['JobCardSummary'], 'arrivedAt'>,
   | 'id'
   | 'appointmentId'
   | 'vehicleId'
@@ -1330,7 +1326,7 @@ export interface EstimateDecisionRequest {
   signature: string;
 }
 
-// ---- VIN decode and quick estimates (hand-written until `pnpm api:update`) ----------------
+// ---- VIN decode and quick estimates -------------------------------------------------------
 
 /** A VIN decoded by NHTSA vPIC. `warnings`: e.g. a check digit that doesn't match. */
 export interface DecodedVin {
@@ -1345,13 +1341,5 @@ export interface DecodedVin {
 }
 
 /** A quick estimate: the car (with VIN and plate) and what the customer asked for. */
-export interface CreateEstimateRequest {
-  vehicleId: string;
-  locationId?: string;
-  request: string;
-}
-
-export interface ScheduleEstimateRequest {
-  scheduledAt: string;
-  durationMinutes?: number;
-}
+export type CreateEstimateRequest = P['CreateEstimateRequest'];
+export type ScheduleEstimateRequest = P['ScheduleEstimateRequest'];

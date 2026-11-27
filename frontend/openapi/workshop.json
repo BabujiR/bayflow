@@ -620,6 +620,7 @@
           "Job cards"
         ],
         "summary": "List job cards, newest first (customers see their own)",
+        "description": "estimates=true: only quick estimates whose car hasn't come in; false: only cars at the shop. Mechanics only ever see cars at the shop.",
         "operationId": "list",
         "parameters": [
           {
@@ -638,6 +639,14 @@
                 "IN_PROGRESS",
                 "COMPLETED"
               ]
+            }
+          },
+          {
+            "name": "estimates",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -1337,6 +1346,44 @@
         ],
         "summary": "IN_PROGRESS/DECLINED → COMPLETED; calculates totals and writes the service history",
         "operationId": "complete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobCardResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/job-cards/{id}/close-estimate": {
+      "post": {
+        "tags": [
+          "Job cards"
+        ],
+        "summary": "Close a quick estimate the customer won't go ahead with (declined; before the visit)",
+        "description": "Also cancel its ESTIMATE appointment. Repeats are harmless.",
+        "operationId": "closeEstimate",
         "parameters": [
           {
             "name": "id",
@@ -3647,6 +3694,19 @@
           "locationId": {
             "type": "string",
             "format": "uuid"
+          },
+          "estimate": {
+            "type": "boolean"
+          },
+          "request": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 0
+          },
+          "requestedBy": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
           }
         },
         "required": [
@@ -3810,6 +3870,10 @@
             "format": "date-time"
           },
           "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "arrivedAt": {
             "type": "string",
             "format": "date-time"
           }
@@ -5356,6 +5420,10 @@
             "format": "date-time"
           },
           "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "arrivedAt": {
             "type": "string",
             "format": "date-time"
           }
