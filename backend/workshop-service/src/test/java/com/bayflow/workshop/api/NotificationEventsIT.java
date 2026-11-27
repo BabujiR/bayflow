@@ -152,6 +152,12 @@ class NotificationEventsIT extends IntegrationTestBase {
         assertThat(pending.getLastError()).contains("503");
 
         WIREMOCK.stubFor(WireMock.post(urlEqualTo(EVENTS)).willReturn(json(200, "{}")));
+        // A failed event waits out its backoff before anyone sends it again: until then, nothing.
+        dispatch(card);
+        assertThat(messages(card).getFirst().isProcessed()).isFalse();
+        // The backoff has passed.
+        ownerJdbc().update("update bayflow.ws_outbox set next_attempt_at = now() - interval '1 second' where id = ?",
+                pending.getId());
         dispatch(card);
         assertThat(messages(card).getFirst().isProcessed()).isTrue();
         WIREMOCK.verify(2, postRequestedFor(urlEqualTo(EVENTS))
