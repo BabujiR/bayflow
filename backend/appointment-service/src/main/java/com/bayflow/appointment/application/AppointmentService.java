@@ -41,8 +41,10 @@ import com.bayflow.security.LocationContext;
 @Service
 public class AppointmentService {
 
-    /** Optional filters from the list endpoint. */
-    /** {@code sort} null = the default: EARLIEST for one day, otherwise UPCOMING. */
+    /**
+     * Optional filters from the list endpoint. {@code sort} null = the default: EARLIEST for one day,
+     * otherwise UPCOMING.
+     */
     public record ListQuery(LocalDate date, AppointmentStatus status, UUID vehicleId, UUID customerId,
             UUID locationId, AppointmentSort sort) {
 
@@ -112,6 +114,45 @@ public class AppointmentService {
     }
 
     /**
+     * A quick estimate (desk or phone): a visit without a time yet, whose job card opens now so the
+     * advisor can price the work and send it for approval. {@code request}: what the customer asked
+     * for. The car needs its VIN and plate (the job card does).
+     */
+    @Transactional
+    public Appointment createEstimate(CurrentUser user, UUID vehicleId, UUID locationId, String request) {
+        Vehicle vehicle = vehicles.findById(vehicleId).orElseThrow(() -> ApiException.notFound("Vehicle"));
+        if (vehicle.lacksVinOrPlate()) {
+            throw ApiException.badRequest("vehicle-incomplete",
+                    "Add the car's VIN and plate first: the estimate's job card needs both.");
+        }
+        UUID location = locations.forBooking(locationId);
+        Appointment estimate = appointments.saveAndFlush(Appointment.estimate(vehicle.getOwner(), vehicle, location,
+                properties.getDefaultDurationMinutes(), request, clock.instant()));
+        outbox.enqueueEstimateJobCard(estimate, request, user.username());
+        return estimate;
+    }
+
+    /**
+     * The customer goes ahead with a quick estimate: its visit is booked for a time, like any
+     * booking. The estimate's job card carries on when the car is checked in.
+     */
+    @Transactional
+    public Appointment schedule(CurrentUser user, UUID id, Instant scheduledAt, Integer durationMinutes) {
+        Appointment appointment = get(user, id);
+        if (!AppointmentAction.SCHEDULE.isAllowedFrom(appointment.getStatus())) {
+            throw new InvalidTransitionException("appointment", appointment.getStatus(),
+                    AppointmentAction.SCHEDULE.description());
+        }
+        int minutes = durationMinutes != null ? durationMinutes : properties.getDefaultDurationMinutes();
+        Instant now = clock.instant();
+        requireFuture(scheduledAt, now);
+        requireFreeSlot(appointment.getVehicle().getId(), appointment.getId(), scheduledAt, minutes);
+        appointment.schedule(scheduledAt, minutes, now);
+        outbox.enqueueNotification(appointment, Events.BOOKED, null);
+        return appointments.saveAndFlush(appointment);
+    }
+
+    /**
      * Advisors and admins see all appointments (with optional filters); customers only their
      * own; mechanics only today's checked-in vehicles. Days ("date", "today") are those of the
      * location asked for; over several locations, each booking's own location's day. The order is
@@ -175,7 +216,7 @@ public class AppointmentService {
     @Transactional
     public Appointment checkIn(UUID id, int mileage, String vin, String registration) {
         Appointment appointment = find(id);
-        if (!appointment.getVehicle().isIdentified()) {
+        if (appointment.getVehicle().lacksVinOrPlate()) {
             completeVehicle(appointment.getVehicle(), vin, registration);
         }
         int recorded = appointment.getVehicle().getMileage();
@@ -206,7 +247,17 @@ public class AppointmentService {
     @Transactional
     public Appointment cancel(CurrentUser user, UUID id) {
         Appointment appointment = get(user, id);
+        boolean estimate = appointment.getStatus() == AppointmentStatus.ESTIMATE;
+        if (estimate && user.isCustomer()) {
+            // The shop closes a quick estimate (with its job card); the customer declines it on the card.
+            throw new InvalidTransitionException("appointment", appointment.getStatus(),
+                    AppointmentAction.CANCEL.description());
+        }
         appointment.cancel(clock.instant());
+        if (estimate) {
+            // No visit was booked, so there is nothing to tell the customer about.
+            return appointment;
+        }
         outbox.enqueueNotification(appointment, Events.CANCELLED, null);
         if (!user.isCustomer()) {
             shopChangeMails.cancelled(appointment);

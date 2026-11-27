@@ -28,7 +28,9 @@ class AppointmentTest {
             AppointmentAction.CONFIRM, EnumSet.of(AppointmentStatus.BOOKED),
             AppointmentAction.ARRIVE, EnumSet.of(AppointmentStatus.CONFIRMED),
             AppointmentAction.CHECK_IN, EnumSet.of(AppointmentStatus.ARRIVED),
-            AppointmentAction.CANCEL, EnumSet.of(AppointmentStatus.BOOKED, AppointmentStatus.CONFIRMED),
+            AppointmentAction.SCHEDULE, EnumSet.of(AppointmentStatus.ESTIMATE),
+            AppointmentAction.CANCEL, EnumSet.of(AppointmentStatus.ESTIMATE, AppointmentStatus.BOOKED,
+                    AppointmentStatus.CONFIRMED),
             AppointmentAction.NO_SHOW, EnumSet.of(AppointmentStatus.BOOKED, AppointmentStatus.CONFIRMED),
             AppointmentAction.RESCHEDULE, EnumSet.of(AppointmentStatus.BOOKED, AppointmentStatus.CONFIRMED));
 
@@ -36,6 +38,7 @@ class AppointmentTest {
             AppointmentAction.CONFIRM, AppointmentStatus.CONFIRMED,
             AppointmentAction.ARRIVE, AppointmentStatus.ARRIVED,
             AppointmentAction.CHECK_IN, AppointmentStatus.CHECKED_IN,
+            AppointmentAction.SCHEDULE, AppointmentStatus.BOOKED,
             AppointmentAction.CANCEL, AppointmentStatus.CANCELLED,
             AppointmentAction.NO_SHOW, AppointmentStatus.NO_SHOW);
 
@@ -153,6 +156,11 @@ class AppointmentTest {
         Appointment checkedIn = inStatus(AppointmentStatus.CHECKED_IN);
         checkedIn.linkJobCard(jobCard, NOW);
         assertThat(checkedIn.getJobCardId()).isEqualTo(jobCard);
+
+        // A quick estimate's job card opens before the visit.
+        Appointment estimate = inStatus(AppointmentStatus.ESTIMATE);
+        estimate.linkJobCard(jobCard, NOW);
+        assertThat(estimate.getJobCardId()).isEqualTo(jobCard);
     }
 
     @Test
@@ -179,9 +187,16 @@ class AppointmentTest {
 
     /** Builds an appointment in the given status by walking the valid path to it. */
     private static Appointment inStatus(AppointmentStatus status) {
+        if (status == AppointmentStatus.ESTIMATE) {
+            Customer customer = Customer.create(UUID.randomUUID(), "Jane Doe", "jane@example.com", null, NOW);
+            Appointment estimate = Appointment.estimate(customer, vehicle(customer), LOCATION, 60, "Brakes squeal",
+                    NOW);
+            assertThat(estimate.getStatus()).isEqualTo(AppointmentStatus.ESTIMATE);
+            return estimate;
+        }
         Appointment a = book(SLOT, 60);
         switch (status) {
-            case BOOKED -> { }
+            case ESTIMATE, BOOKED -> { }
             case CONFIRMED -> a.confirm(NOW);
             case ARRIVED -> {
                 a.confirm(NOW);
@@ -208,6 +223,7 @@ class AppointmentTest {
             case CANCEL -> a.cancel(NOW);
             case NO_SHOW -> a.markNoShow(afterSlot);
             case RESCHEDULE -> a.reschedule(SLOT.plus(Duration.ofDays(3)), 60, NOW);
+            case SCHEDULE -> a.schedule(SLOT.plus(Duration.ofDays(2)), 60, NOW);
         }
     }
 }

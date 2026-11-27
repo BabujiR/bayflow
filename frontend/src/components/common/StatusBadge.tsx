@@ -5,6 +5,7 @@ import { APPOINTMENT_STATUS_LABELS, JOB_CARD_STATUS_LABELS, SEVERITY_LABELS } fr
 type Variant = 'default' | 'secondary' | 'success' | 'warning' | 'destructive' | 'outline';
 
 const APPOINTMENT_VARIANTS: Record<AppointmentStatus, Variant> = {
+  ESTIMATE: 'outline',
   BOOKED: 'secondary',
   CONFIRMED: 'default',
   ARRIVED: 'warning',

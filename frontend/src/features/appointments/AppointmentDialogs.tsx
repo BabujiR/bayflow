@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
 import { appointmentsApi } from '@/api/endpoints';
@@ -13,6 +13,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { useLocationLookup } from '@/features/locations/use-locations';
+import { useVinDecode, VinDecodeNote } from '@/features/vehicles/vin-decode';
 import { formatDateTime, isoToLocalInput, localInputToIso, localInputToMillis } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
@@ -52,11 +53,15 @@ export function CheckInDialog({ appointment }: { appointment: Appointment }) {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<z.input<typeof checkInSchema>, unknown, z.output<typeof checkInSchema>>({
     resolver: zodResolver(checkInSchema),
     defaultValues: { mileage: '', vin: '', registration: '' },
   });
+  // A VIN typed at the desk is looked up, so a typo shows before the job card opens.
+  const vin = useWatch({ control, name: 'vin' }) ?? '';
+  const decoded = useVinDecode(vin, open && needsVin);
   const checkIn = useAction(
     (v: z.output<typeof checkInSchema>) =>
       appointmentsApi.checkIn(
@@ -120,6 +125,7 @@ export function CheckInDialog({ appointment }: { appointment: Appointment }) {
               <Input maxLength={17} className="font-mono uppercase" {...register('vin')} />
             </Field>
           )}
+          {needsVin && <VinDecodeNote query={decoded} />}
           {needsPlate && (
             <Field label="Plate" error={errors.registration?.message}>
               <Input maxLength={20} className="uppercase" {...register('registration')} />

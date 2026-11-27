@@ -3,6 +3,7 @@ package com.bayflow.appointment.domain;
 import static com.bayflow.appointment.domain.AppointmentStatus.ARRIVED;
 import static com.bayflow.appointment.domain.AppointmentStatus.BOOKED;
 import static com.bayflow.appointment.domain.AppointmentStatus.CONFIRMED;
+import static com.bayflow.appointment.domain.AppointmentStatus.ESTIMATE;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -15,7 +16,9 @@ public enum AppointmentAction {
     CONFIRM("confirm", EnumSet.of(BOOKED)),
     ARRIVE("mark as arrived", EnumSet.of(CONFIRMED)),
     CHECK_IN("check in", EnumSet.of(ARRIVED)),
-    CANCEL("cancel", EnumSet.of(BOOKED, CONFIRMED)),
+    /** A quick estimate the customer goes ahead with gets its visit. */
+    SCHEDULE("schedule the work for", EnumSet.of(ESTIMATE)),
+    CANCEL("cancel", EnumSet.of(ESTIMATE, BOOKED, CONFIRMED)),
     NO_SHOW("mark as no-show", EnumSet.of(BOOKED, CONFIRMED)),
     RESCHEDULE("reschedule", EnumSet.of(BOOKED, CONFIRMED));
 

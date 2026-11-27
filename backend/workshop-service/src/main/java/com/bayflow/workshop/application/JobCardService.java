@@ -40,7 +40,15 @@ public class JobCardService {
      * null = the organization's first location, "Main" (id = tenant id).
      */
     public record OpenCommand(UUID appointmentId, UUID locationId, UUID vehicleId, String vin, String registration,
-            UUID customerUserId, String customerName, int mileage) {
+            UUID customerUserId, String customerName, int mileage, boolean estimate, String request,
+            String requestedBy) {
+
+        /** A card opened at check-in (not an estimate). */
+        public OpenCommand(UUID appointmentId, UUID locationId, UUID vehicleId, String vin, String registration,
+                UUID customerUserId, String customerName, int mileage) {
+            this(appointmentId, locationId, vehicleId, vin, registration, customerUserId, customerName, mileage,
+                    false, null, null);
+        }
     }
 
     /** The job card and whether this call created it (false = it already existed). */
@@ -78,16 +86,31 @@ public class JobCardService {
     public OpenResult open(OpenCommand command) {
         Optional<JobCard> existing = jobCards.findByAppointmentId(command.appointmentId());
         if (existing.isPresent()) {
-            return new OpenResult(loaded(existing.get()), false);
+            JobCard card = existing.get();
+            // A quick estimate's visit is checked in: the same card carries on, now with the car.
+            if (!command.estimate() && card.arrive(command.mileage(), command.vin(), command.registration(),
+                    clock.instant())) {
+                log.info("Estimate job card {} arrived at check-in", card.getId());
+            }
+            return new OpenResult(loaded(card), false);
         }
         UUID location = command.locationId() != null ? command.locationId() : TenantContext.require();
         if (!LocationContext.current().allows(location)) {
             throw ApiException.notFound("Location");
         }
         WorkshopSettings money = workshopSettings(location);
+        Instant now = clock.instant();
         JobCard card = JobCard.open(command.appointmentId(), location, command.vehicleId(), command.vin(),
                 command.registration(), command.customerUserId(), command.customerName(), command.mileage(),
-                money.labourRate(), money.currency(), clock.instant());
+                money.labourRate(), money.currency(), now);
+        if (command.estimate()) {
+            card.awaitArrival();
+            if (command.request() != null && !command.request().isBlank()) {
+                card.addFinding("Customer's request: " + command.request().strip(), Severity.LOW,
+                        command.requestedBy() == null || command.requestedBy().isBlank() ? "front desk"
+                                : command.requestedBy(), now);
+            }
+        }
         return new OpenResult(jobCards.saveAndFlush(card), true);
     }
 
@@ -117,11 +140,25 @@ public class JobCardService {
         return visible(user, card);
     }
 
+    /**
+     * {@code estimates}: true for quick estimates before the visit only, false for cars at the shop
+     * only, null for both. Mechanics (without the desk's roles) only see cars at the shop.
+     */
     @Transactional(readOnly = true)
-    public Page<JobCard> list(CurrentUser user, JobCardStatus status, int page, int size) {
+    public Page<JobCard> list(CurrentUser user, JobCardStatus status, Boolean estimates, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size,
                 Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by("id")));
         if (seesAll(user)) {
+            boolean desk = user.isServiceAdvisor() || user.isAdmin() || user.isSystem();
+            Boolean only = desk ? estimates : Boolean.FALSE;
+            if (Boolean.TRUE.equals(only)) {
+                return status == null ? jobCards.findByArrivedAtIsNull(pageable)
+                        : jobCards.findByStatusAndArrivedAtIsNull(status, pageable);
+            }
+            if (Boolean.FALSE.equals(only)) {
+                return status == null ? jobCards.findByArrivedAtIsNotNull(pageable)
+                        : jobCards.findByStatusAndArrivedAtIsNotNull(status, pageable);
+            }
             return status == null ? jobCards.findAll(pageable) : jobCards.findByStatus(status, pageable);
         }
         UUID userId = userId(user);
@@ -236,6 +273,14 @@ public class JobCardService {
         if (card.getStatus() != JobCardStatus.AWAITING_APPROVAL) {
             outbox.enqueue(card, OutboxService.ESTIMATE_DECIDED);
         }
+        return loaded(card);
+    }
+
+    /** The customer won't go ahead with this quick estimate: closed as declined (repeats are harmless). */
+    @Transactional
+    public JobCard closeEstimate(CurrentUser user, UUID id) {
+        JobCard card = find(id);
+        card.closeEstimate(user.username(), clock.instant());
         return loaded(card);
     }
 

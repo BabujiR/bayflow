@@ -57,6 +57,21 @@ public class OutboxService {
         this.clock = clock;
     }
 
+    /**
+     * A quick estimate's job card, opened before the visit (the car's last known reading), with
+     * what the customer asked for as its first finding. Joins the caller's transaction.
+     */
+    @Transactional
+    public void enqueueEstimateJobCard(Appointment appointment, String request, String requestedBy) {
+        OpenJobCardPayload payload = new OpenJobCardPayload(appointment.getId(), appointment.getVehicle().getId(),
+                appointment.getVehicle().getVin(), appointment.getVehicle().getRegistration(),
+                appointment.getCustomer().getUserId(), appointment.getCustomer().getName(),
+                appointment.getVehicle().getMileage(), appointment.getTenantId(), appointment.getLocationId(), true,
+                request, requestedBy);
+        outbox.save(OutboxMessage.create(appointment.getId(), OutboxMessage.CREATE_JOB_CARD,
+                json.writeValueAsString(payload), clock.instant()));
+    }
+
     /** Joins the caller's transaction, so the message commits together with the check-in. */
     @Transactional
     public void enqueueJobCard(Appointment appointment) {
@@ -174,7 +189,6 @@ public class OutboxService {
         return outbox.findDueAcrossTenants(clock.instant(), properties.getDispatcher().getBatchSize());
     }
 
-    /** A message of the current workshop. */
     /**
      * Claims the message before sending it, so it goes out once even when the immediate send and
      * the dispatcher (or two instances) reach it together. A claim lasts {@link #CLAIM_LEASE}: a
@@ -187,6 +201,7 @@ public class OutboxService {
         return outbox.claim(messageId, now, now.plus(CLAIM_LEASE)) == 1;
     }
 
+    /** A message of the current workshop. */
     @Transactional(readOnly = true)
     public Optional<OutboxMessage> find(UUID messageId) {
         return outbox.findById(messageId);
@@ -207,7 +222,11 @@ public class OutboxService {
         Instant now = clock.instant();
         message.markDelivered(now);
         Appointment appointment = appointments.findById(message.getAppointmentId()).orElseThrow();
-        if (appointment.getJobCardId() == null) {
+        if (appointment.getJobCardId() == null && !appointment.canLinkJobCard()) {
+            // An estimate's card that arrived after the visit was scheduled or cancelled: linked at check-in.
+            log.info("Job card {} of appointment {} not linked while {}", jobCardId, appointment.getId(),
+                    appointment.getStatus());
+        } else if (appointment.getJobCardId() == null) {
             appointment.linkJobCard(jobCardId, now);
         } else if (!appointment.getJobCardId().equals(jobCardId)) {
             log.warn("Appointment {} is linked to job card {} but workshop returned {}", appointment.getId(),

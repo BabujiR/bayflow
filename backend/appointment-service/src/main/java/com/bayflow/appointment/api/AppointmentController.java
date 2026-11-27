@@ -22,10 +22,13 @@ import org.springframework.web.bind.annotation.RestController;
 import com.bayflow.appointment.api.AppointmentDtos.AppointmentResponse;
 import com.bayflow.appointment.api.AppointmentDtos.BookAppointmentRequest;
 import com.bayflow.appointment.api.AppointmentDtos.CheckInRequest;
+import com.bayflow.appointment.api.AppointmentDtos.CreateEstimateRequest;
 import com.bayflow.appointment.api.AppointmentDtos.PageResponse;
 import com.bayflow.appointment.api.AppointmentDtos.RescheduleRequest;
+import com.bayflow.appointment.api.AppointmentDtos.ScheduleEstimateRequest;
 import com.bayflow.appointment.application.AppointmentService;
 import com.bayflow.appointment.application.AppointmentService.ListQuery;
+import com.bayflow.appointment.domain.Appointment;
 import com.bayflow.appointment.infrastructure.AppointmentSort;
 import com.bayflow.appointment.domain.AppointmentStatus;
 import com.bayflow.appointment.integration.JobCardDispatcher;
@@ -123,9 +126,33 @@ public class AppointmentController {
         return AppointmentResponse.from(appointments.markNoShow(id));
     }
 
+    @PostMapping("/estimates")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('SERVICE_ADVISOR', 'ADMIN')")
+    @Operation(summary = "Start a quick estimate (desk or phone): a visit without a time yet, with its job card",
+            description = "The job card opens straight away (jobCardId; empty if workshop-service is down, then "
+                    + "it follows on retry), with the request as its first finding. Listed with status=ESTIMATE.")
+    public AppointmentResponse createEstimate(@Valid @RequestBody CreateEstimateRequest request,
+            Authentication auth) {
+        Appointment estimate = appointments.createEstimate(CurrentUser.from(auth), request.vehicleId(),
+                request.locationId(), request.request().strip());
+        // After it has committed: open the job card straight away.
+        jobCardDispatcher.dispatchFor(estimate.getId());
+        return AppointmentResponse.from(appointments.reload(estimate.getId()));
+    }
+
+    @PostMapping("/{id}/schedule")
+    @PreAuthorize("hasAnyRole('SERVICE_ADVISOR', 'ADMIN')")
+    @Operation(summary = "ESTIMATE → BOOKED: the customer goes ahead; book the visit for a time")
+    public AppointmentResponse schedule(@PathVariable UUID id, @Valid @RequestBody ScheduleEstimateRequest request,
+            Authentication auth) {
+        return AppointmentResponse.from(appointments.schedule(CurrentUser.from(auth), id, request.scheduledAt(),
+                request.durationMinutes()));
+    }
+
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'SERVICE_ADVISOR')")
-    @Operation(summary = "BOOKED/CONFIRMED → CANCELLED")
+    @Operation(summary = "ESTIMATE/BOOKED/CONFIRMED → CANCELLED")
     public AppointmentResponse cancel(@PathVariable UUID id, Authentication auth) {
         return AppointmentResponse.from(appointments.cancel(CurrentUser.from(auth), id));
     }

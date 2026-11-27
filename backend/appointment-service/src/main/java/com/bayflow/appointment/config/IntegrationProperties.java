@@ -20,6 +20,7 @@ public class IntegrationProperties {
     private Duration settingsCacheTtl = Duration.ofMinutes(5);
     private final Dispatcher dispatcher = new Dispatcher();
     private final Notifications notifications = new Notifications();
+    private final VinDecoder vinDecoder = new VinDecoder();
 
     public String getAuthUrl() { return authUrl; }
     public void setAuthUrl(String authUrl) { this.authUrl = authUrl; }
@@ -39,6 +40,22 @@ public class IntegrationProperties {
     public void setSettingsCacheTtl(Duration settingsCacheTtl) { this.settingsCacheTtl = settingsCacheTtl; }
     public Dispatcher getDispatcher() { return dispatcher; }
     public Notifications getNotifications() { return notifications; }
+    public VinDecoder getVinDecoder() { return vinDecoder; }
+
+    /** NHTSA vPIC: decodes a VIN into year, make, model, trim and engine (free, no key). */
+    public static class VinDecoder {
+        private String url = "https://vpic.nhtsa.dot.gov/api";
+        private Duration timeout = Duration.ofSeconds(3);
+        /** Lookups an hour per staff member. */
+        private int maxPerHour = 120;
+
+        public String getUrl() { return url; }
+        public void setUrl(String url) { this.url = url; }
+        public Duration getTimeout() { return timeout; }
+        public void setTimeout(Duration timeout) { this.timeout = timeout; }
+        public int getMaxPerHour() { return maxPerHour; }
+        public void setMaxPerHour(int maxPerHour) { this.maxPerHour = maxPerHour; }
+    }
 
     /** Events for notification-service, sent through the outbox. */
     public static class Notifications {

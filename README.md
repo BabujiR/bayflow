@@ -335,6 +335,26 @@ a new link; earlier ones keep working until a new one is sent. API:
 `/api/v1/job-cards/{id}/estimate-link` (GET, POST, `/signature`) and the public
 `POST /api/v1/estimate-approval/view|decide`.
 
+### Quick estimates and VIN decode
+
+For a customer on the phone or at the desk, advisors (and admins) click **New estimate** on *Job
+cards* or a customer's page: pick the customer and car, and type what they asked for. The visit is
+made with status `ESTIMATE` (no time; not on the board or the day's list, and it holds no slot), and
+its job card opens at once with the request as the first finding. Price it and send the approval
+link as usual. **Schedule the work** books the visit (`ESTIMATE → BOOKED`); at check-in the same
+card carries on, marked arrived with the new odometer reading. Work can't start or complete before
+that. **Close estimate** declines what is pending and cancels the visit. *Job cards → Show →
+Estimates* lists the open ones with their age; nothing closes them automatically. API:
+`POST /api/v1/appointments/estimates`, `POST /api/v1/appointments/{id}/schedule`,
+`POST /api/v1/job-cards/{id}/close-estimate`, `GET /api/v1/job-cards?estimates=true`.
+
+When staff add a car, its VIN is looked up once all 17 characters are typed (NHTSA vPIC, free, no
+key): year, make, model, trim and engine fill in where empty (**Use decoded details** replaces what
+was typed), with a warning when the check digit doesn't add up. Check-in does the same for cars
+booked online without a VIN. `GET /api/v1/vehicles/decode?vin=` (staff; 120 lookups an hour per
+user, a 3 s timeout, results cached in memory; `bayflow.integration.vin-decoder.*`,
+`BAYFLOW_VIN_DECODER_URL`). If vPIC is down, details are typed by hand as before.
+
 ### Canned jobs
 
 Managers and admins keep the shop's everyday work under *Canned jobs* (e.g. "Synthetic oil

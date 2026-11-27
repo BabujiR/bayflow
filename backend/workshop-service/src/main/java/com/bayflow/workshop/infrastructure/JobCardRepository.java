@@ -24,6 +24,16 @@ public interface JobCardRepository extends JpaRepository<JobCard, UUID> {
 
     Page<JobCard> findByStatus(JobCardStatus status, Pageable pageable);
 
+    /** Quick estimates whose car hasn't come in yet. */
+    Page<JobCard> findByArrivedAtIsNull(Pageable pageable);
+
+    Page<JobCard> findByStatusAndArrivedAtIsNull(JobCardStatus status, Pageable pageable);
+
+    /** Cars at (or through) the shop. */
+    Page<JobCard> findByArrivedAtIsNotNull(Pageable pageable);
+
+    Page<JobCard> findByStatusAndArrivedAtIsNotNull(JobCardStatus status, Pageable pageable);
+
     Page<JobCard> findByCustomerUserId(UUID customerUserId, Pageable pageable);
 
     Page<JobCard> findByCustomerUserIdAndStatus(UUID customerUserId, JobCardStatus status, Pageable pageable);

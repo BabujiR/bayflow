@@ -19,8 +19,12 @@ import com.bayflow.security.CurrentUser;
 @Service
 public class VehicleService {
 
-    /** Fields a vehicle can be created or updated with. */
-    public record VehicleDetails(String registration, String make, String model, int year, int mileage) {
+    /**
+     * Fields a vehicle can be created or updated with. {@code trim} and {@code engine} are optional
+     * (VIN decode fills them in).
+     */
+    public record VehicleDetails(String registration, String make, String model, int year, int mileage, String trim,
+            String engine) {
     }
 
     private final VehicleRepository vehicles;
@@ -54,8 +58,10 @@ public class VehicleService {
         if (vehicles.existsByVin(normalizedVin)) {
             throw ApiException.conflict("vin-taken", "A vehicle with this VIN is already registered.");
         }
-        return vehicles.save(Vehicle.register(owner, normalizedVin, details.registration(), details.make(),
-                details.model(), details.year(), details.mileage(), clock.instant()));
+        Vehicle vehicle = Vehicle.register(owner, normalizedVin, details.registration(), details.make(),
+                details.model(), details.year(), details.mileage(), clock.instant());
+        vehicle.describe(details.trim(), details.engine(), clock.instant());
+        return vehicles.save(vehicle);
     }
 
     @Transactional(readOnly = true)
@@ -82,6 +88,7 @@ public class VehicleService {
         Vehicle vehicle = get(user, id);
         vehicle.update(details.registration(), details.make(), details.model(), details.year(), details.mileage(),
                 clock.instant());
+        vehicle.describe(details.trim(), details.engine(), clock.instant());
         return vehicle;
     }
 }

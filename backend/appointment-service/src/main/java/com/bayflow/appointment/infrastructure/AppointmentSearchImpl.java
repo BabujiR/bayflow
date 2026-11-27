@@ -60,7 +60,7 @@ class AppointmentSearchImpl implements AppointmentSearch {
             case UPCOMING -> {
                 // Not finished yet (ends after now) first, soonest first; then the past, latest first.
                 Instant now = filter.now() != null ? filter.now() : Instant.now();
-                Predicate ahead = cb.greaterThan(root.<Instant>get("endsAt"), now);
+                Predicate ahead = cb.greaterThan(root.get("endsAt"), now);
                 Expression<Integer> bucket = cb.<Integer>selectCase().when(ahead, 0).otherwise(1);
                 Expression<Instant> future = cb.<Instant>selectCase().when(ahead, at)
                         .otherwise(cb.nullLiteral(Instant.class));
@@ -84,20 +84,23 @@ class AppointmentSearchImpl implements AppointmentSearch {
         }
         if (filter.status() != null) {
             predicates.add(cb.equal(root.<AppointmentStatus>get("status"), filter.status()));
+        } else {
+            // Quick estimates have no time yet: they are listed only when asked for (status=ESTIMATE).
+            predicates.add(cb.notEqual(root.<AppointmentStatus>get("status"), AppointmentStatus.ESTIMATE));
         }
         if (filter.from() != null) {
-            predicates.add(cb.greaterThanOrEqualTo(root.<Instant>get("scheduledAt"), filter.from()));
+            predicates.add(cb.greaterThanOrEqualTo(root.get("scheduledAt"), filter.from()));
         }
         if (filter.to() != null) {
-            predicates.add(cb.lessThan(root.<Instant>get("scheduledAt"), filter.to()));
+            predicates.add(cb.lessThan(root.get("scheduledAt"), filter.to()));
         }
         if (!filter.days().isEmpty()) {
             // Each appointment's day in its own location's time zone.
             predicates.add(cb.or(filter.days().stream()
                     .map(day -> cb.and(
                             cb.equal(root.<UUID>get("locationId"), day.locationId()),
-                            cb.greaterThanOrEqualTo(root.<Instant>get("scheduledAt"), day.from()),
-                            cb.lessThan(root.<Instant>get("scheduledAt"), day.to())))
+                            cb.greaterThanOrEqualTo(root.get("scheduledAt"), day.from()),
+                            cb.lessThan(root.get("scheduledAt"), day.to())))
                     .toArray(Predicate[]::new)));
         }
         return predicates.toArray(Predicate[]::new);

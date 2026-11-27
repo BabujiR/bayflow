@@ -4,6 +4,11 @@ import java.util.EnumSet;
 import java.util.Set;
 
 public enum AppointmentStatus {
+    /**
+     * A quick estimate: its job card (the estimate) exists, the visit has no time yet. Holds no
+     * slot and stays off the day board; "schedule the work" makes it BOOKED.
+     */
+    ESTIMATE,
     BOOKED,
     CONFIRMED,
     ARRIVED,

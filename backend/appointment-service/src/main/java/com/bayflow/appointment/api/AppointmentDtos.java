@@ -67,10 +67,12 @@ public final class AppointmentDtos {
             @NotBlank @Size(max = 50) String make,
             @NotBlank @Size(max = 50) String model,
             @NotNull @Min(1900) @Max(2100) Integer year,
-            @NotNull @PositiveOrZero Integer mileage) {
+            @NotNull @PositiveOrZero Integer mileage,
+            @Size(max = 60) String trim,
+            @Size(max = 80) String engine) {
 
         VehicleDetails details() {
-            return new VehicleDetails(registration, make, model, year, mileage);
+            return new VehicleDetails(registration, make, model, year, mileage, trim, engine);
         }
     }
 
@@ -79,19 +81,22 @@ public final class AppointmentDtos {
             @NotBlank @Size(max = 50) String make,
             @NotBlank @Size(max = 50) String model,
             @NotNull @Min(1900) @Max(2100) Integer year,
-            @NotNull @PositiveOrZero Integer mileage) {
+            @NotNull @PositiveOrZero Integer mileage,
+            @Size(max = 60) String trim,
+            @Size(max = 80) String engine) {
 
         VehicleDetails details() {
-            return new VehicleDetails(registration, make, model, year, mileage);
+            return new VehicleDetails(registration, make, model, year, mileage, trim, engine);
         }
     }
 
     public record VehicleResponse(UUID id, UUID customerId, String vin, String registration, String make,
-            String model, int year, int mileage, Instant createdAt) {
+            String model, int year, int mileage, String trim, String engine, Instant createdAt) {
 
         public static VehicleResponse from(Vehicle v) {
             return new VehicleResponse(v.getId(), v.getOwner().getId(), v.getVin(), v.getRegistration(),
-                    v.getMake(), v.getModel(), v.getYear(), v.getMileage(), v.getCreatedAt());
+                    v.getMake(), v.getModel(), v.getYear(), v.getMileage(), v.getTrim(), v.getEngine(),
+                    v.getCreatedAt());
         }
     }
 
@@ -105,6 +110,19 @@ public final class AppointmentDtos {
             @Min(Appointment.MIN_DURATION_MINUTES) @Max(Appointment.MAX_DURATION_MINUTES) Integer durationMinutes,
             @NotNull ServiceType serviceType,
             @Size(max = 1000) String notes) {
+    }
+
+    /** A quick estimate: the car (with VIN and plate) and what the customer asked for. */
+    public record CreateEstimateRequest(
+            @NotNull UUID vehicleId,
+            UUID locationId,
+            @NotBlank @Size(max = 500) String request) {
+    }
+
+    /** "Schedule the work" of a quick estimate: when the visit is. */
+    public record ScheduleEstimateRequest(
+            @NotNull Instant scheduledAt,
+            @Min(Appointment.MIN_DURATION_MINUTES) @Max(Appointment.MAX_DURATION_MINUTES) Integer durationMinutes) {
     }
 
     public record RescheduleRequest(

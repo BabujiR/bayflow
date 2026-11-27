@@ -57,6 +57,12 @@ bayflow:
     auth-url: ${BAYFLOW_AUTH_URL:http://localhost:8083}
     workshop-url: ${BAYFLOW_WORKSHOP_URL:http://localhost:8082}
     notification-url: ${BAYFLOW_NOTIFICATION_URL:http://localhost:8084}
+    # VIN decode for staff (year, make, model, trim, engine): NHTSA vPIC, free and keyless. The
+    # server must reach it (outbound HTTPS to vpic.nhtsa.dot.gov).
+    vin-decoder:
+      url: ${BAYFLOW_VIN_DECODER_URL:https://vpic.nhtsa.dot.gov/api}
+      timeout: 3s
+      max-per-hour: 120
     client-id: appointment-service
     client-secret: ${BAYFLOW_SYSTEM_CLIENT_SECRET:dev-system-secret}
     connect-timeout: 2s
