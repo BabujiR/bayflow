@@ -15,6 +15,12 @@ RUN pnpm build
 
 # nginx running as a non-root user, listening on 8080
 FROM nginxinc/nginx-unprivileged:stable-alpine
+# Security fixes for Alpine packages released since the base image was built. CD passes a new
+# APK_REFRESH on every run, so the build cache never keeps an old package set.
+USER root
+ARG APK_REFRESH=0
+RUN echo "packages refreshed: ${APK_REFRESH}" && apk upgrade --no-cache
+USER 101
 ENV AUTH_UPSTREAM=auth-service:8083 \
     APPOINTMENT_UPSTREAM=appointment-service:8081 \
     WORKSHOP_UPSTREAM=workshop-service:8082 \

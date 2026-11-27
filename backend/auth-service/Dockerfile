@@ -7,6 +7,10 @@ RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -ntp -pl auth-service -am -Dmaven.test.skip=true package
 
 FROM eclipse-temurin:21-jre-alpine
+# Security fixes for Alpine packages released since the base image was built (see APK_REFRESH
+# in .github/workflows/cd.yml: a new value each run, so the build cache never keeps old packages).
+ARG APK_REFRESH=0
+RUN echo "packages refreshed: ${APK_REFRESH}" && apk upgrade --no-cache
 RUN addgroup -S bayflow && adduser -S -G bayflow bayflow
 WORKDIR /app
 COPY --from=build /workspace/auth-service/target/auth-service.jar app.jar
