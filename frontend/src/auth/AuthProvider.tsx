@@ -30,6 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<User | null>(null);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Whether this tab has had a session: only then is there anything of the user's to forget.
+  const hadSession = useRef(false);
 
   const clearTimer = useCallback(() => {
     if (refreshTimer.current) {
@@ -43,6 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null);
     setUser(null);
     setStatus('anonymous');
+    if (!hadSession.current) {
+      // No session to restore (a visitor without a sign-in): nothing of a user's was loaded, and
+      // public pages (online booking, its private links, estimate approval) keep what they fetched.
+      return;
+    }
+    hadSession.current = false;
     // Forget everything the session loaded, except the workshop's public info (name,
     // branding): components such as BrandingEffect keep watching it across sign-out.
     queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== PUBLIC_WORKSHOP_QUERY_KEY[0] });
@@ -54,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAccessToken(token.accessToken);
       setUser(token.user);
       setStatus('authenticated');
+      hadSession.current = true;
       clearTimer();
       const delayMs = Math.max(5, token.expiresIn - REFRESH_AHEAD_SECONDS) * 1000;
       refreshTimer.current = setTimeout(() => void refreshSession(), delayMs);
