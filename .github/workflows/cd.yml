@@ -80,9 +80,12 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           load: true
+          # Always the latest base image (nginx, the JRE), not the one in the build cache.
+          pull: true
           tags: scan/${{ matrix.image }}:${{ github.event.workflow_run.head_sha }}
           build-args: |
             VITE_BASE_DOMAIN=${{ vars.BAYFLOW_BASE_DOMAIN || 'localhost' }}
+            APK_REFRESH=${{ github.run_id }}
           cache-from: type=gha,scope=${{ matrix.image }}
 
       - name: Scan the image for vulnerabilities
@@ -110,7 +113,9 @@ jobs:
           # The web app has its domain built in (workshops at <slug>.<domain>). Set the
           # repository variable BAYFLOW_BASE_DOMAIN (e.g. getramplight.com) for production
           # images; the backend images ignore it.
+          pull: true
           build-args: |
             VITE_BASE_DOMAIN=${{ vars.BAYFLOW_BASE_DOMAIN || 'localhost' }}
+            APK_REFRESH=${{ github.run_id }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
