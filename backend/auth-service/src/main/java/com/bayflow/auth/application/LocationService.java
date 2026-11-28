@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.bayflow.auth.domain.Location;
 import com.bayflow.auth.domain.LocationBilling;
+import com.bayflow.auth.domain.LocationReviews;
 import com.bayflow.auth.domain.TenantSettings;
 import com.bayflow.auth.infrastructure.LocationRepository;
 import com.bayflow.security.TenantContext;
@@ -77,6 +78,30 @@ public class LocationService {
                     "The location was changed by someone else. Reload and try again.");
         }
         location.updateBilling(billing, clock.instant());
+        return view(locations.saveAndFlush(location), org);
+    }
+
+    /**
+     * Changes a location's Google review requests; {@code version} must match what the caller last
+     * read. Asking needs a link (https).
+     */
+    @Transactional
+    public LocationView updateReviews(UUID id, LocationReviews reviews, long version) {
+        TenantSettings org = settings.current().settings();
+        Location location = locations.findById(id).orElseThrow(() -> ApiException.notFound("Location"));
+        if (location.getVersion() != null && location.getVersion() != version) {
+            throw ApiException.conflict("concurrent-update",
+                    "The location was changed by someone else. Reload and try again.");
+        }
+        String url = reviews.url() == null || reviews.url().isBlank() ? null : reviews.url().strip();
+        if (url != null && !url.regionMatches(true, 0, "https://", 0, 8)) {
+            throw ApiException.badRequest("invalid-review-url", "The review link must start with https://.");
+        }
+        if (reviews.enabled() && url == null) {
+            throw ApiException.badRequest("review-url-required",
+                    "Add the location's Google review link before turning review requests on.");
+        }
+        location.updateReviews(new LocationReviews(reviews.enabled(), url, reviews.delay()), clock.instant());
         return view(locations.saveAndFlush(location), org);
     }
 
@@ -178,7 +203,7 @@ public class LocationService {
         UUID tenantId = TenantContext.require();
         return locations.findById(tenantId)
                 .or(() -> locations.findAllByOrderByNameAsc().stream().findFirst())
-                .orElseGet(() -> locations.saveAndFlush(Location.main(tenantId, clock.instant())));
+                .orElseGet(() -> locations.saveAndFlush(Location.mainLocation(tenantId, clock.instant())));
     }
 
     private static LocationView view(Location location, TenantSettings org) {

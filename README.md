@@ -335,6 +335,20 @@ a new link; earlier ones keep working until a new one is sent. API:
 `/api/v1/job-cards/{id}/estimate-link` (GET, POST, `/signature`) and the public
 `POST /api/v1/estimate-approval/view|decide`.
 
+### Google review requests
+
+Admins open *Settings → Locations → Google reviews* for each location: paste its Google review
+link (in the Google Business Profile, "Ask for reviews"), tick *Ask customers for a Google review
+after they pay*, and choose when: 2 hours after payment, the next morning at 9 (the default, in the
+location's time zone) or 2 days after. When an invoice is paid in full, its customer gets a short
+e-mail with the link then (a cross-instance job, 15-minute runs). Rules: once per invoice; a
+customer (by e-mail address) is asked at most once every 90 days across locations; never after a
+voided invoice; never after they click *Stop review requests* in an e-mail (`/reviews/stop`). Everyone
+is asked, happy or not: Google forbids asking only satisfied customers. On a paid invoice staff see
+the request (scheduled, sent, or not sent and why) with **Send now** / **Don't send**. API:
+`PUT /api/v1/auth/locations/{id}/reviews`, `GET|POST /api/v1/invoices/{id}/review-request[/send|/cancel]`
+and the public `POST /api/v1/review-requests/stop`; `bayflow.workshop.reviews.*`.
+
 ### Quick estimates and VIN decode
 
 For a customer on the phone or at the desk, advisors, managers and admins click **New estimate** on *Job

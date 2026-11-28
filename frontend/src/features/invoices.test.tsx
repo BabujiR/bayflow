@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ExportInvoice, Invoice, InvoiceLine } from '@/api/types';
 import { paymentsCsv, quickbooksDate, quickbooksInvoicesCsv } from '@/features/invoices/quickbooks-csv';
 import { renderApp } from '@/test/render';
-import { jobCard, location, pageOf, server, sessionFor, user } from '@/test/server';
+import { jobCard, location, noSession, pageOf, server, sessionFor, user } from '@/test/server';
 
 const INVOICE_ID = 'i0000000-0000-0000-0000-000000000001';
 const CARD_ID = 'j0000000-0000-0000-0000-000000000001';
@@ -502,5 +502,97 @@ describe('invoices (R2a)', () => {
         invoiceFooter: null,
       },
     });
+  });
+});
+
+describe('Google review requests', () => {
+  it('an admin sets a location’s review link and turns requests on', async () => {
+    let sent: unknown;
+    server.use(
+      sessionFor(user('ADMIN', 'owner')),
+      http.get('*/api/v1/auth/locations', () => HttpResponse.json([location({ version: 3 })])),
+      http.put('*/api/v1/auth/locations/:id/reviews', async ({ request }) => {
+        sent = await request.json();
+        return HttpResponse.json(location({ version: 4 }));
+      }),
+    );
+    renderApp('/locations');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Google reviews for Main' }));
+    const dialog = await screen.findByRole('dialog', { name: /Google reviews/ });
+    await userEvent.click(within(dialog).getByRole('checkbox'));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save Google reviews' }));
+    expect(within(dialog).getByText('Add the link to turn review requests on')).toBeInTheDocument();
+    expect(sent).toBeUndefined();
+
+    await userEvent.type(within(dialog).getByLabelText('Google review link'), 'https://g.page/r/main/review');
+    await userEvent.selectOptions(within(dialog).getByLabelText('When to send it'), 'TWO_HOURS');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save Google reviews' }));
+
+    await vi.waitFor(() =>
+      expect(sent).toEqual({
+        version: 3,
+        reviews: { enabled: true, url: 'https://g.page/r/main/review', delay: 'TWO_HOURS' },
+      }),
+    );
+  });
+
+  it('shows a paid invoice’s scheduled request, which staff can stop', async () => {
+    let cancelled = false;
+    server.use(
+      sessionFor(user('SERVICE_ADVISOR', 'sam')),
+      serve(issued({ status: 'PAID', balanceDue: 0 })),
+      http.get('*/api/v1/invoices/:id/review-request', () =>
+        HttpResponse.json({
+          status: 'SCHEDULED',
+          dueAt: '2026-11-21T14:00:00Z',
+          sentAt: null,
+          sentTo: null,
+          sentBy: null,
+          reason: null,
+        }),
+      ),
+      http.post('*/api/v1/invoices/:id/review-request/cancel', () => {
+        cancelled = true;
+        return HttpResponse.json({
+          status: 'CANCELLED',
+          dueAt: null,
+          sentAt: null,
+          sentTo: null,
+          sentBy: null,
+          reason: 'Not sent: sam chose not to',
+        });
+      }),
+    );
+    renderApp(`/invoices/${INVOICE_ID}`);
+
+    const line = await screen.findByTestId('review-request', {}, { timeout: 10_000 });
+    expect(line).toHaveTextContent(/Google review request scheduled for/);
+    await userEvent.click(within(line).getByRole('button', { name: "Don't send" }));
+    expect(
+      await within(line).findByText('Google review request: Not sent: sam chose not to'),
+    ).toBeInTheDocument();
+    expect(cancelled).toBe(true);
+    expect(within(line).getByRole('button', { name: 'Ask for a review' })).toBeInTheDocument();
+  });
+
+  it('lets a customer stop review requests from the e-mail link', async () => {
+    let sent: unknown;
+    server.use(
+      noSession,
+      http.post('*/api/v1/review-requests/stop', async ({ request }) => {
+        sent = await request.json();
+        return HttpResponse.json({ shopName: 'Lotus Auto' });
+      }),
+    );
+    renderApp(`/reviews/stop?token=${'R'.repeat(43)}`);
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Stop review requests' }, { timeout: 10_000 }),
+    );
+    expect(
+      await screen.findByText(/Lotus Auto won't e-mail you asking for reviews again/),
+    ).toBeInTheDocument();
+    expect(sent).toEqual({ token: 'R'.repeat(43) });
   });
 });

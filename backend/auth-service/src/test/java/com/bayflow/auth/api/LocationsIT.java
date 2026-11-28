@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.web.servlet.ResultActions;
 
 import com.bayflow.auth.IntegrationTestBase;
 import com.bayflow.auth.application.AuthService;
@@ -57,7 +58,8 @@ class LocationsIT extends IntegrationTestBase {
         jdbc.update("""
                 update bayflow.auth_locations set parts_tax_rate = 0, labour_tax_rate = 0, fees_tax_rate = 0,
                     shop_supplies_percent = null, shop_supplies_cap = null, disposal_fee = null,
-                    payment_terms_days = 0, invoice_footer = null where id = ?""", MAIN);
+                    payment_terms_days = 0, invoice_footer = null, review_url = null, review_requests = false,
+                    review_delay = 'NEXT_MORNING' where id = ?""", MAIN);
     }
 
     // ---- invoice settings (R2a) -----------------------------------------------------------------
@@ -98,6 +100,55 @@ class LocationsIT extends IntegrationTestBase {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.billing.partsTaxRate").value(8.875))
                 .andExpect(jsonPath("$.billing.paymentTermsDays").value(15));
+    }
+
+    // ---- Google review requests ----------------------------------------------------------------
+
+    @Test
+    void anAdminSetsTheReviewLinkWhichServicesRead() throws Exception {
+        String admin = tokenFor(Role.ADMIN);
+        String body = """
+                {"reviews":{"enabled":%s,"url":%s,"delay":"TWO_HOURS"},"version":%d}""";
+
+        // Turning them on needs a link, and the link must be https.
+        reviews(admin, body.formatted(true, "null", version(admin)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("urn:bayflow:problem:review-url-required"));
+        reviews(admin, body.formatted(true, "\"http://g.page/r/abc/review\"", version(admin)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("urn:bayflow:problem:invalid-review-url"));
+
+        reviews(admin, body.formatted(true, "\" https://g.page/r/abc/review \"", version(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reviews.enabled").value(true))
+                .andExpect(jsonPath("$.reviews.url").value("https://g.page/r/abc/review"))
+                .andExpect(jsonPath("$.reviews.delay").value("TWO_HOURS"));
+        mvc.perform(get("/api/v1/auth/internal/tenants/" + MAIN + "/locations/" + MAIN + "/settings")
+                        .header("Authorization", "Bearer " + systemToken()))
+                .andExpect(jsonPath("$.reviews.enabled").value(true))
+                .andExpect(jsonPath("$.reviews.url").value("https://g.page/r/abc/review"));
+
+        // A new location doesn't ask until it has its own link.
+        mvc.perform(post("/api/v1/auth/locations").header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"north\",\"name\":\"North\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.reviews.enabled").value(false))
+                .andExpect(jsonPath("$.reviews.url").doesNotExist());
+        reviews(tokenFor(Role.SERVICE_ADVISOR), body.formatted(false, "null", version(admin)))
+                .andExpect(status().isForbidden());
+    }
+
+    private ResultActions reviews(String token, String body) throws Exception {
+        return mvc.perform(put("/api/v1/auth/locations/" + MAIN + "/reviews").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
+    private long version(String admin) throws Exception {
+        List<Number> versions = JsonPath.read(mvc.perform(get("/api/v1/auth/locations")
+                        .header("Authorization", "Bearer " + admin))
+                .andReturn().getResponse().getContentAsString(), "$[?(@.id == '" + MAIN + "')].version");
+        return versions.get(0).longValue();
     }
 
     @Test

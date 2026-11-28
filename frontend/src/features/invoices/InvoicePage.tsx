@@ -23,7 +23,9 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useLocationLookup } from '@/features/locations/use-locations';
 import { useQuickBooksStatus } from '@/features/quickbooks/QuickBooksSection';
+import { ReviewRequestLine } from '@/features/reviews/ReviewRequestLine';
 import { formatDateTime, formatMoney } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
@@ -61,6 +63,8 @@ function InvoiceView({ invoice }: { invoice: Invoice }) {
   const [paying, setPaying] = useState<'payment' | 'refund' | null>(null);
   const [voiding, setVoiding] = useState(false);
   const [emailing, setEmailing] = useState(false);
+  // Times shown in the invoice's location's zone.
+  const zone = useLocationLookup().zoneOf(invoice.locationId);
   const quickbooks = useQuickBooksStatus(staff);
   const sendToQuickBooks = useAction(() => invoicesApi.sendToQuickBooks(invoice.id), {
     success: (i) =>
@@ -176,6 +180,7 @@ function InvoiceView({ invoice }: { invoice: Invoice }) {
               {formatDateTime(invoice.emailedAt)}
             </p>
           )}
+          {staff && invoice.status === 'PAID' && <ReviewRequestLine invoiceId={invoice.id} zone={zone} />}
           <InvoiceDocument invoice={invoice} />
         </>
       )}

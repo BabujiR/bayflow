@@ -82,6 +82,18 @@ public class Location {
     @Column(name = "invoice_footer", length = 500)
     private String invoiceFooter;
 
+    // ---- Google review requests ----
+
+    @Column(name = "review_url", length = 500)
+    private String reviewUrl;
+
+    @Column(name = "review_requests", nullable = false)
+    private boolean reviewRequests;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "review_delay", nullable = false, length = 20)
+    private LocationReviews.Delay reviewDelay = LocationReviews.Delay.NEXT_MORNING;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Status status;
@@ -100,7 +112,7 @@ public class Location {
     }
 
     /** The organization's first location: id = tenant id, no overrides. */
-    public static Location main(UUID tenantId, Instant now) {
+    public static Location mainLocation(UUID tenantId, Instant now) {
         return create(tenantId, tenantId, MAIN_CODE, "Main", now);
     }
 
@@ -145,6 +157,18 @@ public class Location {
     public LocationBilling billing() {
         return new LocationBilling(partsTaxRate, labourTaxRate, feesTaxRate, shopSuppliesPercent, shopSuppliesCap,
                 disposalFee, paymentTermsDays, invoiceFooter);
+    }
+
+    /** Changes the Google review requests (the link and whether and when to ask). */
+    public void updateReviews(LocationReviews reviews, Instant now) {
+        this.reviewUrl = reviews.url();
+        this.reviewRequests = reviews.enabled();
+        this.reviewDelay = reviews.delay();
+        this.updatedAt = now;
+    }
+
+    public LocationReviews reviews() {
+        return new LocationReviews(reviewRequests, reviewUrl, reviewDelay);
     }
 
     public void archive(Instant now) {

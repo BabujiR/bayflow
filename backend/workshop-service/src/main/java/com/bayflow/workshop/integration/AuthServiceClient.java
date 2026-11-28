@@ -33,9 +33,35 @@ public class AuthServiceClient {
         }
     }
 
-    /** One location's name, time zone and contact details. */
+    /** One location's name, time zone and contact details, and its Google review requests. */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record LocationProfile(String name, String timeZone, String phone, String email, String address) {
+    public record LocationProfile(String name, String timeZone, String phone, String email, String address,
+            ReviewSettings reviews) {
+
+        /** Without review settings (tests, and an older auth-service: requests are off). */
+        public LocationProfile(String name, String timeZone, String phone, String email, String address) {
+            this(name, timeZone, phone, email, address, null);
+        }
+
+        /** The review settings, off when auth-service sent none. */
+        public ReviewSettings reviewsOrOff() {
+            return reviews == null ? ReviewSettings.OFF : reviews;
+        }
+    }
+
+    /**
+     * Google review requests at a location: whether to ask, the link (https), and when after the
+     * invoice is paid: TWO_HOURS, NEXT_MORNING or TWO_DAYS.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record ReviewSettings(boolean enabled, String url, String delay) {
+
+        public static final ReviewSettings OFF = new ReviewSettings(false, null, "NEXT_MORNING");
+
+        /** Off, or on without anywhere to send the customer: no requests. */
+        public boolean notAsking() {
+            return !enabled || url == null || url.isBlank();
+        }
     }
 
     /** A finished e-mail. */

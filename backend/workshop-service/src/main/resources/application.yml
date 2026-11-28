@@ -78,6 +78,11 @@ bayflow:
       remind-every: 1d
       max-reminders: 2
       reminders-enabled: true
+    # Google review requests: each location turns them on (with its link) in Settings → Locations.
+    reviews:
+      ask-every: 90d
+      morning: "09:00"
+      sender-enabled: true
     # Estimate ready / decided / work complete → notification-service, through the outbox.
     notifications:
       enabled: true
