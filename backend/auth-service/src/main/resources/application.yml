@@ -10,6 +10,14 @@ server:
     include-stacktrace: never
 
 spring:
+  # Java 25 virtual threads for requests and scheduled jobs: a request waiting on Postgres or
+  # another service no longer holds an OS thread. The connection pool is now the limit.
+  threads:
+    virtual:
+      enabled: true
+  main:
+    # Virtual threads don't keep the JVM alive on their own.
+    keep-alive: true
   application:
     name: auth-service
   datasource:
