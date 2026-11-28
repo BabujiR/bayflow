@@ -12,13 +12,13 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import com.bayflow.appointment.application.ApiException;
 import com.bayflow.appointment.config.IntegrationProperties;
 import com.bayflow.appointment.domain.Vehicle;
+import com.bayflow.http.ServiceHttp;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -63,11 +63,9 @@ public class VinDecoder {
             });
 
     public VinDecoder(IntegrationProperties properties) {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(properties.getVinDecoder().getTimeout());
-        factory.setReadTimeout(properties.getVinDecoder().getTimeout());
         // An outside service: no request ids or trace headers go to it.
-        this.vpic = RestClient.builder().baseUrl(properties.getVinDecoder().getUrl()).requestFactory(factory).build();
+        this.vpic = ServiceHttp.external(properties.getVinDecoder().getUrl(), properties.getVinDecoder().getTimeout(),
+                properties.getVinDecoder().getTimeout());
     }
 
     public DecodedVin decode(String vin) {

@@ -72,6 +72,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- SystemTokens and ServiceHttp against a stand-in auth-service (as the services' tests do). -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
