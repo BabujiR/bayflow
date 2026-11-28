@@ -5,12 +5,11 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import com.bayflow.auth.config.AuthProperties;
-import com.bayflow.ops.RequestIds;
+import com.bayflow.http.ServiceHttp;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
@@ -28,13 +27,8 @@ public class UpcomingAppointments {
     private final TokenService tokens;
 
     public UpcomingAppointments(AuthProperties properties, TokenService tokens) {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(2));
-        factory.setReadTimeout(Duration.ofSeconds(5));
-        this.appointments = RestClient.builder()
-                .requestInterceptor(RequestIds.propagate())
-                .baseUrl(properties.getAppointmentUrl()).requestFactory(factory)
-                .build();
+        this.appointments = ServiceHttp.internal(properties.getAppointmentUrl(), Duration.ofSeconds(2),
+                Duration.ofSeconds(5));
         this.tokens = tokens;
     }
 

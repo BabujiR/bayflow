@@ -1,6 +1,7 @@
 package com.bayflow.workshop.config;
 
 import java.time.Duration;
+import java.time.LocalTime;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -26,6 +27,7 @@ public class WorkshopProperties {
     private final Notifications notifications = new Notifications();
     private final QuickBooks quickbooks = new QuickBooks();
     private final Estimates estimates = new Estimates();
+    private final Reviews reviews = new Reviews();
 
     public String getSiteUrl() { return siteUrl; }
     public void setSiteUrl(String siteUrl) { this.siteUrl = siteUrl; }
@@ -46,6 +48,7 @@ public class WorkshopProperties {
     public Notifications getNotifications() { return notifications; }
     public QuickBooks getQuickbooks() { return quickbooks; }
     public Estimates getEstimates() { return estimates; }
+    public Reviews getReviews() { return reviews; }
 
     /**
      * QuickBooks Online (Intuit app keys). Off until client id, secret and token key are set. One
@@ -134,6 +137,30 @@ public class WorkshopProperties {
         public void setRemindersEnabled(boolean remindersEnabled) { this.remindersEnabled = remindersEnabled; }
         public long getReminderIntervalMs() { return reminderIntervalMs; }
         public void setReminderIntervalMs(long reminderIntervalMs) { this.reminderIntervalMs = reminderIntervalMs; }
+    }
+
+    /** Google review requests (each location turns them on and sets its link in auth-service). */
+    public static class Reviews {
+        /** At most one request per customer (e-mail address) in this long, across locations. */
+        private Duration askEvery = Duration.ofDays(90);
+        /** The local time "next morning" means. */
+        private LocalTime morning = LocalTime.of(9, 0);
+        /** Tries before a request that can't be sent is given up. */
+        private int maxAttempts = 5;
+        /** The scheduled sending run (off in tests, which call it themselves). */
+        private boolean senderEnabled = true;
+        private long senderIntervalMs = 15 * 60 * 1000L;
+
+        public Duration getAskEvery() { return askEvery; }
+        public void setAskEvery(Duration askEvery) { this.askEvery = askEvery; }
+        public LocalTime getMorning() { return morning; }
+        public void setMorning(LocalTime morning) { this.morning = morning; }
+        public int getMaxAttempts() { return maxAttempts; }
+        public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
+        public boolean isSenderEnabled() { return senderEnabled; }
+        public void setSenderEnabled(boolean senderEnabled) { this.senderEnabled = senderEnabled; }
+        public long getSenderIntervalMs() { return senderIntervalMs; }
+        public void setSenderIntervalMs(long senderIntervalMs) { this.senderIntervalMs = senderIntervalMs; }
     }
 
     /** Events for notification-service, sent through the outbox (ws_outbox). */

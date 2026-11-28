@@ -13,6 +13,9 @@ bayflow:
       # EstimateApprovalIT sends links and reminders itself.
       send-on-submit: false
       reminders-enabled: false
+    reviews:
+      # ReviewRequestsIT sends due requests itself.
+      sender-enabled: false
     notifications:
       # Most tests don't look at notification events; NotificationEventsIT turns them on.
       enabled: false

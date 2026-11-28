@@ -12,14 +12,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
+import com.bayflow.http.ServiceHttp;
+import com.bayflow.http.SystemTokens;
 import com.bayflow.notification.config.NotificationProperties;
-import com.bayflow.ops.RequestIds;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
@@ -34,37 +33,23 @@ public class AuthClient {
     public record LocationInfo(UUID id, String name, boolean active, String timeZone) {
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    record TokenResponse(String accessToken, Instant expiresAt) {
-    }
-
-    record TokenRequest(String clientId, String clientSecret) {
-    }
-
     private record Cached<T>(T value, Instant fetchedAt) {
     }
 
     private record StaffKey(UUID tenantId, UUID locationId, String roles) {
     }
 
-    private static final Duration TOKEN_REFRESH_MARGIN = Duration.ofSeconds(60);
-
     private final RestClient auth;
+    private final SystemTokens tokens;
     private final NotificationProperties properties;
     private final Clock clock;
     private final Map<StaffKey, Cached<List<UUID>>> staff = new ConcurrentHashMap<>();
     private final Map<UUID, Cached<List<LocationInfo>>> locations = new ConcurrentHashMap<>();
 
-    private String token;
-    private Instant tokenExpiresAt = Instant.EPOCH;
-
     public AuthClient(NotificationProperties properties, Clock clock) {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(properties.getConnectTimeout());
-        factory.setReadTimeout(properties.getReadTimeout());
-        this.auth = RestClient.builder()
-                .requestInterceptor(RequestIds.propagate())
-                .baseUrl(properties.getAuthUrl()).requestFactory(factory).build();
+        this.auth = ServiceHttp.internal(properties.getAuthUrl(), properties.getConnectTimeout(),
+                properties.getReadTimeout());
+        this.tokens = new SystemTokens(auth, properties.getClientId(), properties.getClientSecret(), clock);
         this.properties = properties;
         this.clock = clock;
     }
@@ -122,31 +107,12 @@ public class AuthClient {
         try {
             return call.get();
         } catch (HttpClientErrorException.Unauthorized e) {
-            invalidateToken();
+            tokens.invalidate();
             return call.get();
         }
     }
 
-    private synchronized String token() {
-        if (token != null && clock.instant().isBefore(tokenExpiresAt.minus(TOKEN_REFRESH_MARGIN))) {
-            return token;
-        }
-        TokenResponse response = auth.post()
-                .uri("/api/v1/auth/token")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new TokenRequest(properties.getClientId(), properties.getClientSecret()))
-                .retrieve()
-                .body(TokenResponse.class);
-        if (response == null || response.accessToken() == null) {
-            throw new IllegalStateException("auth-service returned no access token");
-        }
-        token = response.accessToken();
-        tokenExpiresAt = response.expiresAt() != null ? response.expiresAt() : clock.instant().plusSeconds(120);
-        return token;
-    }
-
-    private synchronized void invalidateToken() {
-        token = null;
-        tokenExpiresAt = Instant.EPOCH;
+    private String token() {
+        return tokens.token();
     }
 }

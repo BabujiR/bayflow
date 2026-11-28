@@ -34,6 +34,7 @@ import com.bayflow.auth.application.LocationService.LocationDetails;
 import com.bayflow.auth.application.LocationService.LocationView;
 import com.bayflow.auth.application.UserLocationService;
 import com.bayflow.auth.domain.LocationBilling;
+import com.bayflow.auth.domain.LocationReviews;
 import com.bayflow.auth.domain.Role;
 import com.bayflow.security.CurrentUser;
 import com.bayflow.security.TenantContext;
@@ -55,15 +56,34 @@ public class LocationController {
      */
     public record LocationResponse(UUID id, String code, String name, String phone, String email, String address,
             String status, String timeZone, BigDecimal labourRate, String currency, String ownTimeZone,
-            BigDecimal ownLabourRate, long version, BillingSettings billing) {
+            BigDecimal ownLabourRate, long version, BillingSettings billing, ReviewSettings reviews) {
 
         static LocationResponse from(LocationView view) {
             var l = view.location();
             return new LocationResponse(l.getId(), l.getCode(), l.getName(), l.getPhone(), l.getEmail(),
                     l.getAddress(), l.getStatus().name(), view.timeZone(), view.labourRate(), view.currency(),
                     l.getTimeZone(), l.getLabourRate(), l.getVersion() == null ? 0 : l.getVersion(),
-                    BillingSettings.from(l.billing()));
+                    BillingSettings.from(l.billing()), ReviewSettings.from(l.reviews()));
         }
+    }
+
+    /**
+     * Google review requests at a location: {@code enabled} e-mails customers {@code url} (the
+     * location's Google review link, https) after their invoice is paid, {@code delay} later.
+     */
+    public record ReviewSettings(boolean enabled, @Size(max = 500) String url, @NotNull LocationReviews.Delay delay) {
+
+        static ReviewSettings from(LocationReviews r) {
+            return new ReviewSettings(r.enabled(), r.url(), r.delay());
+        }
+
+        LocationReviews toReviews() {
+            return new LocationReviews(enabled, url, delay);
+        }
+    }
+
+    /** The review settings and the location's version, for {@code PUT /locations/{id}/reviews}. */
+    public record ReviewsRequest(@NotNull @Valid ReviewSettings reviews, @NotNull Long version) {
     }
 
     /**
@@ -99,13 +119,13 @@ public class LocationController {
     /** What other services need to know about a location. */
     public record LocationSettingsResponse(UUID id, String code, String name, boolean active, String timeZone,
             BigDecimal labourRate, String currency, String phone, String email, String address,
-            BillingSettings billing) {
+            BillingSettings billing, ReviewSettings reviews) {
 
         static LocationSettingsResponse from(LocationView view) {
             var l = view.location();
             return new LocationSettingsResponse(l.getId(), l.getCode(), l.getName(), l.isActive(), view.timeZone(),
                     view.labourRate(), view.currency(), l.getPhone(), l.getEmail(), l.getAddress(),
-                    BillingSettings.from(l.billing()));
+                    BillingSettings.from(l.billing()), ReviewSettings.from(l.reviews()));
         }
     }
 
@@ -170,6 +190,14 @@ public class LocationController {
     @Operation(summary = "Change a location's tax rates, fees and invoice terms (ADMIN); send the version you read")
     public LocationResponse updateBilling(@PathVariable UUID id, @Valid @RequestBody BillingRequest request) {
         return LocationResponse.from(locations.updateBilling(id, request.billing().toBilling(), request.version()));
+    }
+
+    @PutMapping("/locations/{id}/reviews")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Change a location's Google review requests (ADMIN); send the version you read",
+            description = "400 invalid-review-url (not https) or review-url-required (turning on without a link).")
+    public LocationResponse updateReviews(@PathVariable UUID id, @Valid @RequestBody ReviewsRequest request) {
+        return LocationResponse.from(locations.updateReviews(id, request.reviews().toReviews(), request.version()));
     }
 
     @PostMapping("/locations/{id}/archive")

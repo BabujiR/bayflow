@@ -24,6 +24,7 @@ import { formatMoney, timeZones } from '@/lib/format';
 import { useAction } from '@/lib/use-action';
 
 import { LocationBillingButton } from './LocationBilling';
+import { LocationReviewsButton } from './LocationReviews';
 import { LOCATIONS_QUERY_KEY, useLocations } from './use-locations';
 
 const schema = z.object({
@@ -140,6 +141,7 @@ export function LocationsPage() {
                       {l.status === 'ACTIVE' && <CopyBookingLink code={l.code} name={l.name} />}
                       <EditLocation location={l} />
                       <LocationBillingButton location={l} />
+                      <LocationReviewsButton location={l} />
                       {l.status === 'ACTIVE' ? (
                         <Button
                           size="sm"

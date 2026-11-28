@@ -199,6 +199,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/locations/{id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change a location's Google review requests (ADMIN); send the version you read
+         * @description 400 invalid-review-url (not https) or review-url-required (turning on without a link).
+         */
+        put: operations["updateReviews"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/locations/{id}/billing": {
         parameters: {
             query?: never;
@@ -1179,6 +1199,18 @@ export interface components {
             /** Format: int64 */
             version?: number;
             billing?: components["schemas"]["BillingSettings"];
+            reviews?: components["schemas"]["ReviewSettings"];
+        };
+        ReviewSettings: {
+            enabled?: boolean;
+            url?: string;
+            /** @enum {string} */
+            delay: "TWO_HOURS" | "NEXT_MORNING" | "TWO_DAYS";
+        };
+        ReviewsRequest: {
+            reviews: components["schemas"]["ReviewSettings"];
+            /** Format: int64 */
+            version: number;
         };
         BillingRequest: {
             billing: components["schemas"]["BillingSettings"];
@@ -1489,6 +1521,7 @@ export interface components {
             email?: string;
             address?: string;
             billing?: components["schemas"]["BillingSettings"];
+            reviews?: components["schemas"]["ReviewSettings"];
         };
         AuditEventResponse: {
             /** Format: uuid */
@@ -1853,6 +1886,32 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["LocationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LocationResponse"];
+                };
+            };
+        };
+    };
+    updateReviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewsRequest"];
             };
         };
         responses: {

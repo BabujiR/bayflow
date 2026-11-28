@@ -577,6 +577,38 @@
         ]
       }
     },
+    "/api/v1/review-requests/stop": {
+      "post": {
+        "tags": [
+          "Review requests"
+        ],
+        "summary": "Public: the customer's stop link; no more review requests from this workshop",
+        "description": "404 review-link-invalid for an unknown token. Repeats are harmless.",
+        "operationId": "stop",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StopRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stopped"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/quickbooks/connect": {
       "post": {
         "tags": [
@@ -1461,6 +1493,71 @@
         ]
       }
     },
+    "/api/v1/invoices/{id}/review-request/send": {
+      "post": {
+        "tags": [
+          "Review requests"
+        ],
+        "summary": "Ask for a Google review now (paid invoices; needs the location's review link)",
+        "description": "409 invoice-not-paid, review-already-requested, review-opted-out or no-review-link; 400 no-email-address.",
+        "operationId": "send_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRequestStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}/review-request/cancel": {
+      "post": {
+        "tags": [
+          "Review requests"
+        ],
+        "summary": "Don't send the scheduled review request (409 review-not-scheduled)",
+        "operationId": "cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRequestStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/invoices/{id}/quickbooks": {
       "post": {
         "tags": [
@@ -1468,7 +1565,7 @@
         ],
         "summary": "Send an issued invoice to QuickBooks, with the payments not sent yet (and its void)",
         "description": "A QuickBooks error is kept on the invoice and returned in quickbooks.error.",
-        "operationId": "send_1",
+        "operationId": "send_2",
         "parameters": [
           {
             "name": "id",
@@ -2750,6 +2847,38 @@
         ]
       }
     },
+    "/api/v1/invoices/{id}/review-request": {
+      "get": {
+        "tags": [
+          "Review requests"
+        ],
+        "summary": "The invoice's Google review request: NONE, SCHEDULED, SENT, SKIPPED (with why) or CANCELLED",
+        "operationId": "status_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRequestStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/invoices/export": {
       "get": {
         "tags": [
@@ -3631,6 +3760,27 @@
           "active"
         ]
       },
+      "StopRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "Stopped": {
+        "type": "object",
+        "properties": {
+          "shopName": {
+            "type": "string"
+          }
+        }
+      },
       "ConnectRequest": {
         "type": "object",
         "properties": {
@@ -4252,6 +4402,31 @@
         "required": [
           "reason"
         ]
+      },
+      "ReviewRequestStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sentTo": {
+            "type": "string"
+          },
+          "sentBy": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
       },
       "PaymentRequest": {
         "type": "object",

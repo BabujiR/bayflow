@@ -54,6 +54,7 @@ import type {
   QuickBooksMapping,
   QuickBooksStatus,
   LocationBilling,
+  LocationReviews,
   PaymentRequest,
   Location,
   LocationRequest,
@@ -69,6 +70,7 @@ import type {
   ReportRows,
   ReportSummary,
   RescheduleRequest,
+  ReviewRequestStatus,
   ScheduleEstimateRequest,
   ServiceHistoryEntry,
   SignupRequest,
@@ -413,6 +415,9 @@ export const locationsApi = {
   updateBilling: (id: string, billing: LocationBilling, version: number) =>
     http.put<Location>(`/api/v1/auth/locations/${id}/billing`, { billing, version }),
   reactivate: (id: string) => http.post<Location>(`/api/v1/auth/locations/${id}/reactivate`),
+  /** ADMIN: Google review requests (link, on/off, delay); send the location's version. */
+  updateReviews: (id: string, reviews: LocationReviews, version: number) =>
+    http.put<Location>(`/api/v1/auth/locations/${id}/reviews`, { reviews, version }),
 };
 
 /** The signed-in user's own notifications (notification-service); read ones are deleted. */
@@ -469,6 +474,22 @@ export const quickbooksApi = {
   accounts: () => http.get<QuickBooksChoice[]>('/api/v1/quickbooks/accounts'),
   saveMapping: (mapping: QuickBooksMapping) =>
     http.put<QuickBooksStatus>('/api/v1/quickbooks/mapping', mapping),
+};
+
+/** Google review requests: on a paid invoice (staff), and the customer's stop link (public). */
+export const reviewRequestsApi = {
+  status: (invoiceId: string) =>
+    http.get<ReviewRequestStatus>(`/api/v1/invoices/${invoiceId}/review-request`),
+  sendNow: (invoiceId: string) =>
+    http.post<ReviewRequestStatus>(`/api/v1/invoices/${invoiceId}/review-request/send`),
+  cancel: (invoiceId: string) =>
+    http.post<ReviewRequestStatus>(`/api/v1/invoices/${invoiceId}/review-request/cancel`),
+  stop: (token: string) =>
+    request<{ shopName: string | null }>('/api/v1/review-requests/stop', {
+      method: 'POST',
+      body: { token },
+      auth: false,
+    }),
 };
 
 export const invoicesApi = {

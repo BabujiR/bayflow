@@ -70,4 +70,6 @@ export type DriftGuard = [
   None<Extra<T.DecodedVin, P['DecodedVin']>>,
   None<Extra<T.JobCard, W['JobCardResponse']>>,
   None<Extra<T.JobCardSummary, W['JobCardSummary']>>,
+  None<Extra<T.ReviewRequestStatus, W['ReviewRequestStatus']>>,
+  None<Extra<T.LocationReviews, A['ReviewSettings']>>,
 ];

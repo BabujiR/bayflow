@@ -765,6 +765,18 @@ export interface Location {
   version: number;
   /** Tax, fees and invoice terms (R2a). Missing from older servers. */
   billing?: LocationBilling;
+  /** Google review requests. Missing from older servers (off). */
+  reviews?: LocationReviews;
+}
+
+/** When a review request goes out after the invoice is paid. */
+export type ReviewDelay = 'TWO_HOURS' | 'NEXT_MORNING' | 'TWO_DAYS';
+
+/** A location's Google review requests: whether to ask, its review link (https), and when. */
+export interface LocationReviews {
+  enabled: boolean;
+  url: string | null;
+  delay: ReviewDelay;
 }
 
 /**
@@ -1346,3 +1358,17 @@ export type ScheduleEstimateRequest = P['ScheduleEstimateRequest'];
 
 /** What the public booking page fills in from a VIN. */
 export type PublicVin = P['PublicVin'];
+
+// ---- Google review requests (workshop-service) ----------------------------------------------
+
+/** A paid invoice's review request. NONE: nothing scheduled (requests off at the location). */
+export interface ReviewRequestStatus {
+  status: 'NONE' | 'SCHEDULED' | 'SENT' | 'SKIPPED' | 'CANCELLED';
+  dueAt: string | null;
+  sentAt: string | null;
+  sentTo: string | null;
+  /** Who sent it ("automatic" for scheduled ones). */
+  sentBy: string | null;
+  /** Why it was skipped or cancelled. */
+  reason: string | null;
+}

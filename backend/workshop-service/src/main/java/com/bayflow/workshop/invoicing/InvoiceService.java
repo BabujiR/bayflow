@@ -5,9 +5,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 
 import org.slf4j.Logger;
@@ -31,6 +31,7 @@ import com.bayflow.workshop.integration.BillingContactClient.BillingContact;
 import com.bayflow.workshop.integration.WorkshopSettingsClient;
 import com.bayflow.workshop.integration.WorkshopSettingsClient.LocationBilling;
 import com.bayflow.workshop.invoicing.Invoice.LineEdit;
+import com.bayflow.workshop.reviews.ReviewRequests;
 
 /**
  * Invoices for completed job cards. Role checks are on the API; here: staff see the invoices of
@@ -56,16 +57,19 @@ public class InvoiceService {
     private final WorkshopSettingsClient settings;
     private final BillingContactClient contacts;
     private final OutboxService outbox;
+    private final ReviewRequests reviews;
     private final Clock clock;
 
     public InvoiceService(InvoiceRepository invoices, JobCardRepository jobCards, InvoiceNumbers numbers,
-            WorkshopSettingsClient settings, BillingContactClient contacts, OutboxService outbox, Clock clock) {
+            WorkshopSettingsClient settings, BillingContactClient contacts, OutboxService outbox,
+            ReviewRequests reviews, Clock clock) {
         this.invoices = invoices;
         this.jobCards = jobCards;
         this.numbers = numbers;
         this.settings = settings;
         this.contacts = contacts;
         this.outbox = outbox;
+        this.reviews = reviews;
         this.clock = clock;
     }
 
@@ -101,13 +105,14 @@ public class InvoiceService {
 
     @Transactional(readOnly = true)
     public Invoice get(CurrentUser user, UUID id) {
-        return loaded(visible(user, invoices.findById(id)));
+        return loaded(visible(user, invoices.findById(id).orElseThrow(InvoiceService::notFound)));
     }
 
     /** The job card's invoice (not voided), as the caller may see it. */
     @Transactional(readOnly = true)
     public Invoice forJobCard(CurrentUser user, UUID jobCardId) {
-        return loaded(visible(user, invoices.findFirstByJobCardIdAndStatusNot(jobCardId, InvoiceStatus.VOID)));
+        return loaded(visible(user, invoices.findFirstByJobCardIdAndStatusNot(jobCardId, InvoiceStatus.VOID)
+                .orElseThrow(InvoiceService::notFound)));
     }
 
     @Transactional(readOnly = true)
@@ -126,7 +131,7 @@ public class InvoiceService {
                 }
             }
             // Drafts by when they were made, the rest by when they were issued.
-            var when = cb.coalesce(root.<Instant>get("issuedAt"), root.<Instant>get("createdAt"));
+            Expression<Instant> when = cb.coalesce(root.get("issuedAt"), root.get("createdAt"));
             if (filter.from() != null) {
                 where.add(cb.greaterThanOrEqualTo(when, filter.from()));
             }
@@ -136,9 +141,9 @@ public class InvoiceService {
             if (filter.query() != null && !filter.query().isBlank()) {
                 String like = "%" + filter.query().strip().toLowerCase().replace("%", "\\%").replace("_", "\\_") + "%";
                 where.add(cb.or(
-                        cb.like(cb.lower(cb.coalesce(root.<String>get("number"), "")), like),
-                        cb.like(cb.lower(root.<String>get("customerName")), like),
-                        cb.like(cb.lower(root.<String>get("registration")), like)));
+                        cb.like(cb.lower(cb.coalesce(root.get("number"), "")), like),
+                        cb.like(cb.lower(root.get("customerName")), like),
+                        cb.like(cb.lower(root.get("registration")), like)));
             }
             return cb.and(where.toArray(Predicate[]::new));
         };
@@ -190,7 +195,12 @@ public class InvoiceService {
         invoice.pay(command.method(), command.amount(), command.reference(),
                 command.receivedAt() == null ? now : command.receivedAt(), user.username(), key,
                 user.isAdmin() || user.isManager(), now);
-        return loaded(invoices.saveAndFlush(invoice));
+        Invoice saved = invoices.saveAndFlush(invoice);
+        if (saved.getStatus() == InvoiceStatus.PAID) {
+            // Paid in full: a Google review request, if the location asks for them.
+            reviews.afterPaid(saved.getId());
+        }
+        return loaded(saved);
     }
 
     @Transactional
@@ -207,13 +217,16 @@ public class InvoiceService {
     }
 
     /** Customers see only their own invoices, and never drafts; staff see what RLS lets through. */
-    private static Invoice visible(CurrentUser user, Optional<Invoice> found) {
-        Invoice invoice = found.orElseThrow(() -> ApiException.notFound("Invoice"));
+    private static Invoice visible(CurrentUser user, Invoice invoice) {
         if (user.isCustomer() && (invoice.getStatus() == InvoiceStatus.DRAFT
                 || !customerId(user).equals(invoice.getCustomerUserId()))) {
             throw ApiException.notFound("Invoice");
         }
         return invoice;
+    }
+
+    private static ApiException notFound() {
+        return ApiException.notFound("Invoice");
     }
 
     private static UUID customerId(CurrentUser user) {

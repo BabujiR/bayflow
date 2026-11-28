@@ -2,20 +2,16 @@ package com.bayflow.workshop.integration;
 
 import java.math.BigDecimal;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
-import com.bayflow.ops.RequestIds;
 import com.bayflow.workshop.config.WorkshopProperties;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -52,19 +48,11 @@ public class WorkshopSettingsClient {
                 BigDecimal.ZERO, null, null, null, 0, null);
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    record TokenResponse(String accessToken, Instant expiresAt) {
-    }
-
-    record TokenRequest(String clientId, String clientSecret) {
-    }
-
     private record Cached(WorkshopSettings settings, Instant fetchedAt) {
     }
 
-    private static final Duration TOKEN_REFRESH_MARGIN = Duration.ofSeconds(60);
-
     private final RestClient auth;
+    private final SystemTokenProvider tokens;
     private final WorkshopProperties properties;
     private final Clock clock;
     /** The location is not one of the organization's (auth-service answered 404). */
@@ -79,16 +67,9 @@ public class WorkshopSettingsClient {
 
     private final Map<Key, Cached> cache = new ConcurrentHashMap<>();
 
-    private String token;
-    private Instant tokenExpiresAt = Instant.EPOCH;
-
-    public WorkshopSettingsClient(WorkshopProperties properties, Clock clock) {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(properties.getConnectTimeout());
-        factory.setReadTimeout(properties.getReadTimeout());
-        this.auth = RestClient.builder()
-                .requestInterceptor(RequestIds.propagate())
-                .baseUrl(properties.getAuthUrl()).requestFactory(factory).build();
+    public WorkshopSettingsClient(WorkshopProperties properties, SystemTokenProvider tokens, Clock clock) {
+        this.auth = HttpClients.create(properties.getAuthUrl(), properties);
+        this.tokens = tokens;
         this.properties = properties;
         this.clock = clock;
     }
@@ -108,7 +89,7 @@ public class WorkshopSettingsClient {
             try {
                 fresh = fetch(tenantId, locationId);
             } catch (HttpClientErrorException.Unauthorized e) {
-                invalidateToken();
+                tokens.invalidate();
                 fresh = fetch(tenantId, locationId);
             }
         } catch (HttpClientErrorException.NotFound e) {
@@ -121,35 +102,12 @@ public class WorkshopSettingsClient {
     private WorkshopSettings fetch(UUID tenantId, UUID locationId) {
         WorkshopSettings settings = auth.get()
                 .uri("/api/v1/auth/internal/tenants/{id}/locations/{location}/settings", tenantId, locationId)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokens.token())
                 .retrieve()
                 .body(WorkshopSettings.class);
         if (settings == null || settings.labourRate() == null || settings.currency() == null) {
             throw new IllegalStateException("auth-service returned no settings for location " + locationId);
         }
         return settings;
-    }
-
-    private synchronized String token() {
-        if (token != null && clock.instant().isBefore(tokenExpiresAt.minus(TOKEN_REFRESH_MARGIN))) {
-            return token;
-        }
-        TokenResponse response = auth.post()
-                .uri("/api/v1/auth/token")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new TokenRequest(properties.getClientId(), properties.getClientSecret()))
-                .retrieve()
-                .body(TokenResponse.class);
-        if (response == null || response.accessToken() == null) {
-            throw new IllegalStateException("auth-service returned no access token");
-        }
-        token = response.accessToken();
-        tokenExpiresAt = response.expiresAt() != null ? response.expiresAt() : clock.instant().plusSeconds(120);
-        return token;
-    }
-
-    private synchronized void invalidateToken() {
-        token = null;
-        tokenExpiresAt = Instant.EPOCH;
     }
 }

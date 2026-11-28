@@ -11,6 +11,7 @@ import { GuestBookingPage } from '@/features/booking/GuestBookingPage';
 import { ManageBookingPage } from '@/features/booking/ManageBookingPage';
 import { EstimateApprovalPage } from '@/features/estimates/EstimateApprovalPage';
 import { NewEstimatePage } from '@/features/estimates/NewEstimatePage';
+import { StopReviewsPage } from '@/features/reviews/StopReviewsPage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { CannedJobsPage } from '@/features/cannedjobs/CannedJobsPage';
@@ -66,6 +67,7 @@ export const routes: RouteObject[] = withErrorPage([
   { path: '/book/manage', element: <ManageBookingPage /> },
   // The customer's estimate from its e-mailed link (approve, decline and sign without signing in).
   { path: '/estimate', element: <EstimateApprovalPage /> },
+  { path: '/reviews/stop', element: <StopReviewsPage /> },
   {
     // Signed in or not: the e-mailed link signs in whoever proves they read that mailbox.
     element: <AuthLayout />,
