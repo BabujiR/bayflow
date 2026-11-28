@@ -35,7 +35,7 @@ recorded in the vehicle's service history.
 
 | Component | Tech |
 |---|---|
-| Backend | Java 21, Spring Boot 4.1, Spring Security (JWT), Spring Data JPA, Flyway |
+| Backend | Java 25, Spring Boot 4.2, Spring Security (JWT), Spring Data JPA, Flyway |
 | Database | PostgreSQL 16, one schema, table prefix per service (`auth_`, `apt_`, `ws_`, `ntf_`) |
 | Frontend | React 19, TypeScript, Vite, TanStack Query, Tailwind CSS + shadcn/ui |
 | Tests | JUnit 5, AssertJ, Testcontainers, WireMock, Vitest, Playwright |
@@ -43,7 +43,7 @@ recorded in the vehicle's service history.
 
 ## Prerequisites
 
-- JDK 21 (Temurin recommended)
+- JDK 25 (Temurin recommended)
 - Maven 3.9+
 - Docker Desktop (for Postgres, Testcontainers and the full stack)
 - Node 22.12+ (24 LTS recommended) and pnpm 10.26 or later (CI and the image use 10; 11 and 12 work too): `npm install -g pnpm@10`

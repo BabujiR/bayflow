@@ -23,7 +23,7 @@ x-logging: &logging
 x-service: &service
   restart: unless-stopped
   <<: *logging
-  # The JVM sizes its heap from this (-XX:MaxRAMPercentage=75 in each Dockerfile).
+  # The JVM sizes its heap from this: 60 % (JAVA_TOOL_OPTIONS in each Dockerfile; set it here to change).
   mem_limit: 768m
   depends_on:
     postgres:

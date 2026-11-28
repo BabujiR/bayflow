@@ -13,6 +13,11 @@ spring:
     # Runtime login: not the table owner, so row-level security applies (RowLevelSecurityGuard checks).
     username: ${BAYFLOW_DB_USER:bayflow_app}
     password: ${BAYFLOW_DB_PASSWORD:bayflow_app}
+    hikari:
+      # Four services share one Postgres on a small VM: a pool each, sized to its load.
+      maximum-pool-size: ${BAYFLOW_DB_POOL_SIZE:8}
+      # Fail fast when the pool is exhausted, instead of piling up waiting requests.
+      connection-timeout: 5000
   jpa:
     open-in-view: false
     hibernate:
@@ -22,6 +27,13 @@ spring:
         default_schema: bayflow
         # Multi-tenancy: fills and filters tenant_id on every @TenantId entity (fails closed).
         tenant_identifier_resolver: com.bayflow.security.BayflowTenantResolver
+        # Lazy collections of many rows are loaded 50 parents at a time (no query per row), and
+        # inserts and updates go to the database in batches.
+        default_batch_fetch_size: 50
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
   flyway:
     # Shared schema "bayflow"; this service owns the apt_* tables and its own history table.
     schemas: bayflow
