@@ -170,6 +170,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/review-requests/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Public: the customer's stop link; no more review requests from this workshop
+         * @description 404 review-link-invalid for an unknown token. Repeats are harmless.
+         */
+        post: operations["stop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/quickbooks/connect": {
         parameters: {
             query?: never;
@@ -489,6 +509,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/{id}/review-request/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for a Google review now (paid invoices; needs the location's review link)
+         * @description 409 invoice-not-paid, review-already-requested, review-opted-out or no-review-link; 400 no-email-address.
+         */
+        post: operations["send_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/review-request/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Don't send the scheduled review request (409 review-not-scheduled) */
+        post: operations["cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invoices/{id}/quickbooks": {
         parameters: {
             query?: never;
@@ -502,7 +559,7 @@ export interface paths {
          * Send an issued invoice to QuickBooks, with the payments not sent yet (and its void)
          * @description A QuickBooks error is kept on the invoice and returned in quickbooks.error.
          */
-        post: operations["send_1"];
+        post: operations["send_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -987,6 +1044,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/{id}/review-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The invoice's Google review request: NONE, SCHEDULED, SENT, SKIPPED (with why) or CANCELLED */
+        get: operations["status_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invoices/export": {
         parameters: {
             query?: never;
@@ -1282,6 +1356,12 @@ export interface components {
         ActiveRequest: {
             active: boolean;
         };
+        StopRequest: {
+            token: string;
+        };
+        Stopped: {
+            shopName?: string;
+        };
         ConnectRequest: {
             returnUrl: string;
         };
@@ -1483,6 +1563,16 @@ export interface components {
         };
         VoidRequest: {
             reason: string;
+        };
+        ReviewRequestStatus: {
+            status?: string;
+            /** Format: date-time */
+            dueAt?: string;
+            /** Format: date-time */
+            sentAt?: string;
+            sentTo?: string;
+            sentBy?: string;
+            reason?: string;
         };
         PaymentRequest: {
             /** @enum {string} */
@@ -2392,6 +2482,30 @@ export interface operations {
             };
         };
     };
+    stop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StopRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Stopped"];
+                };
+            };
+        };
+    };
     connect: {
         parameters: {
             query?: never;
@@ -2875,6 +2989,50 @@ export interface operations {
         };
     };
     send_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReviewRequestStatus"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReviewRequestStatus"];
+                };
+            };
+        };
+    };
+    send_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3544,6 +3702,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PageResponseInvoiceSummary"];
+                };
+            };
+        };
+    };
+    status_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReviewRequestStatus"];
                 };
             };
         };
